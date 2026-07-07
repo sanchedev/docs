@@ -1,5 +1,5 @@
 ---
-title: "Collision Detection in Fraxel — Shapes & Events"
+title: "Fraxel Collision Detection — Shapes, Groups & Events"
 sidebarTitle: "Collision"
 description: "Set up colliders with rectangle, circle, and capsule shapes, filter with groups, respond to colliderEntered events, and use RayCast for detection."
 ---
@@ -106,6 +106,7 @@ export function Projectile() {
 
 ```tsx
 import { useCollider, useComputed } from 'fraxel/hooks'
+import { shapes } from 'fraxel'
 
 function Player() {
   const { ref, colliding, other } = useCollider()
@@ -132,6 +133,8 @@ function Player() {
 A collider's position in the scene tree determines where it tests for overlaps. Parent it to a `<transform>` or `<sprite>` to follow the visual object.
 
 ```tsx
+import { shapes } from 'fraxel'
+
 function Enemy() {
   return (
     <transform position={[120, 60]}>
@@ -152,7 +155,7 @@ function Enemy() {
 `<ray-cast>` projects an invisible ray from the node's position in the specified direction and detects colliders that intersect it. Use it for line-of-sight checks, ground detection, or laser beams.
 
 ```tsx
-import { useNode, useEvent } from 'fraxel/hooks'
+import { useNode, useEvent, useSignal } from 'fraxel/hooks'
 import { PrimaryNode } from 'fraxel'
 
 function EnemyAI() {
@@ -208,6 +211,8 @@ function GroundDetector() {
 To add collision **response** (pushing objects apart, bouncing), wrap your collider in a `<rigid-body>`. The physics system uses the same collider shapes and group filtering.
 
 ```tsx
+import { shapes } from 'fraxel'
+
 function Ball() {
   return (
     <rigid-body position={[96, 10]} mass={1} bounce={0.7} useGravity>

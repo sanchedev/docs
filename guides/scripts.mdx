@@ -1,7 +1,7 @@
 ---
-title: "FraxelScript: Logic Outside JSX"
+title: "FraxelScript: Separating Game Logic from Rendering"
 sidebarTitle: "Scripts"
-description: "Separate game logic from rendering in Fraxel using FraxelScript. Learn setup(), connect(), this.me, and how to call script methods from other components."
+description: "Separate game logic from JSX in Fraxel using FraxelScript. Learn setup(), connect(), this.me, and how to call script methods from other components."
 ---
 
 As your game grows, mixing rendering and logic inside the same JSX component becomes unwieldy. A 200-line component handling physics, AI, health, and animations is hard to read and harder to test. Fraxel's `FraxelScript` class is the answer: attach a script to any node and move the logic into a clean, class-based object that lives outside the JSX tree.
@@ -128,22 +128,43 @@ Available events depend on the node type. Common ones include `started`, `destro
 
 ## Calling Script Methods from Other Components
 
-Use `useScript` to retrieve the script attached to a node reference, then call its public methods:
+There are two ways to call methods on a script from another component.
+
+**`useScript(ref)`** — call it at the top level of a component (like all hooks) with a `NodeReference` you already hold. It returns a `SignalGetter` that resolves once the node is ready:
+
+```tsx HUD.tsx
+import { useNode, useScript } from 'fraxel/hooks'
+import { PrimaryNode } from 'fraxel'
+
+function HUD({ playerRef }: { playerRef: NodeReference<PrimaryNode.Transform> }) {
+  // useScript must be called at the top level, not inside a callback
+  const playerScript = useScript<PlayerScript>(playerRef)
+
+  return (
+    <transform>
+      <text
+        text={() => `HP: ${playerScript()?.health ?? 100}`}
+        style={{ fontSize: 14, foregroundColor: '#fff' }}
+      />
+    </transform>
+  )
+}
+```
+
+**`getParentScript(node, ScriptClass)`** — use this inside event callbacks when you encounter a node dynamically and want to retrieve its parent's script. It walks up `node.parent.script` and returns it only if it matches the given class:
 
 ```tsx Projectile.tsx
-import { useNode, useEvent, useScript } from 'fraxel/hooks'
-import { PrimaryNode, shapes } from 'fraxel'
+import { useNode, useEvent } from 'fraxel/hooks'
+import { PrimaryNode, shapes, getParentScript } from 'fraxel'
+import { EnemyScript } from './EnemyScript'
 
 function Projectile() {
   const collider = useNode(PrimaryNode.Collider)
 
   useEvent(collider, 'colliderEntered', (other) => {
-    // Get the script on the enemy's parent transform
-    const enemyTransform = other.node.parent
-    if (enemyTransform) {
-      const script = useScript<EnemyScript>(enemyTransform)
-      script?.applyDamage(30)
-    }
+    // getParentScript is a plain function, safe to call in callbacks
+    const script = getParentScript(other.node, EnemyScript)
+    script?.applyDamage(30)
   })
 
   return (

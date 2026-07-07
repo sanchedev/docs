@@ -1,5 +1,5 @@
 ---
-title: "Game & Scene Components — Fraxel JSX API"
+title: "Game & Scene JSX Components — Fraxel API Reference"
 sidebarTitle: "Game & Scene"
 description: "Reference for Fraxel's JSX bootstrap components: createGame, the <Game> component, <Scene> component, SceneComponent type, and GameControls."
 ---
@@ -13,7 +13,7 @@ description: "Reference for Fraxel's JSX bootstrap components: createGame, the <
 Bootstraps the entire Fraxel runtime from a `<Game>` JSX tree and returns `GameControls` for lifecycle management.
 
 ```ts
-import { createGame } from 'fraxel'
+import { createGame } from 'fraxel/jsx'
 
 createGame(jsx: Fraxel.Node, root: HTMLElement): GameControls
 ```
@@ -33,9 +33,8 @@ createGame(jsx: Fraxel.Node, root: HTMLElement): GameControls
 3. Calls `Game.sceneManager.setScene(defaultScene)` to load the first scene.
 4. Returns a `GameControls` object.
 
-```ts
-import { createGame } from 'fraxel'
-import { Game, Scene } from 'fraxel/jsx'
+```tsx
+import { createGame, Game, Scene } from 'fraxel/jsx'
 
 const game = createGame(
   <Game width={320} height={180} defaultScene="main">

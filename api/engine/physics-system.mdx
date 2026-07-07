@@ -1,5 +1,5 @@
 ---
-title: "PhysicsSystem — Fraxel Engine API Reference"
+title: "PhysicsSystem and Shapes — Fraxel Engine API Reference"
 sidebarTitle: "PhysicsSystem"
 description: "Reference for Fraxel's PhysicsSystem: gravity configuration, collision shape factories, and the spatial-hash broadphase CollisionSystem."
 ---
@@ -195,7 +195,7 @@ function describeShape(shape: Shape): string {
 ## Complete Physics Example
 
 ```tsx
-import { useRigidBody, useAction, useActionAxis } from 'fraxel/hooks'
+import { useRigidBody, useAction, useActionAxis, useEffect } from 'fraxel/hooks'
 import { PhysicsSystem, Input, shapes, vector2 } from 'fraxel'
 
 // Custom gravity for a floaty platformer

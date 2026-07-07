@@ -1,5 +1,5 @@
 ---
-title: "Audio Playback in Fraxel — Sounds & Music"
+title: "Fraxel Audio System — Loading Sounds & Music Playback"
 sidebarTitle: "Audio"
 description: "Load sounds with loadSound, play them with the audio-player node, handle browser autoplay policy, and preload audio assets with loadBatch."
 ---
@@ -28,8 +28,7 @@ Place an `<audio-player>` node anywhere in your scene tree to enable sound playb
 ```tsx src/components/Gun.tsx
 import { useNode, useEvent } from 'fraxel/hooks'
 import { PrimaryNode } from 'fraxel'
-import { SHOOT_SFX } from '../assets'
-import { GUN_TEX } from '../assets'
+import { SHOOT_SFX, GUN_TEX } from '../assets'
 
 export function Gun() {
   const audio    = useNode(PrimaryNode.AudioPlayer)
@@ -127,7 +126,7 @@ export function StartScreen() {
 ```
 
 <Note>
-  If your game starts with a title screen or any other click-to-start flow, the user gesture to dismiss it also satisfies the autoplay policy. You only need `ctx.resume()` if you want audio to play before the first interaction.
+  If your game starts with a title screen or any other click-to-start flow, the user gesture to dismiss it also satisfies the autoplay policy. Call `ctx.resume()` inside that gesture handler and audio will be ready to play as soon as the player enters the game.
 </Note>
 
 ## Reactive playback with `useAudio`
@@ -178,6 +177,8 @@ Batch loading is especially useful on the loading screen — you can display a p
 
 ```tsx src/main.tsx
 import { createGame, Game, Scene } from 'fraxel/jsx'
+import { PrimaryNode } from 'fraxel'
+import { useNode, useMount } from 'fraxel/hooks'
 import { loadBatch } from 'fraxel/assets'
 import { getAudioContext } from 'fraxel/audio'
 

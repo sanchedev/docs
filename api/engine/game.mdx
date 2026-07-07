@@ -1,5 +1,5 @@
 ---
-title: "Game — Fraxel Engine API Reference"
+title: "Game Class and GameControls — Fraxel Engine API Reference"
 sidebarTitle: "Game"
 description: "Reference for Fraxel's Game class and GameControls interface: setup, play, pause, destroy, scene management, and the tab-blur event."
 ---
@@ -31,9 +31,8 @@ createGame(jsx: Fraxel.Node, root: HTMLElement): GameControls
 - `MissingSceneError` — a child element is not `<Scene>`.
 - `InvalidSceneComponentError` — the scene component did not return exactly one root node.
 
-```ts
-import { createGame } from 'fraxel'
-import { Game, Scene } from 'fraxel/jsx'
+```tsx
+import { createGame, Game, Scene } from 'fraxel/jsx'
 
 const game = createGame(
   <Game width={320} height={180} defaultScene="main">

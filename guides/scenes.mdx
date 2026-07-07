@@ -8,45 +8,33 @@ A complete game is more than one screen. You need a main menu, a gameplay level,
 
 ## Defining Scenes
 
-Register scenes when you create your `Game` instance. Each scene is an object with a `load` method that returns (or resolves to) a JSX element:
+You define scenes declaratively when you call `createGame`. Pass a `<Game>` element containing one `<Scene>` element per scene, each with a unique `name` and a `component` function:
 
 ```tsx main.tsx
-import { Game } from 'fraxel'
+import { createGame, Game, Scene } from 'fraxel/jsx'
+import { loadTexture } from 'fraxel/assets'
 
-const canvas = document.getElementById('game') as HTMLCanvasElement
+const game = createGame(
+  <Game width={480} height={270} defaultScene="menu">
+    <Scene name="menu" component={() => <MainMenu />} />
+    <Scene name="level1" component={() => import('./scenes/level1.js')} />
+    <Scene name="gameover" component={() => <GameOver />} />
+  </Game>,
+  document.querySelector('#root')!,
+)
 
-const game = new Game(canvas, {
-  width: 480,
-  height: 270,
-})
-
-game.scenes.addScene('menu', {
-  load: () => <MainMenu />,
-})
-
-game.scenes.addScene('level1', {
-  load: async () => {
-    // Async load — assets can be loaded here
-    const [bg, player] = await loadBatchAsset('texture', [
-      '/assets/level1-bg.png',
-      '/assets/player.png',
-    ])
-    return <Level1 bg={bg} player={player} />
-  },
-})
-
-game.scenes.addScene('gameover', {
-  load: () => <GameOver />,
-})
-
-// Start with the menu
-await game.scenes.setScene('menu')
 game.play()
 ```
 
+The `defaultScene` prop on `<Game>` sets which scene loads first. Each `<Scene>` component prop can be:
+
+- A plain function returning JSX: `() => <MyScene />`
+- An async function returning JSX: `async () => { const t = await loadTexture(…); return <MyScene tex={t} /> }`
+- A dynamic import returning a module with a default export: `() => import('./scenes/level1.js')`
+
 ## Switching Scenes
 
-Use `useGame()` inside any component to access the `changeScene` method. Call it with the registered scene name to transition immediately:
+Use `useGame()` inside any component to access scene controls. Call `changeScene` with a registered scene name to transition:
 
 ```tsx MainMenu.tsx
 import { useGame } from 'fraxel/hooks'
@@ -72,11 +60,11 @@ function MainMenu() {
 }
 ```
 
-`changeScene` destroys the current scene's node tree before loading the new scene. Any signals, hooks, and event subscriptions in the old scene are cleaned up automatically.
+`changeScene` destroys the current scene's node tree before loading the new one. All signals, hooks, and event subscriptions in the old scene are cleaned up automatically.
 
 ## Preloading Scenes
 
-For fast scene transitions — especially when a scene involves heavy asset loading — preload it while the current scene is still running. `preloadScene` returns a function you call to activate the preloaded scene instantly:
+For fast scene transitions — especially when a scene involves heavy asset loading — preload it while the current scene is still running. `preloadScene` returns a `Promise` that resolves to an activation function you call to swap the scene instantly:
 
 ```tsx Level1.tsx
 import { useGame, useMount } from 'fraxel/hooks'
@@ -87,7 +75,7 @@ function Level1() {
 
   useMount(async () => {
     // Start loading level 2 in the background immediately
-    activateLevel2 = await game.scenes.preloadScene('level2')
+    activateLevel2 = await game.preloadScene('level2')
   })
 
   const onLevelComplete = () => {
@@ -104,14 +92,14 @@ function Level1() {
 ```
 
 <Note>
-  `preloadScene` runs the scene's `load` function in the background. The returned activation function swaps the scene without re-loading — the JSX tree is already built.
+  `preloadScene` runs the scene's component function in the background. The returned activation function swaps the scene without re-loading — the JSX tree is already built.
 </Note>
 
 ## `useGame` Hook
 
 `useGame` gives any component access to the top-level game controls:
 
-```tsx
+```tsx PauseButton.tsx
 import { useGame } from 'fraxel/hooks'
 
 function PauseButton() {
@@ -121,64 +109,60 @@ function PauseButton() {
     <sprite textureId={PAUSE_BTN}>
       <clickable
         size={[32, 32]}
-        onClick={() => {
-          if (game.isPlaying) {
-            game.pause()
-          } else {
-            game.play()
-          }
-        }}
+        onClick={() => game.pause()}
       />
     </sprite>
   )
 }
 ```
 
-| Method / Property | Description |
-|-------------------|-------------|
-| `game.changeScene(name)` | Destroy current scene and load a new one |
-| `game.scenes.preloadScene(name)` | Load a scene in the background, returns activation function |
+| Method | Description |
+|--------|-------------|
+| `game.changeScene(name)` | Destroy the current scene and load a new one |
+| `game.preloadScene(name)` | Load a scene in the background; returns a `Promise<() => void>` activation function |
 | `game.play()` | Start or resume the game loop |
 | `game.pause()` | Pause the game loop |
 | `game.destroy()` | Tear down the entire game (stops loop, removes all listeners) |
+| `game.getSize()` | Returns the canvas size as a `Vector2` |
 
 ## Per-Scene Asset Loading
 
-A scene's `load` function is the natural place for scene-specific asset loading. Because it supports `async/await`, you can load exactly what the scene needs before the JSX is returned:
+A scene's `component` function is the natural place for scene-specific asset loading. Because it supports `async/await`, you can load exactly what the scene needs before the JSX is returned:
 
-```tsx
-game.scenes.addScene('boss-fight', {
-  load: async () => {
-    const [bossTexture, bossMusic, arenaTexture] = await loadBatch(
-      [
-        () => loadTexture('/assets/boss.png'),
-        () => loadSound('/assets/boss-music.mp3'),
-        () => loadTexture('/assets/arena.png'),
-      ],
-      {
-        onProgress: (loaded, total) => {
-          console.log(`Loading boss fight: ${loaded}/${total}`)
-        },
-      },
-    )
+```tsx main.tsx
+import { createGame, Game, Scene } from 'fraxel/jsx'
+import { loadTexture, loadBatch } from 'fraxel/assets'
 
-    return <BossFight boss={bossTexture} music={bossMusic} arena={arenaTexture} />
-  },
-})
+const game = createGame(
+  <Game width={480} height={270} defaultScene="boss-fight">
+    <Scene
+      name="boss-fight"
+      component={async () => {
+        const [bossTexture, arenaTexture] = await loadBatch([
+          () => loadTexture('/assets/boss.png'),
+          () => loadTexture('/assets/arena.png'),
+        ])
+        return <BossFight boss={bossTexture} arena={arenaTexture} />
+      }}
+    />
+  </Game>,
+  document.querySelector('#root')!,
+)
+
+game.play()
 ```
 
 For memory management, unload scene-specific assets when leaving:
 
 ```tsx BossFight.tsx
 import { useMount } from 'fraxel/hooks'
-import { unloadTexture, unloadSound } from 'fraxel/assets'
+import { unloadTexture } from 'fraxel/assets'
 
-function BossFight({ boss, music, arena }: BossFightProps) {
+function BossFight({ boss, arena }: BossFightProps) {
   useMount(() => {
     // Return a cleanup function — runs when the scene node is destroyed
     return () => {
       unloadTexture(boss)
-      unloadSound(music)
       unloadTexture(arena)
     }
   })
@@ -192,54 +176,66 @@ function BossFight({ boss, music, arena }: BossFightProps) {
 <Tabs>
   <Tab title="Simple Scene">
     ```tsx
-    game.scenes.addScene('menu', {
-      load: () => <MainMenu />,
-    })
+    import { createGame, Game, Scene } from 'fraxel/jsx'
+
+    const game = createGame(
+      <Game width={480} height={270} defaultScene="menu">
+        <Scene name="menu" component={() => <MainMenu />} />
+      </Game>,
+      document.querySelector('#root')!,
+    )
     ```
   </Tab>
   <Tab title="Async Asset Loading">
     ```tsx
-    game.scenes.addScene('level1', {
-      load: async () => {
-        const bg = await loadTexture('/assets/bg.png')
-        return <Level1 bg={bg} />
-      },
-    })
+    import { createGame, Game, Scene } from 'fraxel/jsx'
+    import { loadTexture } from 'fraxel/assets'
+
+    const game = createGame(
+      <Game width={480} height={270} defaultScene="level1">
+        <Scene
+          name="level1"
+          component={async () => {
+            const bg = await loadTexture('/assets/bg.png')
+            return <Level1 bg={bg} />
+          }}
+        />
+      </Game>,
+      document.querySelector('#root')!,
+    )
     ```
   </Tab>
-  <Tab title="With Progress Bar">
+  <Tab title="Lazy Import">
     ```tsx
-    game.scenes.addScene('level2', {
-      load: async () => {
-        const assets = await loadBatch(
-          [
-            () => loadTexture('/assets/l2-bg.png'),
-            () => loadTexture('/assets/l2-enemies.png'),
-            () => loadSound('/assets/l2-music.mp3'),
-          ],
-          { onProgress: updateProgressBar },
-        )
-        return <Level2 assets={assets} />
-      },
-    })
+    import { createGame, Game, Scene } from 'fraxel/jsx'
+
+    // The module at './scenes/level2.js' must export a default component
+    const game = createGame(
+      <Game width={480} height={270} defaultScene="level2">
+        <Scene name="level2" component={() => import('./scenes/level2.js')} />
+      </Game>,
+      document.querySelector('#root')!,
+    )
     ```
   </Tab>
 </Tabs>
 
 ## Loading Screen Pattern
 
-Show a loading screen while the next scene loads by switching to a lightweight loading scene first, then transitioning to the heavy scene once it's ready:
+Show a loading screen while the next scene loads by switching to a lightweight loading scene first, then transitioning once the heavy scene is ready:
 
-```tsx
-game.scenes.addScene('loading', { load: () => <LoadingScreen /> })
+```tsx main.tsx
+import { createGame, Game, Scene } from 'fraxel/jsx'
 
-game.scenes.addScene('level3', {
-  load: async () => {
-    // This runs while LoadingScreen is visible
-    await loadBatch([/* heavy assets */])
-    return <Level3 />
-  },
-})
+const game = createGame(
+  <Game width={480} height={270} defaultScene="loading">
+    <Scene name="loading" component={() => <LoadingScreen />} />
+    <Scene name="level3" component={() => import('./scenes/level3.js')} />
+  </Game>,
+  document.querySelector('#root')!,
+)
+
+game.play()
 ```
 
 ```tsx LoadingScreen.tsx
@@ -250,7 +246,7 @@ function LoadingScreen() {
 
   useMount(async () => {
     // Begin loading the real scene, then switch when ready
-    const activate = await game.scenes.preloadScene('level3')
+    const activate = await game.preloadScene('level3')
     activate()
   })
 

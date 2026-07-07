@@ -1,7 +1,7 @@
 ---
-title: "<audio-player> — Audio playback node"
+title: "<audio-player> — Sound and music Web Audio playback node"
 sidebarTitle: "<audio-player>"
-description: "Play decoded audio buffers loaded with loadSound(). Supports looping, volume, playback rate, pause/resume, and persistUntilEnd for one-shot sounds on ephemeral nodes."
+description: "Play decoded audio buffers loaded with loadSound(). Supports looping, volume, playback rate, pause/resume, and persistUntilEnd for one-shot sounds."
 ---
 
 Use `<audio-player>` to play sounds and music loaded with `loadSound()`. It wraps the Web Audio API's `AudioBufferSourceNode` and `GainNode`, giving you volume control and playback rate adjustment with low overhead. Call `play()`, `pause()`, and `stop()` imperatively, or drive playback from events. For components that destroy themselves immediately after triggering a sound, set `persistUntilEnd` to keep the audio node alive until playback finishes.
@@ -22,8 +22,8 @@ function Gun() {
   })
 
   return (
-    <sprite ref={clickable} textureId={GUN_TEX}>
-      <clickable size={[48, 24]} />
+    <sprite textureId={GUN_TEX}>
+      <clickable ref={clickable} size={[48, 24]} />
       <audio-player ref={audio} soundId={SHOOT_SFX} volume={0.8} />
     </sprite>
   )
@@ -102,6 +102,7 @@ function Gun() {
 | `ended` | `() => void` | Fires when non-looping playback reaches the end naturally. Does not fire on `stop()` or `pause()`. |
 | `error` | `(err: Error) => void` | Fires if playback fails (e.g. decoding error, missing buffer). |
 | `started` | `() => void` | Fires once after the node finishes `start()`. |
+| `updated` | `(delta: number) => void` | Fires every frame during the update cycle. |
 | `destroyed` | `() => void` | Fires on removal (after any `persistUntilEnd` delay). |
 
 <CodeGroup>
@@ -109,6 +110,7 @@ function Gun() {
 ```tsx Background music with auto-resume
 import { useNode, useMount } from 'fraxel/hooks'
 import { PrimaryNode } from 'fraxel'
+import { loadSound } from 'fraxel/assets'
 import { getAudioContext } from 'fraxel/audio'
 
 const BG_MUSIC = await loadSound('/assets/music.mp3')
@@ -128,6 +130,10 @@ function MusicPlayer() {
 ```
 
 ```tsx Pitch-shifted variants
+import { useNode, useMount } from 'fraxel/hooks'
+import { PrimaryNode } from 'fraxel'
+import { loadSound } from 'fraxel/assets'
+
 const HIT_SFX = await loadSound('/assets/hit.mp3')
 
 function randomHitSound() {

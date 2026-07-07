@@ -1,17 +1,18 @@
 ---
-title: "<camera> — Viewport controller node"
+title: "<camera> — Viewport controller and coordinate node"
 sidebarTitle: "<camera>"
-description: "Control what part of the world is visible. Supports zoom, smooth position easing, screen-space offset, world bounds limits, screen shake, and coordinate conversion."
+description: "Control what part of the world is visible. Supports zoom, smooth easing, screen-space offset, world bounds limits, screen shake, and coordinate conversion."
 ---
 
 Use `<camera>` to control the game viewport. Mark it as `current` to make it the active camera — only one camera is active at a time. Place it as a child of a moving node (e.g. a player's `<rigid-body>`) and set `smoothing` to ease the view into position for a cinematic feel. Use `limit` to prevent the camera from scrolling outside the level bounds.
 
 ```tsx
 import { useNode } from 'fraxel/hooks'
-import { PrimaryNode, bounds } from 'fraxel'
+import { PrimaryNode, bounds, shapes } from 'fraxel'
 
 function GameScene() {
   const camera = useNode(PrimaryNode.Camera)
+  const playerBody = useNode(PrimaryNode.RigidBody)
 
   return (
     <transform>
@@ -105,7 +106,7 @@ function GameScene() {
 
 ```tsx Screen shake on hit
 import { useNode, useEvent } from 'fraxel/hooks'
-import { PrimaryNode } from 'fraxel'
+import { PrimaryNode, shapes } from 'fraxel'
 
 function Arena() {
   const camera = useNode(PrimaryNode.Camera)
@@ -125,7 +126,7 @@ function Arena() {
 ```
 
 ```tsx Convert pointer to world position
-import { Camera } from 'fraxel'
+import { Camera, Vector2 } from 'fraxel'
 
 function onPointerDown(screenPos: Vector2) {
   const cam = Camera.getCurrent()

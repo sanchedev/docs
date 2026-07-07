@@ -1,7 +1,7 @@
 ---
-title: "Derived Hooks — Fraxel Game Engine API"
+title: "Derived Hooks API Reference — Fraxel Game Engine"
 sidebarTitle: "Derived Hooks"
-description: "Reference for Fraxel's derived hooks: useCondition, useMatch, useWhen, useClickable, useTimer, useRayCast, useCollider, useAnimation, useAudio, useRigidBody."
+description: "Reference for Fraxel's derived hooks: useCondition, useMatch, useWhen, useClickable, useTimer, useRayCast, useCollider, useAnimation, and useRigidBody."
 ---
 
 Derived hooks are composed from core hooks to provide domain-specific, higher-level abstractions. They do not introduce unique engine functionality — they simplify common patterns that would otherwise require several lines of `useNode` + `useEvent` + `useSignal`. Each derived hook that targets a specific node type accepts an optional `NodeReference` parameter; if you omit it, the hook creates a fresh reference internally.
@@ -54,7 +54,7 @@ function Button() {
 }
 ```
 ```tsx Ray cast detection
-import { useNode, useCondition } from 'fraxel/hooks'
+import { useNode, useCondition, useEffect } from 'fraxel/hooks'
 import { PrimaryNode } from 'fraxel'
 
 function EnemyScanner() {
@@ -144,7 +144,8 @@ useWhen<T>(
 **Returns** `SignalGetter<T>`.
 
 ```tsx
-import { useCondition, useWhen } from 'fraxel/hooks'
+import { useCondition, useWhen, useNode } from 'fraxel/hooks'
+import { PrimaryNode } from 'fraxel'
 
 function InteractiveSprite() {
   const clickable = useNode(PrimaryNode.Clickable)
@@ -235,7 +236,7 @@ useTimer(ref?: NodeReference<PrimaryNode.Timer>): {
 | `stop()` | `() => void` | Stop and reset the timer to `0`. |
 
 ```tsx
-import { useTimer } from 'fraxel/hooks'
+import { useTimer, useMount } from 'fraxel/hooks'
 import { shapes } from 'fraxel'
 
 function CooldownIndicator() {
@@ -282,7 +283,7 @@ useRayCast(ref?: NodeReference<PrimaryNode.RayCast>): {
 | `collider` | `SignalGetter<Collider \| null>` | The first collider currently detected, or `null`. |
 
 ```tsx
-import { useRayCast, useComputed } from 'fraxel/hooks'
+import { useRayCast, useComputed, useEffect } from 'fraxel/hooks'
 
 function Peashooter() {
   const { ref, detected, collider } = useRayCast()
@@ -332,7 +333,7 @@ useCollider(ref?: NodeReference<PrimaryNode.Collider>): {
 | `detectedColliders` | `SignalGetter<Set<Collider>>` | The live set of all overlapping colliders. |
 
 ```tsx
-import { useCollider, useComputed } from 'fraxel/hooks'
+import { useCollider, useEffect } from 'fraxel/hooks'
 import { shapes } from 'fraxel'
 
 function DamageZone() {
@@ -392,7 +393,7 @@ useAnimation(ref?: NodeReference<PrimaryNode.AnimationPlayer>): {
 | `setNext(name?)` | `(name?: string) => void` | Queue an animation to play after the current one ends. |
 
 ```tsx
-import { useAnimation, useActionAxis } from 'fraxel/hooks'
+import { useAnimation, useActionAxis, useEffect } from 'fraxel/hooks'
 import { Input } from 'fraxel'
 
 const Left  = Input.createAction({ key: 'a' })
@@ -496,7 +497,7 @@ useRigidBody(ref?: NodeReference<PrimaryNode.RigidBody>): {
 | `setVelocity(v)` | `(VectorLike) => void` | Override the current velocity. |
 
 ```tsx
-import { useRigidBody } from 'fraxel/hooks'
+import { useRigidBody, useAction, useActionAxis, useEffect } from 'fraxel/hooks'
 import { Input, shapes } from 'fraxel'
 
 const Jump  = Input.createAction({ key: ' ' })

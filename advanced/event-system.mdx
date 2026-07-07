@@ -1,5 +1,5 @@
 ---
-title: "Fraxel Event System Internals"
+title: "Fraxel Event System: Lifecycle Events and Cross-Node Signals"
 sidebarTitle: "Event System"
 description: "How Event<T> works, node lifecycle events, the onXxx naming convention, useEvent auto-cleanup, FraxelScript.connect(), and cross-component communication."
 ---
@@ -39,14 +39,14 @@ getEventName('destroy')          // → 'onDestroy'
 
 The transformation is `'on' + capitalize(baseName)`. This means:
 
-- The **`Event` instance** is accessed directly as `node.started`, `node.updated`, etc.
-- The **JSX prop** that auto-subscribes on render is the capitalized form: `onStarted`, `onUpdated`, etc.
+- The **`Event` instance** is accessed directly on the node object as `node.started`, `node.updated`, etc.
+- The **JSX prop** that auto-subscribes on render is derived from the `baseName`, not the property name. Because `started.baseName` is `'start'`, the JSX prop is `onStart`. Similarly: `updated` → `onUpdate`, `drawed` → `onDraw`, `destroyed` → `onDestroy`.
 
 `applyIntrinsicAttributesToNode` performs this mapping at scene construction. It scans all own properties of the node for `Event` instances, builds a `Map<string, Event>` keyed by `getEventName(baseName)`, then iterates the JSX props and calls `event.on(fn)` for any matching function-valued prop.
 
 ```tsx
 // These are equivalent:
-<transform onStarted={() => console.log('started')} />
+<transform onStart={() => console.log('started')} />
 
 // vs. manual subscription:
 useMount(() => {

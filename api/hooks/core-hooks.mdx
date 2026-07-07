@@ -1,7 +1,7 @@
 ---
-title: "Core Hooks — Fraxel Game Engine API"
+title: "Core Hooks API Reference — Fraxel Game Engine API"
 sidebarTitle: "Core Hooks"
-description: "Complete reference for Fraxel's built-in hooks: useSignal, useEffect, useNode, useEvent, useMount, useSpawn, useGame, and more."
+description: "Complete reference for Fraxel's core hooks: useSignal, useComputed, useEffect, useNode, useEvent, useMount, useSpawn, useGame, useAction, and more."
 ---
 
 Core hooks are the fundamental building blocks of every Fraxel component. They wire reactive state, node references, event subscriptions, and game controls into your JSX components. All hooks must be called at the top level of a component function — never inside conditionals or loops.
@@ -201,7 +201,7 @@ useEvent<N extends PrimaryNode, K extends keyof Events<N>>(
 
 ```tsx
 import { useNode, useEvent } from 'fraxel/hooks'
-import { PrimaryNode } from 'fraxel'
+import { Input, PrimaryNode } from 'fraxel'
 
 function Player() {
   const body = useNode(PrimaryNode.RigidBody)
@@ -342,7 +342,7 @@ useChild<T extends PrimaryNode>(
 **Returns** `NodeReference<T>` — populated after the node starts.
 
 ```tsx
-import { useChild } from 'fraxel/hooks'
+import { useChild, useMount } from 'fraxel/hooks'
 import { PrimaryNode } from 'fraxel'
 
 function CharacterRig() {
@@ -381,7 +381,7 @@ useScript<T extends FraxelScript<PrimaryNode>>(
 **Returns** `SignalGetter<T | undefined>` — `undefined` before the node mounts, the script instance after.
 
 ```tsx
-import { useNode, useScript } from 'fraxel/hooks'
+import { useNode, useScript, useEffect } from 'fraxel/hooks'
 import { PrimaryNode } from 'fraxel'
 import { PlayerScript } from './player-script'
 
@@ -425,8 +425,8 @@ useAction(action: symbol): {
 | `justUnpressed` | `SignalGetter<boolean>` | `true` only on the first frame the key is released. |
 
 ```tsx
-import { Input } from 'fraxel'
-import { useAction, useEffect } from 'fraxel/hooks'
+import { Input, PrimaryNode } from 'fraxel'
+import { useAction, useEffect, useNode } from 'fraxel/hooks'
 
 const Jump = Input.createAction({ key: ' ' })
 
@@ -510,7 +510,8 @@ useTrigger<T extends any[]>(trigger: Trigger<T>, fn: (...args: T) => void): void
 | `trigger.emit(...args)` | Call all connected listeners with the given arguments. |
 
 ```tsx
-import { createTrigger, useTrigger } from 'fraxel/hooks'
+import { createTrigger, useTrigger, useCollider, useEffect } from 'fraxel/hooks'
+import { shapes } from 'fraxel'
 
 // Declare at module level so it is shared between components
 const onEnemyKilled = createTrigger<[enemyId: number]>()
@@ -596,7 +597,8 @@ useRef<T>(value: T): Reference<T>
 **Returns** `Reference<T>` — an object with a single mutable `current` property.
 
 ```tsx
-import { useRef } from 'fraxel/hooks'
+import { useRef, useCollider, useEffect } from 'fraxel/hooks'
+import { shapes } from 'fraxel'
 
 function Projectile() {
   const bounces = useRef(0)

@@ -1,16 +1,14 @@
 ---
-title: "Sprite Filters and Visual Effects in Fraxel"
+title: "Sprite Filters: Visual Effects for Sprites in Fraxel"
 sidebarTitle: "Filters"
-description: "Apply visual filters to sprites in Fraxel — brightness, grayscale, modulate tint, contrast, saturation, hue rotation, invert, and opacity. Use signals reactively."
+description: "Apply visual filters to sprites in Fraxel: brightness, grayscale, modulate, contrast, saturate, hueRotate, invert, and opacity. All accept signal getters."
 ---
 
 Visual feedback is a core part of game feel. A character flashing white when they take a hit, an enemy going gray when they die, a power-up glowing brighter as the player approaches — these effects communicate state without requiring extra artwork. Fraxel's sprite filter system gives you eight CSS-inspired filter properties directly on the `<sprite>` node, all reactive and composable.
 
 ## How Filters Work
 
-Filters are applied via the canvas `ctx.filter` property before each draw call, and are reset afterwards so they don't bleed into other nodes. The `modulate` tint uses `globalCompositeOperation: 'multiply'` for color multiplication over the drawn pixels.
-
-Because filters are per-node props, you can animate them with signals or tweens without any extra setup.
+Filters are per-node props on `<sprite>`, applied during each draw call and reset automatically so they don't bleed into other nodes. Because they're standard props, you can animate them with signals or tweens without any extra setup.
 
 ## All Filter Props
 
@@ -173,20 +171,23 @@ Combine multiple filters for a richer effect:
 Alternate `opacity` between `0` and `1` rapidly to indicate temporary invincibility after taking damage:
 
 ```tsx
-import { useSignal, useEffect } from 'fraxel/hooks'
+import { useSignal, useRef, useEffect } from 'fraxel/hooks'
 
 function Player() {
   const [invincible, setInvincible] = useSignal(false)
   const [opacity, setOpacity] = useSignal(1)
+  const flickerRef = useRef(1)
 
   useEffect(() => {
     if (!invincible()) {
       setOpacity(1)
+      flickerRef.current = 1
       return
     }
     // Toggle every 100ms using a timer
     const interval = setInterval(() => {
-      setOpacity((prev) => (prev === 1 ? 0 : 1))
+      flickerRef.current = flickerRef.current === 1 ? 0 : 1
+      setOpacity(flickerRef.current)
     }, 100)
     return () => clearInterval(interval)
   })

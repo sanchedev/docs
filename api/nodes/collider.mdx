@@ -1,7 +1,7 @@
 ---
-title: "<collider> — Collision detection node"
+title: "<collider> — Shape-based collision detection node"
 sidebarTitle: "<collider>"
-description: "Detect overlaps between game objects using rectangle, circle, or capsule shapes. Filter interactions with collision groups and react to enter/stay/exit events."
+description: "Detect overlaps between game objects using rectangle, circle, or capsule shapes. Filter by collision groups and react to enter/stay/exit events."
 ---
 
 Use `<collider>` to give a game object a physical presence in the collision system. A collider has a `shape` (rectangle, circle, or capsule), belongs to one or more named `group`s, and responds to colliders whose groups match its `collidesWith` list. Events fire on **both** colliders when an overlap begins, persists, or ends. The collider must be a descendant of a node that has a `position` (any `Node2D` subtype).
@@ -105,6 +105,9 @@ Create shapes with the `shapes` factory imported from `'fraxel'`:
 <CodeGroup>
 
 ```tsx Collect a coin
+import { useNode, useEvent } from 'fraxel/hooks'
+import { PrimaryNode, shapes } from 'fraxel'
+
 function Coin() {
   const col = useNode(PrimaryNode.Collider)
 
@@ -130,6 +133,8 @@ function Coin() {
 ```
 
 ```tsx Compound shape (body + head)
+import { shapes } from 'fraxel'
+
 function Character() {
   return (
     <rigid-body position={[100, 50]} mass={1}>
@@ -154,7 +159,7 @@ function Character() {
 <Note>
   `group` and `collidesWith` are **immutable after construction** — the sets are
   read-only. If you need dynamic filtering, consider destroying and re-creating
-  the collider, or use the `disabled` pattern with a `<clickable>` analogy.
+  the collider with different group values.
 </Note>
 
 <Tip>

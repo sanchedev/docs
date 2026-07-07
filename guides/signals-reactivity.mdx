@@ -1,7 +1,7 @@
 ---
-title: "Signals and Reactivity in Fraxel"
+title: "Signals and Reactivity in Fraxel: The Complete Guide"
 sidebarTitle: "Signals"
-description: "Understand Fraxel's reactivity model: useSignal, useComputed, useEffect, auto-computed JSX props, the Signal class, clearSubs, useMatch, and useWhen patterns."
+description: "Understand Fraxel's reactivity model: useSignal, useComputed, useEffect, auto-computed JSX props, the Signal class, and useMatch and useWhen patterns."
 ---
 
 Fraxel's rendering model is reactive: instead of re-running your entire component function on every frame, only the specific node properties that depend on changed signals are updated. Understanding how signals, computed values, and effects work together gives you precise control over when and how your game responds to changing state.
@@ -174,7 +174,7 @@ When a signal's owner is destroyed and no more notifications should fire, call `
 import { Signal } from 'fraxel'
 
 const health = new Signal(100)
-const sub = health.sub((val) => console.log('Health:', val))
+health.sub((val) => console.log('Health:', val))
 
 health.value = 50 // logs: "Health: 50"
 

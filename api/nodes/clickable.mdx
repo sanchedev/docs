@@ -1,7 +1,7 @@
 ---
-title: "<clickable> — Pointer interaction area node"
+title: "<clickable> — Rectangular pointer interaction node"
 sidebarTitle: "<clickable>"
-description: "Detect mouse clicks, hover enter/exit, and per-frame mouseOver events within a rectangular hit area. Use with onClick, onMouseEnter, and onMouseExit prop shortcuts."
+description: "Detect clicks, hover enter/exit, and per-frame mouseOver events within a rectangular hit area. Use onClick, onMouseEnter, and onMouseExit prop shortcuts."
 ---
 
 Use `<clickable>` to add pointer interaction to any game object. It performs hit-testing against a rectangular area each frame and emits events when the pointer enters, exits, or clicks within that area. There is no default size — `size` is required. The `disabled` prop suppresses all events without removing the node.
@@ -69,6 +69,11 @@ function MenuButton() {
 
 <ParamField path="onMouseExit" type="() => void">
   Shortcut prop — registers a `mouseExited` event handler inline.
+</ParamField>
+
+<ParamField path="onMouseOver" type="(localPos: Vector2) => void">
+  Shortcut prop — registers a `mouseOver` event handler inline. Fires every
+  frame while the pointer is inside the hit area.
 </ParamField>
 
 <ParamField path="ref" type="NodeReference<PrimaryNode.Clickable>">

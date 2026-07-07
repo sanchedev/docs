@@ -1,5 +1,5 @@
 ---
-title: "Fraxel JSX Runtime Internals"
+title: "Fraxel JSX Runtime: Elements, Nodes, and No Virtual DOM"
 sidebarTitle: "JSX Runtime"
 description: "How jsxImportSource wires up, how FraxelElement is created, intrinsic element mapping, function component resolution, and why there's no Virtual DOM."
 ---
@@ -111,7 +111,7 @@ function renderIntrinsicElement(nodeName, options) {
 
 Children are resolved recursively **before** the parent node is constructed, so the parent constructor receives fully-built `Node` instances.
 
-`applyIntrinsicAttributesToNode` then wires JSX event props (like `onStarted`, `onUpdated`) to the node's `Event` instances by scanning all own properties for `Event` objects and matching them to prop keys via `getEventName`.
+`applyIntrinsicAttributesToNode` then wires JSX event props (like `onStart`, `onUpdate`) to the node's `Event` instances by scanning all own properties for `Event` objects and matching them to prop keys via `getEventName`.
 
 ## Function Components
 

@@ -1,5 +1,5 @@
 ---
-title: "List & Fragment Components — Fraxel JSX API"
+title: "List & Fragment JSX Components — Fraxel API Reference"
 sidebarTitle: "List & Fragment"
 description: "Reference for Fraxel's List component (keyed reactive array rendering) and Fragment (zero-overhead child grouping without a wrapper node)."
 ---
@@ -103,7 +103,7 @@ Combine `<List>` with `useSignal` and array spread to add or remove items reacti
 
 ```tsx
 import { List } from 'fraxel/jsx'
-import { useSignal, useGame } from 'fraxel/hooks'
+import { useSignal, useAction, useEffect } from 'fraxel/hooks'
 import { Input } from 'fraxel'
 
 let nextId = 0

@@ -1,7 +1,7 @@
 ---
-title: "Input — Fraxel Engine API Reference"
+title: "Input System API — Fraxel Game Engine API Reference"
 sidebarTitle: "Input"
-description: "Reference for Fraxel's Input singleton: action creation, pointer tracking, keyboard queries, axis helpers, and pointer events."
+description: "Reference for Fraxel's Input singleton: action creation, key binding, pointer tracking, raw keyboard queries, axis helpers, and pointer events."
 ---
 
 `Input` is a static singleton that unifies keyboard and pointer handling. It is initialised automatically when you call `Game.setup()` (or `createGame()`), so you never instantiate it directly. Per-frame state (`justPressed`, `justUnpressed`) is cleared automatically at the end of each game loop iteration.
@@ -189,7 +189,7 @@ Returns `true` on the first frame the key is released.
 Returns `-1`, `0`, or `1` based on which of two keys is held. Useful for directional movement without defining separate actions.
 
 ```ts
-Input.getKeyAxis(positiveKey: string, negativeKey: string): -1 | 0 | 1
+Input.getKeyAxis(positiveKey: string, negativeKey: string): number
 ```
 
 <ParamField path="positiveKey" type="string" required>

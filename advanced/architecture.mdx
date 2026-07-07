@@ -1,7 +1,7 @@
 ---
-title: "Fraxel Engine Architecture"
+title: "Fraxel Engine Architecture: Four Layers and Game Loop"
 sidebarTitle: "Architecture"
-description: "A complete map of Fraxel's internals: the four-layer stack, key subsystems, the game loop, and how scenes coordinate node trees."
+description: "A complete map of Fraxel's internals: the four-layer stack, key subsystems, the game loop order, and how scenes coordinate node trees."
 ---
 
 Fraxel is organized as four cooperating layers that turn JSX declarations into pixels on a canvas. Understanding where each responsibility lives — and how data flows between layers — makes it far easier to debug subtle frame-timing issues, optimize performance, or extend the engine with new node types.
@@ -73,6 +73,9 @@ A Web Audio API-backed system with URL-keyed asset caching. Loaded sounds are re
 <Steps>
   <Step title="Clear">
     `ctx.clearRect(0, 0, width, height)` wipes the previous frame.
+  </Step>
+  <Step title="Start (first frame only)">
+    If the scene root has not yet been started, `node.start()` is called. This recurses through the entire tree, firing `started` on every node in depth-first order. Subsequent frames skip this step.
   </Step>
   <Step title="Update phase">
     `node.update(delta)` is called recursively from the scene root, emitting `updated` on each node and multiplying delta by each node's `deltaIncrease`.

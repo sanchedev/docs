@@ -1,7 +1,7 @@
 ---
-title: "Asset Pipeline and Batch Loading in Fraxel"
+title: "Fraxel Asset Pipeline: Loading Textures and Sounds"
 sidebarTitle: "Asset Pipeline"
-description: "Load textures and sounds efficiently in Fraxel with loadTexture, loadSound, loadBatch, and loadBatchAsset. Avoid frame drops with preloading and progress callbacks."
+description: "Load and cache textures and sounds in Fraxel using loadTexture, loadSound, loadBatch, and loadBatchAsset with progress callbacks to avoid frame drops."
 ---
 
 Every texture and sound your game uses needs to be fetched from the server and decoded before it can be displayed or played. If you load assets on demand — right when a sprite first appears — you'll see frame drops and pop-in. Fraxel's asset pipeline solves this with an upfront loading system that deduplicates requests and tracks progress, so you can show a loading screen while everything prepares.
@@ -103,8 +103,8 @@ const [jump, land] = await loadBatchAsset('sound', [
 |----------|---------|-------------|
 | `loadTexture(url)` | `Promise<symbol>` | Fetch and decode an image |
 | `loadSound(url)` | `Promise<symbol>` | Fetch and decode an audio buffer |
-| `loadBatch(loaders, options?)` | `Promise<symbol[]>` | Load multiple assets in parallel with progress |
-| `loadBatchAsset(type, urls, options?)` | `Promise<symbol[]>` | Typed parallel loading |
+| `loadBatch(loaders, options?)` | `Promise<T[]>` | Load multiple assets in parallel with progress |
+| `loadBatchAsset(type, urls, options?)` | `Promise<symbol[]>` | Typed parallel loading for same-type assets |
 | `unloadTexture(id)` | `void` | Release texture memory |
 | `unloadSound(id)` | `void` | Release audio buffer memory |
 
@@ -137,7 +137,7 @@ useMount(() => {
 ## Complete Preloader Example with Progress Bar
 
 ```tsx LoadingScene.tsx
-import { useSignal, useMount, useGame } from 'fraxel/hooks'
+import { useSignal, useComputed, useMount, useGame } from 'fraxel/hooks'
 import { loadBatch, loadTexture, loadSound } from 'fraxel/assets'
 import { shapes } from 'fraxel'
 

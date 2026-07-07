@@ -1,7 +1,7 @@
 ---
-title: "<geometry> — Canvas shape rendering node"
+title: "<geometry> — Primitive canvas shape rendering node"
 sidebarTitle: "<geometry>"
-description: "Render rectangles, circles, and capsules directly on the canvas with fill and stroke colors. Uses the same shapes factory as <collider> for easy physics visualization."
+description: "Render rectangles, circles, and capsules on the canvas with fill and stroke colors. Uses the same shapes factory as <collider> for physics visualization."
 ---
 
 Use `<geometry>` to draw primitive shapes — rectangles, circles, or capsules — directly onto the canvas. It uses the same `shapes` factory as `<collider>`, making it trivial to render a visual that exactly matches a physics body. Useful for debug overlays, HUD progress bars, particle effects, or any game element that doesn't need a texture.
@@ -99,7 +99,6 @@ function HealthBar({ current, max }: { current: number; max: number }) {
 <CodeGroup>
 
 ```tsx Reactive progress circle (opacity-driven)
-import { useSignal } from 'fraxel/hooks'
 import { shapes } from 'fraxel'
 
 function ManaOrb({ mana }: { mana: () => number }) {

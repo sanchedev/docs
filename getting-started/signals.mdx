@@ -1,7 +1,7 @@
 ---
-title: "Reactive State in Fraxel — Signals Guide"
+title: "Reactive State in Fraxel — Signals & Hooks Guide"
 sidebarTitle: "Signals"
-description: "Master Fraxel's reactive state system: useSignal, useComputed, useEffect, auto-computed props, and the Signal class for advanced use cases."
+description: "Master Fraxel's reactive state system: useSignal, useComputed, useEffect, auto-computed JSX props, and the Signal class for advanced use cases."
 ---
 
 Games have constantly changing state — health, position, score, cooldown timers, animation frames. A naive approach to managing that state is to update every visual element by hand in every frame. Fraxel takes a different approach: you declare **which values are reactive** and **how other values depend on them**, and the engine handles all the propagation automatically.
@@ -14,6 +14,7 @@ This approach comes from fine-grained reactivity systems like Solid.js and Vue's
 
 ```tsx
 import { useSignal } from 'fraxel/hooks'
+import { shapes } from 'fraxel'
 
 function HealthBar() {
   const [health, setHealth] = useSignal(100)
@@ -66,6 +67,7 @@ Fraxel calls the function once to get the initial value and to record which sign
 
 ```tsx
 import { useSignal, useComputed } from 'fraxel/hooks'
+import { shapes } from 'fraxel'
 
 function CooldownIndicator() {
   const [elapsed, setElapsed] = useSignal(0)
@@ -190,15 +192,27 @@ function Button() {
 ### `useWhen` — conditional value
 
 ```tsx
-const hovered = useCondition(clickable, 'mouseEntered', 'mouseExited')
-const brightness = useWhen(hovered, 1.3, 1.0)
+import { useCondition, useWhen, useNode } from 'fraxel/hooks'
+import { PrimaryNode } from 'fraxel'
 
-return <sprite textureId={BTN_TEX} brightness={brightness} />
+function Button() {
+  const clickable = useNode(PrimaryNode.Clickable)
+  const hovered = useCondition(clickable, 'mouseEntered', 'mouseExited')
+  const brightness = useWhen(hovered, 1.3, 1.0)
+
+  return (
+    <sprite textureId={BTN_TEX} brightness={brightness}>
+      <clickable ref={clickable} size={[64, 24]} />
+    </sprite>
+  )
+}
 ```
 
 ### `useMatch` — value mapping
 
 ```tsx
+import { useSignal, useMatch } from 'fraxel/hooks'
+
 type State = 'idle' | 'walk' | 'jump'
 const [state, setState] = useSignal<State>('idle')
 

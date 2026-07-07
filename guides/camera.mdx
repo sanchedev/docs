@@ -1,5 +1,5 @@
 ---
-title: "Camera and Viewport Control in Fraxel"
+title: "Camera, Viewport, and Screen Shake Control in Fraxel"
 sidebarTitle: "Camera"
 description: "Control the Fraxel viewport with the camera node. Learn smoothing, zoom, screen shake, world limits, coordinate conversion, and follow-camera patterns."
 ---
@@ -97,7 +97,7 @@ Call `shake()` on the camera node for impact effects — explosions, landing, hi
 
 ```tsx
 import { useNode, useEvent } from 'fraxel/hooks'
-import { PrimaryNode } from 'fraxel'
+import { PrimaryNode, shapes } from 'fraxel'
 
 function GameScene() {
   const camera = useNode(PrimaryNode.Camera)

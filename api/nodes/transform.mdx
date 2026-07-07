@@ -1,5 +1,5 @@
 ---
-title: "<transform> — Node2D positioning container"
+title: "<transform> — Node2D positioning and hierarchy container"
 sidebarTitle: "<transform>"
 description: "Use <transform> to position, group, and nest child nodes in 2D space. The fundamental building block for game object hierarchies in Fraxel."
 ---
@@ -8,6 +8,7 @@ Use `<transform>` to position child nodes in world space. It has no visual repre
 
 ```tsx
 import { useNode, useEvent } from 'fraxel/hooks'
+import { loadTexture } from 'fraxel/assets'
 import { PrimaryNode } from 'fraxel'
 
 const PLAYER_TEX = await loadTexture('/assets/player.png')
@@ -70,6 +71,12 @@ function Player() {
     <sprite textureId={EFFECT_TEX} />
   </transform>
   ```
+</ParamField>
+
+<ParamField path="script" type="FraxelScript<PrimaryNode.Transform>">
+  Optional script instance to attach to this node. The script's lifecycle
+  methods are called alongside the node's own `onStart`, `onUpdate`, and
+  `onDestroy` hooks.
 </ParamField>
 
 <ParamField path="ref" type="NodeReference<PrimaryNode.Transform>">

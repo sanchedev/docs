@@ -1,7 +1,7 @@
 ---
-title: "Installing Fraxel — Setup & TypeScript Config"
+title: "Installing Fraxel — npm Setup & TypeScript Config"
 sidebarTitle: "Installation"
-description: "Install Fraxel with npm, yarn, or pnpm. Configure TypeScript's jsxImportSource and set up your HTML canvas entry point."
+description: "Install Fraxel with npm, yarn, or pnpm. Configure TypeScript's jsxImportSource to use Fraxel's JSX runtime and set up your HTML canvas entry point."
 ---
 
 Fraxel is distributed as a single npm package. Because it ships its own JSX runtime, you also need a small TypeScript configuration change to tell the compiler to route JSX through Fraxel instead of React. This page walks through everything you need to go from zero to a working project.
@@ -100,8 +100,7 @@ The `fraxel` package exposes several sub-path imports, each scoped to a specific
 A typical game file imports from two or three of these paths:
 
 ```tsx main.tsx
-import { createGame } from 'fraxel/jsx'
-import { Game, Scene } from 'fraxel/jsx'
+import { createGame, Game, Scene } from 'fraxel/jsx'
 import { loadTexture } from 'fraxel/assets'
 import { useSignal, useEvent, useNode } from 'fraxel/hooks'
 import { PrimaryNode, shapes } from 'fraxel'

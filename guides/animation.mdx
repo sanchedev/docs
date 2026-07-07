@@ -1,5 +1,5 @@
 ---
-title: "Sprite Animation in Fraxel"
+title: "Sprite Sheet Animation and the AnimationPlayer in Fraxel"
 sidebarTitle: "Animation"
 description: "Animate sprites in Fraxel using sprite sheets, AnimationPlayer, reactive currentAnim, and the useAnimation hook. Includes frame-based and tween animation."
 ---
@@ -167,7 +167,7 @@ import { useAnimation } from 'fraxel/hooks'
 
 function Enemy() {
   const sprite = useNode(PrimaryNode.Sprite)
-  const { ref, animName, frameIndex, ended, play, setNext } = useAnimation()
+  const { ref, animName, frameIndex, ended, play, stop, setNext } = useAnimation()
 
   // Chain a death animation after attack finishes
   useEffect(() => {
@@ -196,6 +196,7 @@ function Enemy() {
 | `frameIndex` | `SignalGetter<number>` | Current frame index |
 | `ended` | `SignalGetter<boolean>` | `true` when the current animation ends |
 | `play(name?)` | `(string) => void` | Play a named animation immediately |
+| `stop()` | `() => void` | Stop the current animation |
 | `setNext(name?)` | `(string) => void` | Queue the next animation |
 
 ## Manual Keyframes with `keyframesFromSheet`
@@ -203,7 +204,8 @@ function Enemy() {
 When you need finer control — for example, pulling frames from multiple rows of a shared atlas — use `keyframesFromSheet` directly:
 
 ```tsx
-import { keyframesFromSheet, animationFromSheet } from 'fraxel/animation'
+import { keyframesFromSheet } from 'fraxel'
+import { animationFromSheet } from 'fraxel/animation'
 
 // frames 0–3: first row (idle)
 const idleFrames = keyframesFromSheet(sprite, ATLAS, 4, 2, [0, 3])

@@ -106,7 +106,7 @@ function Rocket() {
 
   useEvent(body, 'updated', (delta) => {
     // Continuous upward thrust
-    body.node.physicsBody.applyForce(vector2(0, -300))
+    body.node.applyForce(vector2(0, -300))
   })
 
   return (

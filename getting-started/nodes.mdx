@@ -1,7 +1,7 @@
 ---
-title: "Fraxel Nodes — Game Objects Reference"
+title: "Fraxel Nodes — All Built-in Game Objects Reference"
 sidebarTitle: "Nodes"
-description: "Learn what nodes are in Fraxel, explore every built-in node type, understand the Node2D base, and use refs and lifecycle events."
+description: "Learn what nodes are in Fraxel, explore every built-in node type from Sprite to RigidBody, and master refs, lifecycle events, and the node tree."
 ---
 
 Every object in a Fraxel game world is a **node**. Nodes are engine objects that know how to update themselves, draw themselves to the canvas, and emit events. They are not DOM elements and have nothing to do with HTML. When you write `<sprite textureId={TEX} />` in JSX, Fraxel creates a `Sprite` node — a plain TypeScript object with position, draw logic, and an event bus — and inserts it into the scene tree.
@@ -13,6 +13,8 @@ Understanding nodes is the foundation for everything else in Fraxel. Once you kn
 Fraxel organizes nodes in a parent–child hierarchy. When a parent node moves, its children move with it. When a parent is destroyed, all its children are destroyed too. This lets you compose complex game objects from simple parts.
 
 ```tsx
+import { shapes } from 'fraxel'
+
 // A "character" made of three nodes
 <transform position={[100, 80]}>
   <sprite textureId={BODY_TEX} />                          {/* body */}
@@ -30,8 +32,6 @@ All spatial nodes extend `Node2D`, which provides:
 | Property | Type | Description |
 |---|---|---|
 | `position` | `Vector2` | Local position relative to the parent |
-| `rotation` | `number` | Rotation in radians |
-| `scale` | `Vector2` | Local scale factor |
 | `globalPosition` | `Vector2` | World-space position (read-only, computed) |
 
 Access these properties via `nodeRef.node.position` inside event handlers after the node has started.
@@ -190,17 +190,22 @@ The `text` prop accepts a `SignalGetter<string>` or a plain string. Passing a ge
 ## Timer node
 
 ```tsx
-const timer = useNode(PrimaryNode.Timer)
+import { useNode, useEvent } from 'fraxel/hooks'
+import { PrimaryNode } from 'fraxel'
 
-useEvent(timer, 'timeout', () => {
-  console.log('3 seconds elapsed')
-})
+function Countdown() {
+  const timer = useNode(PrimaryNode.Timer)
 
-useEvent(timer, 'timeChanged', (elapsed) => {
-  progressBar.node.scale.x = elapsed / 3
-})
+  useEvent(timer, 'timeout', () => {
+    console.log('3 seconds elapsed')
+  })
 
-return <timer ref={timer} duration={3} autoPlay />
+  useEvent(timer, 'timeChanged', (elapsed) => {
+    console.log('Elapsed:', elapsed) // current elapsed time in seconds
+  })
+
+  return <timer ref={timer} duration={3} autoPlay />
+}
 ```
 
 - `duration` is in seconds. Accepts a `SignalGetter<number>` for reactive durations.

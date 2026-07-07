@@ -1,7 +1,7 @@
 ---
-title: "<timer> — Countdown and elapsed-time node"
+title: "<timer> — Elapsed-time countdown and timeout node"
 sidebarTitle: "<timer>"
-description: "Count up to a duration and fire a timeout event. Drive cooldowns, delays, and spawn intervals. Supports autoPlay, pause/resume, and reactive duration via SignalGetter."
+description: "Count up to a duration and fire a timeout event. Drive cooldowns, delays, and spawn intervals. Supports autoPlay, pause/resume, and reactive duration."
 ---
 
 Use `<timer>` to measure elapsed time without visual output. It increments an internal counter by `delta` each frame and fires `timeout` when the counter reaches `duration`. Use `autoPlay` to start immediately, or call `play()` imperatively. The counter can be paused, resumed, and reset. `duration` accepts a reactive `SignalGetter<number>` so you can change the interval at runtime.
@@ -92,6 +92,9 @@ function EnemySpawner() {
 ```
 
 ```tsx Cooldown bar driven by timeChanged
+import { useNode, useEvent, useSignal } from 'fraxel/hooks'
+import { PrimaryNode, shapes } from 'fraxel'
+
 function AbilityButton() {
   const timer = useNode(PrimaryNode.Timer)
   const [progress, setProgress] = useSignal(0)

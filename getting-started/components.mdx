@@ -1,7 +1,7 @@
 ---
-title: "Fraxel Components — Reusable Scene Pieces"
+title: "Fraxel Components — Build Reusable Game Scene Pieces"
 sidebarTitle: "Components"
-description: "Learn how to build reusable Fraxel components with props, children, and hooks. Compose complex game scenes from focused, testable functions."
+description: "Learn how to build reusable Fraxel components with typed props, children, and hooks. Compose complex game scenes from focused, self-contained functions."
 ---
 
 A component in Fraxel is a function that accepts props and returns a JSX node tree. Components are the primary tool for breaking a complex game scene into focused, reusable pieces. An `Enemy` component encapsulates its sprite, collider, health logic, and movement. A `HUD` component owns its score labels and health bar. Each piece is self-contained and easy to reason about independently.
@@ -56,6 +56,8 @@ Pass data to a component through its props object. Define a TypeScript interface
 
 ```tsx src/components/Enemy.tsx
 import type { VectorLike } from 'fraxel'
+import { shapes } from 'fraxel'
+import { useSignal } from 'fraxel/hooks'
 
 interface EnemyProps {
   position: VectorLike
@@ -93,6 +95,7 @@ Accept child nodes by including `children` in your props type. Render them by pl
 
 ```tsx src/components/FloatingLabel.tsx
 import type { Fraxel } from 'fraxel/jsx'
+import { shapes } from 'fraxel'
 
 interface FloatingLabelProps {
   position: [number, number]
@@ -178,8 +181,11 @@ Use `createContext` and `useContext` to share state down a component tree withou
 
 ```tsx src/context.ts
 import { createContext } from 'fraxel/hooks'
+import type { SignalGetter } from 'fraxel'
 
-export const GameCtx = createContext({ score: 0, lives: 3 })
+export const GameCtx = createContext<{ score: SignalGetter<number>; lives: SignalGetter<number> }>(
+  null!
+)
 ```
 
 ```tsx src/scenes/main.tsx
@@ -189,8 +195,8 @@ import { HUD } from '../components/HUD'
 import { Player } from '../components/Player'
 
 export function MainScene() {
-  const [score, setScore] = useSignal(0)
-  const [lives, setLives] = useSignal(3)
+  const [score] = useSignal(0)
+  const [lives] = useSignal(3)
 
   return (
     <GameCtx.Provider value={{ score, lives }}>
@@ -204,7 +210,7 @@ export function MainScene() {
 ```
 
 ```tsx src/components/HUD.tsx
-import { useContext, useSignal } from 'fraxel/hooks'
+import { useContext } from 'fraxel/hooks'
 import { GameCtx } from '../context'
 
 export function HUD() {
@@ -226,7 +232,8 @@ Use `useSpawn` to add nodes to the scene at runtime — for example, when spawni
 
 ```tsx
 import { useNode, useSpawn, useEvent } from 'fraxel/hooks'
-import { PrimaryNode } from 'fraxel'
+import { PrimaryNode, Input } from 'fraxel'
+import { Shoot } from '../input'
 
 function BulletSpawner() {
   const container = useNode(PrimaryNode.Transform)
@@ -250,18 +257,24 @@ function BulletSpawner() {
 
 ## Class components (advanced)
 
-For game objects that benefit from encapsulating logic in a class with persistent references, Fraxel supports class components. Define a class that extends nothing special — it just needs a `render()` method that returns JSX. This is a less common pattern; prefer function components for most cases.
+Fraxel supports class components for cases where you want to encapsulate game object logic inside a class. A class component must **extend a built-in node class** (such as `Transform` or `Sprite`). When Fraxel encounters `<MyClass />` in JSX, it calls `new MyClass(props)` and expects the result to be a `Node` instance. The constructor receives the props object directly.
+
+This is a less common pattern — prefer function components for most use cases.
 
 ```tsx
-class Player {
-  private health = 100
+import { Transform } from 'fraxel'
 
-  takeDamage(amount: number) {
-    this.health = Math.max(0, this.health - amount)
-  }
-
-  render() {
-    return <sprite textureId={PLAYER_TEX} />
+class Rock extends Transform {
+  constructor(props: { position: [number, number] }) {
+    super({ position: props.position, children: [] })
+    // Any additional setup goes here
   }
 }
+
+// Used in JSX like any other component:
+// <Rock position={[100, 80]} />
 ```
+
+<Note>
+  Because class components must extend a built-in node, they cannot call hooks. Use function components with `useNode` and `useEvent` when you need reactive state or lifecycle subscriptions.
+</Note>

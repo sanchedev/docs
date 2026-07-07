@@ -1,7 +1,7 @@
 ---
-title: "<sprite> — Texture rendering with filters"
+title: "<sprite> — Texture rendering node with visual filters"
 sidebarTitle: "<sprite>"
-description: "Render a loaded texture in the game world with optional sprite-sheet slicing, display scaling, flip, and CSS-like visual filters including tint and opacity."
+description: "Render a loaded texture in the game world with sprite-sheet slicing, display scaling, flip, and visual filters including tint and opacity."
 ---
 
 Use `<sprite>` to display a texture loaded with `loadTexture()`. It supports sprite-sheet slicing via `margin` and `sourceSize`, independent display scaling via `displaySize`, horizontal/vertical flipping, and a full suite of visual filters (brightness, grayscale, tint, contrast, saturation, hue rotation, inversion, and opacity). All filter props accept reactive `SignalGetter` values for frame-by-frame control without re-rendering the scene tree.
@@ -140,7 +140,7 @@ pipeline. `modulate` additionally uses `globalCompositeOperation: 'multiply'`.
 <CodeGroup>
 
 ```tsx Reactive filter (damage flash)
-import { useSignal, useNode, useEvent } from 'fraxel/hooks'
+import { useSignal, useNode } from 'fraxel/hooks'
 import { PrimaryNode } from 'fraxel'
 
 function Enemy() {
@@ -163,6 +163,8 @@ function Enemy() {
 ```
 
 ```tsx Sprite-sheet frame selection
+import { loadTexture } from 'fraxel/assets'
+
 const WALK_SHEET = await loadTexture('/assets/walk.png')
 
 // Manually select the 3rd frame (0-indexed) from a 16 px-wide sheet

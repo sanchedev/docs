@@ -1,7 +1,7 @@
 ---
-title: "Audio Playback in Fraxel"
+title: "Audio Playback: Sound Effects and Music in Fraxel Games"
 sidebarTitle: "Audio"
-description: "Play sound effects and music in Fraxel with audio-player nodes, loadSound symbol IDs, and the useAudio hook. Handle browser autoplay and loop/volume control."
+description: "Play sound effects and music in Fraxel using audio-player nodes and loadSound symbol IDs. Handle browser autoplay policy and control loop and volume."
 ---
 
 Sound makes gameplay feel alive — a crunch when a bullet lands, a musical sting when you clear a level, ambient effects that set the mood. Fraxel plays audio through the Web Audio API via the `<audio-player>` node. The workflow mirrors textures: load a sound file to get a symbol ID, then reference that symbol in your JSX.
@@ -25,6 +25,7 @@ Place `<audio-player>` anywhere in your scene tree and pass the sound's symbol I
 ```tsx Gun.tsx
 import { useNode, useEvent } from 'fraxel/hooks'
 import { PrimaryNode } from 'fraxel'
+import { loadSound } from 'fraxel/assets'
 
 const SHOOT_SFX = await loadSound('/assets/shoot.mp3')
 

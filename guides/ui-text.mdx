@@ -1,5 +1,5 @@
 ---
-title: "UI Text and HUD Elements in Fraxel"
+title: "Rendering Text, Labels, and HUD Elements in Fraxel"
 sidebarTitle: "UI & Text"
 description: "Render scores, labels, and HUD elements in Fraxel using the text node and geometry shapes. Build health bars, overlays, and reactive on-screen displays."
 ---
@@ -12,7 +12,6 @@ The `<text>` node calls the canvas `fillText()` API. Pass a string or a reactive
 
 ```tsx ScoreLabel.tsx
 import { useSignal } from 'fraxel/hooks'
-import { loadTexture } from 'fraxel/assets'
 
 function ScoreLabel() {
   const [score] = useSignal(0)
@@ -151,10 +150,8 @@ function HUD() {
 import { useSignal, useComputed } from 'fraxel/hooks'
 import { shapes } from 'fraxel'
 
-export const [getHealth, setHealth] = [() => 100, (_: number) => {}] // provided by your game state
-
 function GameHUD() {
-  const [health, setHealthLocal] = useSignal(100)
+  const [health, setHealth] = useSignal(100)
   const [score, setScore] = useSignal(0)
   const [lives, setLives] = useSignal(3)
 

@@ -1,7 +1,7 @@
 ---
-title: "Fraxel JSX Runtime — Not React"
+title: "Understanding the Fraxel JSX Runtime — Not React"
 sidebarTitle: "JSX Runtime"
-description: "How Fraxel's JSX runtime works: intrinsic elements map to engine nodes, auto-computed props track signals, and components compose scenes."
+description: "How Fraxel's JSX runtime works: intrinsic elements map directly to engine nodes, auto-computed props track signals, and components compose scenes."
 ---
 
 JSX is a syntax extension for JavaScript that lets you write what looks like HTML tags inside your code. In React, those tags create virtual DOM nodes. In Fraxel, they create **game engine nodes** that are rendered to a Canvas 2D context. The syntax is identical — the runtime underneath is completely different.
@@ -53,6 +53,8 @@ Intrinsic elements are lowercase JSX tags that map directly to built-in engine n
 A function component is any JavaScript function that accepts a props object and returns JSX. Components let you encapsulate a piece of the node tree and reuse it.
 
 ```tsx
+import { shapes } from 'fraxel'
+
 interface EnemyProps {
   position: [number, number]
   health: number
@@ -85,6 +87,9 @@ When Fraxel processes `<Enemy position={[100, 50]} health={80} />`, it calls `En
 The most powerful feature of Fraxel's JSX runtime is **auto-computed props**. Any prop that accepts a `SignalGetter` or an inline arrow function is automatically re-evaluated when its signal dependencies change.
 
 ```tsx
+import { useSignal } from 'fraxel/hooks'
+import { shapes } from 'fraxel'
+
 function HealthBar() {
   const [health, setHealth] = useSignal(100)
 

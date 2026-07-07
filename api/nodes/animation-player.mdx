@@ -1,7 +1,7 @@
 ---
-title: "<animation-player> — Frame animation node"
+title: "<animation-player> — Sprite frame animation node"
 sidebarTitle: "<animation-player>"
-description: "Play frame-based sprite animations. Define named animations from sprite sheets, switch between them reactively, queue the next clip, and auto-destroy on end."
+description: "Play frame-based sprite animations. Define named animations from sprite sheets, switch reactively, queue the next clip, and auto-destroy on end."
 ---
 
 Use `<animation-player>` to drive frame-based sprite animations. Pass a map of named `Animation` objects via the `animations` prop and specify the initial clip with `currentAnim`. The player advances frames by `fps × delta` each update — no manual frame tracking required. Pair it with `animationFromSheet()` to generate keyframes directly from a sprite-sheet texture.
@@ -111,13 +111,15 @@ function Hero() {
 | `animationChanged` | `(newAnim: string, oldAnim: string \| null) => void` | Fires whenever the active animation switches. |
 | `animationIndexChanged` | `(index: number) => void` | Fires when the current frame index changes. |
 | `animationStopped` | `(animName: string) => void` | Fires when `stop()` is called. |
+| `started` | `() => void` | Fires once after the node is initialized. |
 | `updated` | `(delta: number) => void` | Fires every frame during update. |
 | `destroyed` | `() => void` | Fires on removal. |
 
 <CodeGroup>
 
 ```tsx Reactive animation switching
-import { useComputed } from 'fraxel/hooks'
+import { useNode, useComputed, useSignal } from 'fraxel/hooks'
+import { PrimaryNode, animationFromSheet } from 'fraxel'
 
 function Character() {
   const sprite = useNode(PrimaryNode.Sprite)
@@ -140,7 +142,11 @@ function Character() {
 ```
 
 ```tsx One-shot attack with transition back to idle
+import { useNode, useEvent } from 'fraxel/hooks'
+import { PrimaryNode, animationFromSheet } from 'fraxel'
+
 function SwordSwing() {
+  const sprite = useNode(PrimaryNode.Sprite)
   const anim = useNode(PrimaryNode.AnimationPlayer)
 
   useEvent(anim, 'animationEnded', () => {

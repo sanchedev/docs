@@ -1,7 +1,7 @@
 ---
-title: "<rigid-body> — Physics simulation node"
+title: "<rigid-body> — Physics simulation and collision node"
 sidebarTitle: "<rigid-body>"
-description: "Add gravity, velocity, forces, and collision response to game objects. Must contain a <collider> child. Control motion with applyForce, applyImpulse, and setVelocity."
+description: "Add gravity, velocity, and collision response to game objects. Requires a <collider> child. Control motion with applyForce, applyImpulse, and setVelocity."
 ---
 
 Use `<rigid-body>` to subject a game object to physics simulation. The node integrates velocity into position each frame, applies configurable gravity, and resolves collisions with other rigid bodies through its child `<collider>` nodes. A rigid body **requires** at least one `<collider>` child — without one it registers with the physics system but has nothing to collide against.
@@ -93,7 +93,7 @@ function FallingRock() {
 
 ```tsx Platformer player with jump
 import { useNode, useEvent } from 'fraxel/hooks'
-import { PrimaryNode, shapes, vector2 } from 'fraxel'
+import { PrimaryNode, shapes, vector2, Input } from 'fraxel'
 
 function Player() {
   const body = useNode(PrimaryNode.RigidBody)
@@ -129,6 +129,8 @@ function Player() {
 ```
 
 ```tsx Static platform
+import { shapes } from 'fraxel'
+
 function Platform() {
   return (
     <rigid-body position={[0, 300]} isStatic>

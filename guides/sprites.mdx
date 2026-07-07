@@ -1,5 +1,5 @@
 ---
-title: "Sprites: Displaying Textures in Fraxel"
+title: "Loading and Displaying Sprites with Textures in Fraxel"
 sidebarTitle: "Sprites"
 description: "Learn how to load textures and display them as sprites in Fraxel using JSX. Covers textureId, sourceSize, displaySize, flipping, and visual filters."
 ---
@@ -136,11 +136,11 @@ function Player() {
 
 ## Complete Example: Textured Player
 
-Here's a complete player component with a sprite sheet slice, 2× display scale, and a reactive hit-flash effect:
+Here's a complete player component with a sprite sheet slice, 2× display scale, and a hit-flash effect driven by a tween:
 
 ```tsx Player.tsx
-import { useSignal, useMount, useNode } from 'fraxel/hooks'
-import { PrimaryNode } from 'fraxel'
+import { useNode, useEvent } from 'fraxel/hooks'
+import { PrimaryNode, shapes } from 'fraxel'
 import { loadTexture } from 'fraxel/assets'
 import { tween } from 'fraxel/animation'
 
@@ -148,9 +148,10 @@ const PLAYER_SHEET = await loadTexture('/assets/player-sheet.png')
 
 function Player() {
   const sprite = useNode(PrimaryNode.Sprite)
-  const [brightness, setBrightness] = useSignal(1)
+  const collider = useNode(PrimaryNode.Collider)
 
-  const flashHit = () => {
+  // Flash bright white on hit, then ease back to normal
+  useEvent(collider, 'colliderEntered', () => {
     tween({
       target: sprite.node,
       prop: 'brightness',
@@ -158,7 +159,7 @@ function Player() {
       to: 1,
       duration: 0.15,
     })
-  }
+  })
 
   return (
     <transform position={[100, 200]}>
@@ -167,8 +168,8 @@ function Player() {
         textureId={PLAYER_SHEET}
         sourceSize={[32, 32]}
         displaySize={[64, 64]}
-        brightness={() => brightness()}
       />
+      <collider ref={collider} shape={shapes.rectangle(32, 32)} group={['player']} collidesWith={['enemy']} />
     </transform>
   )
 }
