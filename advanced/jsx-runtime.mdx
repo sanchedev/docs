@@ -1,0 +1,173 @@
+---
+title: "Fraxel JSX Runtime Internals"
+sidebarTitle: "JSX Runtime"
+description: "How jsxImportSource wires up, how FraxelElement is created, intrinsic element mapping, function component resolution, and why there's no Virtual DOM."
+---
+
+When you write JSX in a Fraxel project, the TypeScript compiler (or Babel) transforms every tag into a call to a small runtime function. Understanding that function — and the pipeline it launches — explains exactly when nodes are constructed, when hooks run, and how reactive props attach to the node tree.
+
+## Wiring Up: `jsxImportSource`
+
+Fraxel uses the automatic JSX transform. Add this to your `tsconfig.json`:
+
+```json
+{
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "jsxImportSource": "fraxel"
+  }
+}
+```
+
+The compiler then rewrites every JSX file to import from `fraxel/jsx-runtime`. That module re-exports two identically-implemented functions:
+
+```ts
+// packages/fraxel/src/jsx-runtime.ts
+export const jsx  = jsxFunc   // single child
+export const jsxs = jsxFunc   // multiple children (static array)
+export const Fragment = FragmentComponent
+```
+
+Both `jsx` and `jsxs` point at the same `jsx()` function — Fraxel does not treat them differently.
+
+## The `jsx()` Function: Creating a `FraxelElement`
+
+```ts
+// packages/fraxel/src/jsx/jsx.ts
+export function jsx<T extends Fraxel.Type>(
+  type: T,
+  props: Fraxel.PropsOf<T>,
+): Fraxel.Element {
+  return { type, props }
+}
+```
+
+That's the entire function. It creates a plain object — a **`FraxelElement`** — with two fields:
+
+| Field | Type | Description |
+|---|---|---|
+| `type` | `string \| function` | An intrinsic name like `'sprite'`, or a component function |
+| `props` | `object` | All JSX attributes, plus `children` |
+
+There is no `key` field, no fiber, no reconciler. `FraxelElement` is purely a description consumed once by `renderToNodes`.
+
+<Note>
+Because JSX is evaluated eagerly and only once during scene construction (not on every frame), there is no diffing step. Reactive updates go through signals, not re-rendering. See [Reactivity Internals](/advanced/reactivity-internals).
+</Note>
+
+## `Fragment`
+
+The `Fragment` component (imported as `<>…</>`) is compiled to `jsx(Fragment, { children: [...] })`. The Fragment component renders with an empty string type (`''`), which `renderToNodes` treats as a transparent pass-through:
+
+```ts
+if (jsx.type === '') {
+  return renderToNodes(jsx.props.children) // Fragment — unwrap children
+}
+```
+
+## Intrinsic Elements: String Types
+
+When `type` is a string (e.g. `'sprite'`, `'transform'`), `renderToNodes` checks whether the string is a registered node name via `isIntrinsicElement`:
+
+```ts
+export function isIntrinsicElement(obj: any): obj is PrimaryNode {
+  if (typeof obj !== 'string') return false
+  if (!(obj in Nodes))         return false
+  return true
+}
+```
+
+The `Nodes` registry is a plain object populated as each node module is imported (e.g. `Nodes.sprite = Sprite`). The intrinsic element names correspond exactly to the `PrimaryNode` enum values:
+
+| JSX tag | `PrimaryNode` enum | Node class |
+|---|---|---|
+| `<transform>` | `PrimaryNode.Transform` | `Transform` |
+| `<sprite>` | `PrimaryNode.Sprite` | `Sprite` |
+| `<collider>` | `PrimaryNode.Collider` | `Collider` |
+| `<camera>` | `PrimaryNode.Camera` | `Camera` |
+| `<rigid-body>` | `PrimaryNode.RigidBody` | `RigidBody` |
+| `<animation-player>` | `PrimaryNode.AnimationPlayer` | `AnimationPlayer` |
+| `<text>` | `PrimaryNode.Text` | `Text` |
+| `<audio-player>` | `PrimaryNode.AudioPlayer` | `AudioPlayer` |
+| `<clickable>` | `PrimaryNode.Clickable` | `Clickable` |
+| `<ray-cast>` | `PrimaryNode.RayCast` | `RayCast` |
+| `<geometry>` | `PrimaryNode.Geometry` | `Geometry` |
+| `<timer>` | `PrimaryNode.Timer` | `Timer` |
+| `<group>` | `PrimaryNode.Group` | `Group` |
+
+### Rendering an Intrinsic Element
+
+`renderIntrinsicElement` calls `getNode(nodeName, options)`, which looks up the class in the `Nodes` registry and instantiates it:
+
+```ts
+function renderIntrinsicElement(nodeName, options) {
+  const node = getNode(nodeName, {
+    ...options,
+    children: renderToNodes(options.children), // recurse first
+  })
+  return applyIntrinsicAttributesToNode(node, options)
+}
+```
+
+Children are resolved recursively **before** the parent node is constructed, so the parent constructor receives fully-built `Node` instances.
+
+`applyIntrinsicAttributesToNode` then wires JSX event props (like `onStarted`, `onUpdated`) to the node's `Event` instances by scanning all own properties for `Event` objects and matching them to prop keys via `getEventName`.
+
+## Function Components
+
+When `type` is a function, `renderToNodes` calls `renderFuncComponent`:
+
+```ts
+function renderFuncComponent(func, props) {
+  startHooks()
+  const node = renderToNodes(func(props))
+  finishHooks(node)
+  return node
+}
+```
+
+The critical detail is `startHooks()` / `finishHooks()`. Hooks like `useSignal`, `useMount`, and `useEffect` push **effects** onto a stack (`currentContext`) during render. `finishHooks(node)` then runs those effects against the resolved node array, binding lifecycle callbacks and reactive subscriptions to the actual node instances.
+
+This means:
+
+- **Hooks are only valid during the synchronous execution of a component function.** Calling `useMount` in a `setTimeout` callback will not work — there is no active context.
+- The hook context is a stack (`currentContext: HookContext[]`), so nested component calls (a component rendering another component inside its JSX) each get their own isolated context.
+
+## Class Components
+
+Class components that extend `Node` directly bypass the hooks mechanism. `renderToNodes` detects them with `isClassComponent` and simply does `new jsx.type(jsx.props)`.
+
+## The `renderToNodes` Pipeline
+
+```
+FraxelElement
+      │
+      ▼
+ Is it null / string / number?  → []
+      │
+      ▼
+ Does it have { type }?
+      │
+      ├─ type === ''   (Fragment) → recurse on children
+      │
+      ├─ typeof type === 'string'
+      │     └─ isIntrinsicElement?
+      │           ├─ NO  → throw UnknownIntrinsicElementError
+      │           └─ YES → renderIntrinsicElement(type, props)
+      │
+      └─ typeof type === 'function'
+            ├─ isClassComponent? → new type(props)
+            └─ func component  → startHooks → type(props) → finishHooks
+```
+
+## Why There Is No Virtual DOM
+
+Frameworks like React maintain a virtual tree and diff it against the previous render to compute a minimal set of DOM mutations. Fraxel has no equivalent because:
+
+1. **Scene construction happens once.** JSX is evaluated at scene load time, not every frame. Nodes are permanent objects that update themselves reactively.
+
+2. **Reactivity is prop-level, not tree-level.** When a signal changes, the corresponding node prop setter is called directly — there is no re-render of the component tree. See [Reactivity Internals](/advanced/reactivity-internals) for how `subReactive` and `propSignal` make this work.
+
+3. **The canvas has no retained-mode graph.** There is no browser DOM tree to reconcile against. Each frame is drawn from scratch by walking the node tree.
+
+The result is that `renderToNodes` runs once per scene load. After that, all updates flow through signals.

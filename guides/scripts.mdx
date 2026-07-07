@@ -1,0 +1,250 @@
+---
+title: "FraxelScript: Logic Outside JSX"
+sidebarTitle: "Scripts"
+description: "Separate game logic from rendering in Fraxel using FraxelScript. Learn setup(), connect(), this.me, and how to call script methods from other components."
+---
+
+As your game grows, mixing rendering and logic inside the same JSX component becomes unwieldy. A 200-line component handling physics, AI, health, and animations is hard to read and harder to test. Fraxel's `FraxelScript` class is the answer: attach a script to any node and move the logic into a clean, class-based object that lives outside the JSX tree.
+
+## Why Scripts
+
+Scripts solve two problems:
+
+1. **Separation of concerns** — keep rendering (JSX) and behavior (scripts) in separate files.
+2. **Cross-component access** — other components can call methods on a script via `useScript`, enabling clean communication without prop drilling or global state.
+
+## Creating a Script
+
+Extend `FraxelScript<NodeType>` where `NodeType` is the `PrimaryNode` enum value for the node you'll attach to. Override `setup()` to register event listeners:
+
+```ts PlayerScript.ts
+import { FraxelScript } from 'fraxel/scripts'
+import { PrimaryNode } from 'fraxel'
+
+class PlayerScript extends FraxelScript<PrimaryNode.Transform> {
+  health = 100
+  maxHealth = 100
+
+  setup() {
+    // connect() is type-safe — only valid event names for this node type
+    this.connect('started', () => {
+      console.log('Player spawned with', this.health, 'HP')
+    })
+
+    this.connect('destroyed', () => {
+      console.log('Player destroyed')
+    })
+
+    this.connect('updated', (delta) => {
+      // Called every frame with the time step in seconds
+    })
+  }
+
+  applyDamage(amount: number) {
+    this.health = Math.max(0, this.health - amount)
+    if (this.health <= 0) {
+      this.me.destroy() // this.me is the Transform node
+    }
+  }
+
+  heal(amount: number) {
+    this.health = Math.min(this.maxHealth, this.health + amount)
+  }
+
+  get healthPercent() {
+    return this.health / this.maxHealth
+  }
+}
+```
+
+## Attaching a Script to a Node
+
+Pass a script instance to any node's `script` prop:
+
+```tsx Player.tsx
+import { PlayerScript } from './PlayerScript'
+import { shapes } from 'fraxel'
+
+const playerScript = new PlayerScript()
+
+function Player() {
+  return (
+    <transform script={playerScript} position={[100, 200]}>
+      <sprite textureId={PLAYER} sourceSize={[32, 48]} displaySize={[64, 96]} />
+      <collider
+        shape={shapes.rectangle(32, 48)}
+        group={['player']}
+        collidesWith={['enemy', 'pickup']}
+      />
+    </transform>
+  )
+}
+```
+
+The engine calls `script.init(node)` and then `script.setup()` as part of node startup.
+
+## `this.me` — Accessing the Node
+
+Inside any script method, `this.me` returns the node the script is attached to. It's available from `setup()` onwards:
+
+```ts
+class EnemyScript extends FraxelScript<PrimaryNode.RigidBody> {
+  setup() {
+    this.connect('started', () => {
+      // Access node properties via this.me
+      console.log('Enemy position:', this.me.globalPosition)
+    })
+  }
+
+  destroy() {
+    this.me.destroy() // remove the rigid-body node from the scene
+  }
+}
+```
+
+<Warning>
+  Accessing `this.me` before `init()` is called throws `NodeNotInitializedError`. Don't access it in the constructor — only in `setup()` and methods called after the node has started.
+</Warning>
+
+## `connect(eventName, callback)`
+
+`connect` is a type-safe wrapper over the node's event system. The event name is constrained to the events actually available on the node type you declared:
+
+```ts
+class TimerScript extends FraxelScript<PrimaryNode.Timer> {
+  setup() {
+    this.connect('timeout', () => {
+      console.log('Timer expired!')
+    })
+
+    this.connect('timeChanged', (elapsed) => {
+      console.log('Elapsed:', elapsed)
+    })
+  }
+}
+```
+
+Available events depend on the node type. Common ones include `started`, `destroyed`, `updated` (with `delta`), and node-specific events like `timeout` for timers, `colliderEntered` for colliders, and so on.
+
+## Calling Script Methods from Other Components
+
+Use `useScript` to retrieve the script attached to a node reference, then call its public methods:
+
+```tsx Projectile.tsx
+import { useNode, useEvent, useScript } from 'fraxel/hooks'
+import { PrimaryNode, shapes } from 'fraxel'
+
+function Projectile() {
+  const collider = useNode(PrimaryNode.Collider)
+
+  useEvent(collider, 'colliderEntered', (other) => {
+    // Get the script on the enemy's parent transform
+    const enemyTransform = other.node.parent
+    if (enemyTransform) {
+      const script = useScript<EnemyScript>(enemyTransform)
+      script?.applyDamage(30)
+    }
+  })
+
+  return (
+    <rigid-body useGravity={false}>
+      <sprite textureId={BULLET} sourceSize={[8, 4]} />
+      <collider
+        ref={collider}
+        shape={shapes.circle(4)}
+        group={['bullet']}
+        collidesWith={['enemy']}
+      />
+    </rigid-body>
+  )
+}
+```
+
+## Complete Enemy AI Script Example
+
+Here's a self-contained enemy script with patrol behavior and a health system:
+
+```ts EnemyScript.ts
+import { FraxelScript } from 'fraxel/scripts'
+import { PrimaryNode, vector2 } from 'fraxel'
+
+export class EnemyScript extends FraxelScript<PrimaryNode.RigidBody> {
+  health = 60
+  speed = 80
+  direction = 1 // 1 = right, -1 = left
+  patrolRange = 150
+
+  #startX = 0
+  #traveled = 0
+
+  setup() {
+    this.connect('started', () => {
+      this.#startX = this.me.position.x
+    })
+
+    this.connect('updated', (delta) => {
+      this.#patrol(delta)
+    })
+
+    this.connect('destroyed', () => {
+      console.log('Enemy defeated at', this.me.globalPosition)
+    })
+  }
+
+  #patrol(delta: number) {
+    const move = this.speed * this.direction * delta
+    this.me.physicsBody.setVelocity(vector2(this.speed * this.direction, this.me.physicsBody.velocity.y))
+
+    this.#traveled += Math.abs(move)
+    if (this.#traveled >= this.patrolRange) {
+      this.direction *= -1
+      this.#traveled = 0
+    }
+  }
+
+  applyDamage(amount: number) {
+    this.health -= amount
+    if (this.health <= 0) {
+      this.me.destroy()
+    }
+  }
+}
+```
+
+```tsx Enemy.tsx
+import { EnemyScript } from './EnemyScript'
+import { shapes } from 'fraxel'
+
+const enemyScript = new EnemyScript()
+
+function Enemy({ position }: { position: [number, number] }) {
+  return (
+    <rigid-body
+      script={enemyScript}
+      position={position}
+      friction={0.8}
+    >
+      <sprite textureId={ENEMY} sourceSize={[32, 48]} displaySize={[64, 96]} />
+      <collider
+        shape={shapes.rectangle(32, 48)}
+        group={['enemy']}
+        collidesWith={['ground', 'bullet', 'player']}
+      />
+    </rigid-body>
+  )
+}
+```
+
+<Tip>
+  For spawning multiple enemies with independent scripts, create a new script instance per enemy: `script={new EnemyScript()}`. Scripts hold per-instance state, so sharing one instance between nodes will cause them to share `health`, `direction`, etc.
+</Tip>
+
+## When to Use Scripts vs Hooks
+
+| Scenario | Recommended approach |
+|----------|---------------------|
+| Simple state (score, health) | `useSignal` in a component |
+| Complex behavior (AI, state machines) | `FraxelScript` class |
+| Cross-component method calls | `FraxelScript` + `useScript` |
+| Event-driven cleanup logic | `useMount` return function |
+| Shared global state | `Signal` class at module scope |

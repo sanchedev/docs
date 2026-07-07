@@ -1,0 +1,198 @@
+---
+title: "Fraxel Node & Scene Lifecycle"
+sidebarTitle: "Lifecycle"
+description: "Node construction, start, update, destroy — how scenes transition, async preloading works, how hooks map to lifecycle events, and the hook context rules."
+---
+
+Every object in a Fraxel game follows a deterministic lifecycle: it is constructed, attached to the scene tree, started, updated each frame, and eventually destroyed. Understanding this lifecycle — and exactly when each hook fires — is essential for writing correct game logic.
+
+## Node Lifecycle Overview
+
+```
+Construction
+    │  new Node(options)
+    │  • id, zIndex, script, children resolved
+    │  • signal props wired (subReactive)
+    │  • child nodes added (addChild)
+    ▼
+Attached to Tree
+    │  parent.addChild(node)
+    │  • node._parent = parent
+    │  • zIndex change listener registered on parent
+    ▼
+start() called
+    │  if isStarted → return (idempotent)
+    │  • lifecycle methods (onStart, onUpdate, …) auto-bound
+    │  • isStarted = true
+    │  • children.forEach(child.start())
+    │  • started.emit()  ← useMount callbacks fire here
+    ▼
+update(delta) — every frame
+    │  • updated.emit(delta)
+    │  • children.forEach(child.update(delta * child.deltaIncrease))
+    ▼
+draw(delta) — every frame (Node2D only)
+    │  • ctx.translate(position)  for each child
+    │  • child.draw(delta)
+    │  • ctx.translate(-position)
+    │  • drawed.emit(delta)
+    ▼
+destroy()
+    │  if isDestroyed → return (idempotent)
+    │  • removed from parent._children
+    │  • isDestroyed = true
+    │  • destroyed.emit()  ← useMount cleanup fires here
+    │  • cleanEvents() — all event listeners removed
+    │  • children.forEach(child.destroy())
+```
+
+### Key Guarantees
+
+- **`start()` is idempotent.** Calling it twice has no effect after the first call.
+- **Children start before `started` fires.** `start()` recurses into children before emitting `started`, so when your `useMount` callback runs, all child nodes are already started.
+- **`destroy()` fires `destroyed` before cleaning up children.** Your cleanup callback sees the node and its children in a valid state when it runs.
+
+## `useMount`: One-Shot Mount/Unmount
+
+```tsx
+useMount(() => {
+  console.log('Node is alive')
+  return () => console.log('Node destroyed')
+})
+```
+
+`useMount` pushes an effect that subscribes to `node.started`. The callback runs once, the first time `start()` completes. If it returns a function, that function is registered on `node.destroyed` for cleanup.
+
+`useMount` does **not** re-run if any reactive state changes. It is purely one-shot.
+
+## `useEffect`: Reactive Re-Running
+
+```tsx
+const [hp, setHp] = useSignal(100)
+
+useEffect(() => {
+  console.log('HP updated:', hp())  // runs on start AND on every hp change
+  return () => console.log('Cleanup before re-run or destroy')
+})
+```
+
+`useEffect` also runs on `node.started`, but it additionally tracks every signal read during its execution and re-runs whenever any of those signals change. Multiple signal changes within the same synchronous microtask are batched — the effect runs once at the end of the microtask queue.
+
+| | `useMount` | `useEffect` |
+|---|---|---|
+| Runs on start | ✅ | ✅ |
+| Runs on signal change | ❌ | ✅ |
+| Cleanup on re-run | ❌ (only on destroy) | ✅ |
+| Cleanup on destroy | ✅ (if returned) | ✅ |
+
+## Hook Context: Rules of Hooks
+
+Hooks (`useSignal`, `useMount`, `useEffect`, `useEvent`, `useNode`, `useChild`, `useTrigger`, etc.) are only valid **during the synchronous execution of a component function**. The hook context is a stack (`currentContext: HookContext[]`) managed by `startHooks` / `finishHooks` in `context.ts`.
+
+`startHooks()` pushes a new context object onto the stack. `finishHooks(nodes)` pops it and runs all accumulated effects against the resolved node array.
+
+**Valid:**
+```tsx
+function Player() {
+  const [speed] = useSignal(5)  // ✅ called during render
+  useMount(() => { /* ... */ }) // ✅ called during render
+  return <transform />
+}
+```
+
+**Invalid:**
+```tsx
+function Player() {
+  setTimeout(() => {
+    useSignal(5)  // ❌ no active hook context — throws HookOutsideComponentError
+  }, 100)
+  return <transform />
+}
+```
+
+Nested component calls each get their own hook context because `renderFuncComponent` calls `startHooks()` before invoking the component function. Effects are accumulated per component and bound to the nodes that component returns.
+
+## `useNode` and `useChild`: Accessing Nodes After Render
+
+`useNode(type)` returns a `NodeReference<T>` — an object with a `.node` property. The reference is populated by the JSX `ref` prop during scene construction. You access the node in lifecycle callbacks, not during render:
+
+```tsx
+const sprite = useNode(PrimaryNode.Sprite)
+
+useMount(() => {
+  sprite.node.brightness = 1.5  // ✅ node exists here
+})
+
+return <sprite ref={sprite} />
+```
+
+`useChild(['id', 'childId'], type)` resolves a path through the node tree. The resolution happens after render, in a hook effect, so the tree is fully constructed by the time the path is followed.
+
+## Scene Transitions
+
+`SceneManager.setScene(name)` is `async` and pauses the game loop while it runs:
+
+<Steps>
+  <Step title="Destroy current scene">
+    `currentNode?.destroy()` tears down the entire current node tree recursively.
+    All `useMount` cleanup callbacks and `destroyed` event listeners fire.
+  </Step>
+  <Step title="Clear state">
+    `#currentScene` and `#currentNode` are set to `null`. The game loop sees no scene and skips the frame.
+  </Step>
+  <Step title="Load new scene">
+    `scene.load()` awaits the scene factory function and validates that it returns a `Node`.
+  </Step>
+  <Step title="Store root">
+    `#currentNode` is set to the new root node. On the next frame, `Game.loop()` calls `node.start()` and the loop continues normally.
+  </Step>
+</Steps>
+
+### Preloading Scenes Without Stutter
+
+`preloadScene(name)` builds the new scene's node tree in the background while the current scene runs:
+
+```ts
+const go = await Game.sceneManager.preloadScene('level-2')
+// ... wait for a cutscene, loading screen, etc.
+go()  // atomically swaps in the pre-built scene
+```
+
+`preloadScene` returns a `setScene` closure that sets `#currentNode` directly to the already-built tree without any `await`. The swap happens on the next game loop iteration.
+
+<Warning>
+The preloaded scene's nodes are **not started** until `Game.loop()` first sees them as `currentNode`. Do not call any hooks or access `node.started` before the scene is actually set as current.
+</Warning>
+
+## `Node.destroy()` in Detail
+
+`destroy()` implements the following sequence, in order:
+
+1. If `isDestroyed` is already `true`, return immediately (idempotent guard).
+2. Find `this` in `parent._children` and splice it out.
+3. Set `isDestroyed = true`.
+4. Call `destroyed.emit()` — all `useMount` cleanup callbacks fire here.
+5. Call `cleanEvents()` — `started`, `drawed`, `updated`, `destroyed` listeners are all cleared.
+6. Recursively call `child.destroy()` on each child (with a spread copy of `_children` to avoid mutation during iteration).
+
+Note that `cleanEvents()` runs after `destroyed.emit()`. This means listeners registered on `destroyed` will receive the event, but any listeners on the other lifecycle events are cleared before children are destroyed — this prevents parent event handlers from firing on child destroy events.
+
+## Script Lifecycle
+
+`FraxelScript.setup()` is called during the `Node` constructor via `script.init(node)`. This means `setup()` runs **before** the node is started, during scene construction. You should only call `this.connect(...)` inside `setup()` — do not access other nodes or run game logic there. Game logic that depends on the node being started should be placed inside a `this.connect('started', ...)` handler:
+
+```ts
+class EnemyScript extends FraxelScript<PrimaryNode.Transform> {
+  setup() {
+    this.connect('started', () => {
+      // Safe: node is fully started, children are started
+    })
+    this.connect('updated', (delta) => {
+      this.me.position.x += delta * 50
+    })
+    this.connect('destroyed', () => {
+      // Cleanup
+    })
+  }
+}
+```

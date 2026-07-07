@@ -1,0 +1,169 @@
+---
+title: "<collider> — Collision detection node"
+sidebarTitle: "<collider>"
+description: "Detect overlaps between game objects using rectangle, circle, or capsule shapes. Filter interactions with collision groups and react to enter/stay/exit events."
+---
+
+Use `<collider>` to give a game object a physical presence in the collision system. A collider has a `shape` (rectangle, circle, or capsule), belongs to one or more named `group`s, and responds to colliders whose groups match its `collidesWith` list. Events fire on **both** colliders when an overlap begins, persists, or ends. The collider must be a descendant of a node that has a `position` (any `Node2D` subtype).
+
+```tsx
+import { useNode, useEvent } from 'fraxel/hooks'
+import { PrimaryNode, shapes } from 'fraxel'
+
+function Projectile() {
+  const col = useNode(PrimaryNode.Collider)
+
+  useEvent(col, 'colliderEntered', (enemyCol) => {
+    enemyCol.parent.script.takeDamage(10)
+  })
+
+  return (
+    <transform position={[100, 50]}>
+      <sprite textureId={BULLET_TEX} />
+      <collider
+        ref={col}
+        shape={shapes.circle(4)}
+        group={['projectile']}
+        collidesWith={['enemy', 'obstacle']}
+      />
+    </transform>
+  )
+}
+```
+
+## Shapes
+
+Create shapes with the `shapes` factory imported from `'fraxel'`:
+
+| Factory call | Description |
+|---|---|
+| `shapes.rectangle(width, height)` | Axis-aligned rectangle. |
+| `shapes.circle(radius)` | Circle centered at the node's position. |
+| `shapes.capsule(length, radius, direction?)` | Capsule (pill shape). `length` is tip-to-tip including end caps. `direction` is `'vertical'` (default) or `'horizontal'`. |
+
+## Props
+
+<ParamField path="shape" type="Shape" required>
+  The collision shape. Use the `shapes` factory to construct one.
+
+  ```tsx
+  <collider shape={shapes.rectangle(32, 48)} ... />
+  <collider shape={shapes.circle(16)} ... />
+  <collider shape={shapes.capsule(60, 12, 'vertical')} ... />
+  ```
+</ParamField>
+
+<ParamField path="group" type="string[]" required>
+  The collision groups this collider **belongs to**. Other colliders check this
+  list against their own `collidesWith` to decide whether to fire events.
+
+  ```tsx
+  <collider shape={...} group={['player', 'character']} collidesWith={['ground']} />
+  ```
+</ParamField>
+
+<ParamField path="collidesWith" type="string[]" required>
+  The groups this collider **listens for**. An overlap is detected only when the
+  other collider's `group` intersects this array.
+</ParamField>
+
+<ParamField path="position" type="VectorLike | SignalGetter<VectorLike>">
+  Local offset relative to the parent node. Defaults to `[0, 0]`. Typically
+  left at `[0, 0]` so the collider aligns with the sprite.
+</ParamField>
+
+<ParamField path="zIndex" type="number">
+  Rendering order (only relevant when `gameConfig.testOptions.showColliders` is
+  `true`). Defaults to `0`.
+</ParamField>
+
+<ParamField path="ref" type="NodeReference<PrimaryNode.Collider>">
+  Attach a node reference to subscribe to events or read properties.
+</ParamField>
+
+## Computed properties
+
+| Property | Type | Description |
+|---|---|---|
+| `shape` | `Shape` (read-only) | The collision shape as passed at construction. |
+| `group` | `Set<string>` (read-only) | The set of groups this collider belongs to. |
+| `collidesWith` | `Set<string>` (read-only) | The set of groups this collider detects. |
+| `size` | `Vector2` (read-only) | Bounding dimensions derived from the shape. |
+| `globalPosition` | `Vector2` | Absolute world position used by the collision system. |
+
+## Events
+
+| Event name | Callback signature | Description |
+|---|---|---|
+| `colliderEntered` | `(other: Collider) => void` | Fires once when this collider first overlaps `other`. |
+| `collided` | `(other: Collider) => void` | Fires every frame while the overlap persists. |
+| `colliderExited` | `(other: Collider) => void` | Fires once when the overlap ends. |
+| `started` | `() => void` | Fires when the node finishes `start()`. |
+| `updated` | `(delta: number) => void` | Fires every frame during update. |
+| `destroyed` | `() => void` | Fires on removal. |
+
+<CodeGroup>
+
+```tsx Collect a coin
+function Coin() {
+  const col = useNode(PrimaryNode.Collider)
+
+  useEvent(col, 'colliderEntered', (other) => {
+    if (other.group.has('player')) {
+      addScore(100)
+      col.node.destroy()
+    }
+  })
+
+  return (
+    <transform position={[200, 100]}>
+      <sprite textureId={COIN_TEX} />
+      <collider
+        ref={col}
+        shape={shapes.circle(8)}
+        group={['coin']}
+        collidesWith={['player']}
+      />
+    </transform>
+  )
+}
+```
+
+```tsx Compound shape (body + head)
+function Character() {
+  return (
+    <rigid-body position={[100, 50]} mass={1}>
+      <sprite textureId={CHAR_TEX} />
+      <collider
+        shape={shapes.rectangle(24, 32)}
+        group={['body']}
+        collidesWith={['ground', 'enemy']}
+      />
+      <collider
+        shape={shapes.circle(10)}
+        group={['head']}
+        collidesWith={['enemy-projectile']}
+      />
+    </rigid-body>
+  )
+}
+```
+
+</CodeGroup>
+
+<Note>
+  `group` and `collidesWith` are **immutable after construction** — the sets are
+  read-only. If you need dynamic filtering, consider destroying and re-creating
+  the collider, or use the `disabled` pattern with a `<clickable>` analogy.
+</Note>
+
+<Tip>
+  Enable `gameConfig.testOptions.showColliders = true` during development to
+  visualise all collider shapes in a blue overlay. Disable before shipping.
+</Tip>
+
+## Related
+
+- [Collision System guide](/guides/collision-groups) — shapes, groups, broadphase, and narrowphase details
+- [`<rigid-body>`](/api/nodes/rigid-body) — physics simulation driven by collider contacts
+- [`<ray-cast>`](/api/nodes/ray-cast) — project a ray to detect colliders along a direction

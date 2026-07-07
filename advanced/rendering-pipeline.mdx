@@ -1,0 +1,159 @@
+---
+title: "Fraxel Rendering Pipeline"
+sidebarTitle: "Rendering Pipeline"
+description: "How Fraxel traverses the node tree, applies camera transforms, handles DPR scaling, draws sprites with filters, and keeps reactive props in sync."
+---
+
+Fraxel renders to a single `CanvasRenderingContext2D`. Every frame starts with a blank canvas and re-draws the entire scene tree from scratch. There is no retained display list, no dirty-rectangle optimization, and no layer compositing — just a depth-first tree walk that calls each node's `draw()` method in order.
+
+## Canvas Setup
+
+`Game.setup()` creates one `<canvas>` element, injects it into the provided root element, and stores the `CanvasRenderingContext2D` in `GameConfig.ctx`. From that point on, every node's `draw()` receives the game-space coordinate system where `(0, 0)` is the top-left of the canvas, `x` increases right, and `y` increases down.
+
+`ctx.imageSmoothingEnabled` is set to `false` immediately after context creation (and again after each `resize` event), which gives pixel-art games crisp scaling at no extra cost.
+
+## Device Pixel Ratio (DPR)
+
+On high-DPI displays, a `160 × 90` game canvas would look blurry if the canvas backing store remained at CSS pixel resolution. Fraxel avoids this with `getDPRFromCtx`, called on setup and again on every `resize` event:
+
+```ts
+// Pseudocode of getDPRFromCtx
+const dpr   = window.devicePixelRatio ?? 1
+const ratio = (physicalWidth / gameWidth + physicalHeight / gameHeight) / 2
+
+canvas.width  = physicalWidth   // set backing store to physical pixels
+canvas.height = physicalHeight
+ctx.scale(ratio, ratio)         // map game-space coords → physical pixels
+```
+
+After this call, all subsequent draw commands can use plain game-space coordinates — the context's transform matrix handles the mapping to physical pixels transparently.
+
+## The Draw Traversal
+
+At the start of each frame `Game.loop()` clears the canvas and then:
+
+```ts
+const camera = Camera.getCurrent()
+GameConfig.ctx.save()
+camera?.apply(GameConfig.ctx)   // apply viewport transform
+node.draw(delta)                // walk the scene tree
+GameConfig.ctx.restore()        // undo viewport transform
+```
+
+`ctx.save()` and `ctx.restore()` bracket the entire scene draw so the camera transform doesn't leak between frames.
+
+### `Node.draw(delta)`
+
+The base `Node.draw` implementation is trivial: iterate children, call `child.draw(delta * child.deltaIncrease)`, then emit the `drawed` event. No position manipulation — base `Node` has no concept of position.
+
+### `Node2D.draw(delta)` — Position Translation
+
+`Node2D` overrides `draw` to apply a coordinate translation before drawing each child:
+
+```ts
+draw(delta: number): void {
+  for (const node of this._children) {
+    GameConfig.ctx.translate( this.position.x,  this.position.y)
+    GameConfig.translate.add(this.position)
+    node.draw(delta * node.deltaIncrease)
+    GameConfig.translate.subtract(this.position)
+    GameConfig.ctx.translate(-this.position.x, -this.position.y)
+  }
+  this.drawed.emit(delta)
+}
+```
+
+This means every child of a `Node2D` draws in a coordinate space where the origin is the parent's position. The translation is applied and removed symmetrically around each child call, so siblings are independent. `GameConfig.translate` tracks the accumulated global translation, which is used by collision and input systems to map between world and screen space.
+
+<Note>
+Fraxel does **not** use `ctx.save()`/`ctx.restore()` per node — only per frame (for the camera). Instead, it translates forward before a child and translates back after. This minimizes the cost of state stack operations on the hot draw path.
+</Note>
+
+## Drawing Order and Z-Ordering
+
+Children are drawn in array order (`_children`), which is kept sorted by `globalZIndex`. When a node's `zIndex` changes, the parent re-sorts its children list. Nodes with the same `zIndex` are drawn in the order they were added.
+
+Because the tree is walked depth-first, a child node is always drawn on top of its parent's earlier siblings. The z-ordering within a parent's children list determines front-to-back ordering among peers.
+
+## Camera: Viewport Transform
+
+The `Camera` node is the only thing that transforms the global drawing context before the scene tree is visited. Its `apply(ctx)` method:
+
+```ts
+apply(ctx: CanvasRenderingContext2D): void {
+  const pos  = this.#viewPosition   // smoothed camera position
+  const halfW = GameConfig.width  / 2
+  const halfH = GameConfig.height / 2
+
+  ctx.translate(halfW + offset.x + shakeOffset.x,
+                halfH + offset.y + shakeOffset.y)
+  ctx.scale(zoom.x, zoom.y)
+  ctx.translate(-pos.x, -pos.y)
+}
+```
+
+The three-step transform:
+
+1. **Translate to screen centre** — moves the origin to the middle of the canvas so the camera targets a world point, not the top-left corner.
+2. **Scale** — applies zoom around the screen centre.
+3. **Translate by negative camera position** — shifts the world so the camera's target point sits at the screen centre.
+
+`offset` adds a screen-space bias (e.g., follow-target sits slightly above centre). `shakeOffset` is a random perturbation that decays over `#shakeDuration`.
+
+The camera also applies **exponential smoothing** during `update()`:
+
+```ts
+const factor = 1 - Math.exp(-this.#smoothing * delta)
+viewPosition.x += (globalPos.x - viewPosition.x) * factor
+```
+
+A `smoothing` of `0` means instant tracking; increasing the value makes the view lag behind the camera node's actual position with a natural ease-out curve.
+
+## Sprite Rendering and Filters
+
+`Sprite.draw()` is the most complex draw method in the engine. It:
+
+1. **Builds a CSS filter string** by inspecting each filter property. Only non-default values contribute, avoiding an empty `ctx.filter` assignment.
+2. **Saves context state** with `ctx.save()`.
+3. **Draws the texture** via `Texture.draw()`, which calls `ctx.drawImage` with source rectangle (margin + sourceSize) and destination rectangle (position + displaySize). Flipping is implemented by passing a negated `displaySize` component.
+4. **Handles `modulate`** using `globalCompositeOperation: 'multiply'`. After drawing the texture, a filled rectangle with the tint color is drawn in multiply mode, darkening each channel proportionally. This is reset to `'source-over'` immediately after.
+5. **Restores context state** with `ctx.restore()`.
+
+```
+Sprite.draw():
+  ctx.save()
+  ctx.filter = "brightness(1.5) grayscale(0.2)"
+  ctx.drawImage(texture, sx, sy, sw, sh, dx, dy, dw, dh)
+  // modulate pass:
+  ctx.filter = "none"
+  ctx.globalCompositeOperation = "multiply"
+  ctx.fillRect(dx, dy, dw, dh)  // tint color
+  ctx.globalCompositeOperation = "source-over"
+  ctx.restore()
+```
+
+<Tip>
+The `modulate` pass draws a second filled rectangle. If you have many sprites with `modulate` set to `[1,1,1,1]` (the default), no modulate pass runs — the engine skips it when all channels equal their defaults.
+</Tip>
+
+## Reactive Prop Updates
+
+Node props that accept a `Reactive<T>` value (a `Signal` getter or plain value) are wired up at construction time via `propSignal` and `subReactive`. When a signal's value changes:
+
+1. The signal calls all its listeners synchronously.
+2. The `subReactive` listener calls the node's prop setter directly: `node[key] = newValue`.
+3. On the next frame, `draw()` reads the updated prop value.
+
+There is no frame-level batching for prop updates — the setter fires as soon as the signal changes. If multiple signals update synchronously within one frame's update cycle, all setters fire before `draw()` is called (because `update` runs before `draw` in the game loop). The canvas therefore always sees the final settled values.
+
+## Profiling and Debug Overlays
+
+`Game.setup({ testOptions })` accepts three boolean flags that enable debug overlays drawn on top of the scene:
+
+| Flag | Overlay |
+|---|---|
+| `showColliders` | Renders collider shapes (rectangles in green, circles in blue, capsules in yellow) |
+| `showRayCasts` | Renders raycast lines with hit markers |
+| `showClickables` | Renders clickable region bounds |
+
+These overlays draw after all normal node draws, so they are never obscured by game content.

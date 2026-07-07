@@ -1,0 +1,250 @@
+---
+title: "Reactive State in Fraxel — Signals Guide"
+sidebarTitle: "Signals"
+description: "Master Fraxel's reactive state system: useSignal, useComputed, useEffect, auto-computed props, and the Signal class for advanced use cases."
+---
+
+Games have constantly changing state — health, position, score, cooldown timers, animation frames. A naive approach to managing that state is to update every visual element by hand in every frame. Fraxel takes a different approach: you declare **which values are reactive** and **how other values depend on them**, and the engine handles all the propagation automatically.
+
+This approach comes from fine-grained reactivity systems like Solid.js and Vue's Composition API. The core idea is simple: a **signal** is a value that tracks who reads it. When the signal changes, every computation that read it is automatically re-evaluated. You express game logic once, and the engine keeps everything in sync.
+
+## `useSignal` — reactive state
+
+`useSignal(initialValue)` creates a reactive value. It returns a tuple of `[getter, setter]`.
+
+```tsx
+import { useSignal } from 'fraxel/hooks'
+
+function HealthBar() {
+  const [health, setHealth] = useSignal(100)
+
+  // health() returns the current value
+  console.log(health()) // 100
+
+  // setHealth updates the value and notifies dependents
+  setHealth(80)
+  console.log(health()) // 80
+
+  return (
+    <geometry
+      shape={shapes.rectangle(100, 8)}
+      fillColor={() => [1 - health() / 100, health() / 100, 0, 1]}
+    />
+  )
+}
+```
+
+The getter (`health`) is a **function you call** — `health()` — not a plain value. This allows Fraxel to track which computations depend on the signal. The setter (`setHealth`) accepts a new value and notifies all dependents.
+
+<Note>
+  If you set a signal to the same value it already holds, no notification is dispatched. Fraxel skips the update entirely, so you can safely call `setHealth(health())` without causing unnecessary work.
+</Note>
+
+## Auto-computed props
+
+The most ergonomic way to use signals in Fraxel is as **auto-computed props** — passing a signal getter or inline arrow function directly as a JSX attribute.
+
+```tsx
+const [opacity, setOpacity] = useSignal(1)
+const [tint, setTint] = useSignal<[number, number, number, number]>([1, 1, 1, 1])
+
+return (
+  <sprite
+    textureId={TEX}
+    opacity={opacity}               // Pass the getter directly
+    modulate={() => tint()}         // Or wrap in an arrow function
+    brightness={() => opacity() * 1.2}  // Combine signals
+  />
+)
+```
+
+Fraxel calls the function once to get the initial value and to record which signals were read. When any of those signals change, Fraxel re-calls the function and applies the result to the node property — without re-running the component function or rebuilding the node tree.
+
+## `useComputed` — derived state
+
+`useComputed(fn)` creates a read-only signal whose value is derived from other signals. Use it when you need a computed value in multiple places.
+
+```tsx
+import { useSignal, useComputed } from 'fraxel/hooks'
+
+function CooldownIndicator() {
+  const [elapsed, setElapsed] = useSignal(0)
+  const DURATION = 3 // seconds
+
+  // Automatically recomputes when elapsed changes
+  const progress = useComputed(() => Math.min(elapsed() / DURATION, 1))
+  const isReady  = useComputed(() => progress() >= 1)
+
+  return (
+    <transform>
+      <geometry
+        shape={shapes.rectangle(50, 6)}
+        fillColor={() => isReady() ? [0, 1, 0, 1] : [progress(), 0, 0, 1]}
+      />
+      <text
+        text={() => isReady() ? 'READY' : `${(DURATION - elapsed()).toFixed(1)}s`}
+        style={{ foregroundColor: '#fff', fontSize: 10 }}
+      />
+    </transform>
+  )
+}
+```
+
+`useComputed` returns a getter (just like `useSignal`), but there is no setter — the value is always derived from its dependencies. If `elapsed` changes, `progress` and `isReady` update automatically, which in turn triggers their auto-computed prop consumers.
+
+## `useEffect` — side effects
+
+`useEffect(fn)` runs a function whenever any of the signals it reads change. It also runs once when the component starts. Use it to trigger imperative side effects — playing a sound, calling a method on a node — in response to signal changes.
+
+```tsx
+import { useSignal, useEffect, useNode } from 'fraxel/hooks'
+import { PrimaryNode } from 'fraxel'
+
+function Player() {
+  const audio = useNode(PrimaryNode.AudioPlayer)
+  const [dead, setDead] = useSignal(false)
+
+  useEffect(() => {
+    if (dead()) {
+      // Runs whenever dead changes to true
+      audio.node.play()
+    }
+  })
+
+  return (
+    <transform>
+      <sprite textureId={PLAYER_TEX} grayscale={() => dead() ? 1 : 0} />
+      <audio-player ref={audio} soundId={DEATH_SFX} />
+    </transform>
+  )
+}
+```
+
+### Batching
+
+`useEffect` batches multiple synchronous signal changes. If three signals all change in the same synchronous call, the effect runs once — not three times. Re-executions are deferred via `queueMicrotask` and run before the next frame.
+
+```tsx
+const [x, setX] = useSignal(0)
+const [y, setY] = useSignal(0)
+const [z, setZ] = useSignal(0)
+
+useEffect(() => {
+  // Runs once even though three signals changed
+  console.log(x(), y(), z())
+})
+
+// All three changes are batched into a single effect execution
+setX(1)
+setY(2)
+setZ(3)
+```
+
+## `useMount` — run once on start
+
+`useMount(fn)` runs a function once when the component's root node enters the scene. It is equivalent to subscribing to the `started` lifecycle event. Any cleanup function you return from `useMount` runs when the node is destroyed.
+
+```tsx
+import { useMount, useNode } from 'fraxel/hooks'
+import { PrimaryNode } from 'fraxel'
+
+function MusicPlayer() {
+  const audio = useNode(PrimaryNode.AudioPlayer)
+
+  useMount(() => {
+    audio.node.play()
+
+    return () => {
+      audio.node.stop() // cleanup when component is destroyed
+    }
+  })
+
+  return <audio-player ref={audio} soundId={BG_MUSIC} loop volume={0.4} />
+}
+```
+
+## Derived signal hooks
+
+For common patterns, Fraxel provides higher-level hooks built on top of `useSignal` and `useEffect`.
+
+### `useCondition` — toggle from events
+
+Returns a reactive boolean that flips between `true` and `false` based on two opposing events.
+
+```tsx
+import { useCondition, useNode } from 'fraxel/hooks'
+import { PrimaryNode } from 'fraxel'
+
+function Button() {
+  const clickable = useNode(PrimaryNode.Clickable)
+  const hovered = useCondition(clickable, 'mouseEntered', 'mouseExited')
+
+  return (
+    <sprite textureId={BTN_TEX} brightness={() => hovered() ? 1.2 : 1}>
+      <clickable ref={clickable} size={[64, 24]} />
+    </sprite>
+  )
+}
+```
+
+### `useWhen` — conditional value
+
+```tsx
+const hovered = useCondition(clickable, 'mouseEntered', 'mouseExited')
+const brightness = useWhen(hovered, 1.3, 1.0)
+
+return <sprite textureId={BTN_TEX} brightness={brightness} />
+```
+
+### `useMatch` — value mapping
+
+```tsx
+type State = 'idle' | 'walk' | 'jump'
+const [state, setState] = useSignal<State>('idle')
+
+const animName = useMatch(state, {
+  idle: 'idle-loop',
+  walk: 'walk-cycle',
+  jump: 'jump-arc',
+})
+
+return <animation-player currentAnim={animName} />
+```
+
+## The `Signal` class — advanced direct use
+
+For state that lives outside a component — global game state, singletons, or utility modules — use the `Signal` class directly.
+
+```tsx src/state.ts
+import { Signal } from 'fraxel'
+
+export const score = new Signal(0)
+
+// Subscribe manually
+score.sub((val) => console.log('Score:', val))
+
+// Update the value
+score.value = score.value + 10
+
+// Remove all subscribers (call when tearing down)
+score.clearSubs()
+```
+
+The `Signal` class exposes a `.getter` and `.setter` that work exactly like the functions returned by `useSignal`, so you can pass `score.getter` as a JSX auto-computed prop:
+
+```tsx
+import { score } from '../state'
+
+function ScoreDisplay() {
+  return (
+    <text
+      text={() => `Score: ${score.getter()}`}
+      style={{ foregroundColor: '#fff', fontSize: 14 }}
+    />
+  )
+}
+```
+
+<Warning>
+  When using `Signal` directly outside a component, you are responsible for calling `clearSubs()` or `unsub()` when the owning object is destroyed. Inside components, hooks clean up automatically.
+</Warning>

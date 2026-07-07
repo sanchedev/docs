@@ -1,0 +1,159 @@
+---
+title: "<geometry> — Canvas shape rendering node"
+sidebarTitle: "<geometry>"
+description: "Render rectangles, circles, and capsules directly on the canvas with fill and stroke colors. Uses the same shapes factory as <collider> for easy physics visualization."
+---
+
+Use `<geometry>` to draw primitive shapes — rectangles, circles, or capsules — directly onto the canvas. It uses the same `shapes` factory as `<collider>`, making it trivial to render a visual that exactly matches a physics body. Useful for debug overlays, HUD progress bars, particle effects, or any game element that doesn't need a texture.
+
+```tsx
+import { shapes } from 'fraxel'
+
+function HealthBar({ current, max }: { current: number; max: number }) {
+  const width = (current / max) * 80
+
+  return (
+    <transform position={[10, 10]}>
+      {/* Background */}
+      <geometry shape={shapes.rectangle(80, 10)} fillColor={[0.3, 0.1, 0.1, 1]} />
+      {/* Fill */}
+      <geometry shape={shapes.rectangle(width, 10)} fillColor={[0.2, 0.8, 0.2, 1]} />
+    </transform>
+  )
+}
+```
+
+## Props
+
+<ParamField path="shape" type="Shape | SignalGetter<Shape>" required>
+  The shape to render. Use the `shapes` factory:
+
+  - `shapes.rectangle(width, height)` — axis-aligned filled rectangle.
+  - `shapes.circle(radius)` — circle drawn at the node's position.
+  - `shapes.capsule(length, radius, direction?)` — pill shape. `direction` is
+    `'vertical'` (default) or `'horizontal'`.
+
+  Accepts a reactive `SignalGetter<Shape>` to change shape at runtime.
+
+  ```tsx
+  <geometry shape={shapes.rectangle(64, 24)} fillColor={[1, 0, 0, 1]} />
+  <geometry shape={shapes.circle(32)} fillColor={[0, 0.5, 1, 0.8]} />
+  <geometry shape={shapes.capsule(48, 12)} fillColor={[0.8, 0.4, 0, 1]} />
+  ```
+</ParamField>
+
+<ParamField path="fillColor" type="Color | SignalGetter<Color>">
+  RGBA fill color. `Color` is `[r, g, b, a]` with each channel in `0–1` range.
+  Defaults to `[1, 1, 1, 1]` (opaque white).
+
+  ```tsx
+  <geometry shape={shapes.circle(16)} fillColor={[1, 0.2, 0.2, 0.9]} />
+  ```
+</ParamField>
+
+<ParamField path="strokeColor" type="Color | SignalGetter<Color>">
+  RGBA border/outline color. If omitted, no border is drawn.
+
+  ```tsx
+  <geometry
+    shape={shapes.rectangle(64, 32)}
+    fillColor={[0, 0, 0, 0]}
+    strokeColor={[1, 1, 1, 1]}
+    strokeWidth={2}
+  />
+  ```
+</ParamField>
+
+<ParamField path="strokeWidth" type="number | SignalGetter<number>">
+  Border width in pixels. Only used when `strokeColor` is set. Defaults to `1`.
+</ParamField>
+
+<ParamField path="position" type="VectorLike | SignalGetter<VectorLike>">
+  Position relative to the parent node. For rectangles and capsules, this is the
+  top-left corner. For circles, this is the center. Defaults to `[0, 0]`.
+</ParamField>
+
+<ParamField path="zIndex" type="number">
+  Draw order relative to siblings. Defaults to `0`.
+</ParamField>
+
+<ParamField path="ref" type="NodeReference<PrimaryNode.Geometry>">
+  Attach a node reference to access the instance or read the computed `size`.
+</ParamField>
+
+## Computed properties
+
+| Property | Type | Description |
+|---|---|---|
+| `size` | `Vector2` (read-only) | Bounding box dimensions derived from the current shape. Matches the `size` property on a sibling `<collider>` with the same shape. |
+| `globalPosition` | `Vector2` | Absolute world-space position. |
+
+## Events
+
+| Event name | Callback | Description |
+|---|---|---|
+| `started` | `() => void` | Fires once after `start()`. |
+| `updated` | `(delta: number) => void` | Fires every frame. |
+| `destroyed` | `() => void` | Fires on removal. |
+
+<CodeGroup>
+
+```tsx Reactive progress circle (opacity-driven)
+import { useSignal } from 'fraxel/hooks'
+import { shapes } from 'fraxel'
+
+function ManaOrb({ mana }: { mana: () => number }) {
+  return (
+    <transform>
+      {/* Background ring */}
+      <geometry
+        shape={shapes.circle(20)}
+        fillColor={[0.1, 0.1, 0.3, 1]}
+        strokeColor={[0.4, 0.4, 0.8, 1]}
+        strokeWidth={2}
+      />
+      {/* Fill fades with mana */}
+      <geometry
+        shape={shapes.circle(16)}
+        fillColor={() => [0.3, 0.5, 1, mana()]}
+      />
+    </transform>
+  )
+}
+```
+
+```tsx Debug physics body overlay
+import { shapes } from 'fraxel'
+
+function PhysicsDebug() {
+  return (
+    <rigid-body position={[100, 50]} mass={1}>
+      <geometry
+        shape={shapes.capsule(32, 8)}
+        fillColor={[0, 1, 0, 0.3]}
+        strokeColor={[0, 1, 0, 0.8]}
+      />
+      <collider
+        shape={shapes.capsule(32, 8)}
+        group={['player']}
+        collidesWith={['ground']}
+      />
+    </rigid-body>
+  )
+}
+```
+
+</CodeGroup>
+
+<Tip>
+  Match the `shape` and `position` of a `<geometry>` to a sibling `<collider>`
+  to create a perfect visual debug overlay. Both use the same `shapes` factory
+  and the same coordinate system.
+</Tip>
+
+## Related
+
+- [Nodes overview](/getting-started/nodes) — full node reference table
+- [`<collider>`](/api/nodes/collider) — uses the same `shapes` factory for physics
+- [`<sprite>`](/api/nodes/sprite) — render a texture instead of a primitive shape
+- [Sprite Filters guide](/guides/filters) — `Color` type reference

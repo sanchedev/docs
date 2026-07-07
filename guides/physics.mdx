@@ -1,0 +1,232 @@
+---
+title: "Physics Simulation in Fraxel"
+sidebarTitle: "Physics"
+description: "Add gravity, velocity, forces, and collision response to your game with Fraxel's rigid-body physics. Covers mass, bounce, isStatic, useRigidBody, and more."
+---
+
+Physics makes your game world feel real. A platformer character that actually falls, a ball that bounces, a crate that slides — these behaviors emerge automatically when you add a `<rigid-body>` node. Fraxel's physics system handles gravity, forces, impulses, and collision response so you can focus on gameplay logic.
+
+## The `<rigid-body>` Node
+
+Wrap any game object in `<rigid-body>` to give it physics. The body **must** contain at least one `<collider>` child — the collider defines the physical shape that interacts with the world:
+
+```tsx FallingBall.tsx
+import { shapes } from 'fraxel'
+import { loadTexture } from 'fraxel/assets'
+
+const BALL = await loadTexture('/assets/ball.png')
+
+function FallingBall() {
+  return (
+    <rigid-body position={[200, 0]} mass={1} bounce={0.7}>
+      <sprite textureId={BALL} sourceSize={[32, 32]} displaySize={[32, 32]} />
+      <collider shape={shapes.circle(16)} group={['ball']} collidesWith={['ground']} />
+    </rigid-body>
+  )
+}
+```
+
+The ball starts at `[200, 0]` and immediately falls under gravity, bouncing when it hits anything in the `ground` group.
+
+## Physics Props
+
+<ParamField path="mass" type="number" default="1">
+  Body mass in arbitrary units. Higher mass resists forces more. `mass={0}` is equivalent to infinite mass — the body won't move from collisions (though it's not the same as `isStatic`; prefer `isStatic` for platforms).
+</ParamField>
+
+<ParamField path="friction" type="number" default="0.1">
+  Friction coefficient from `0` (frictionless ice) to `1` (maximum grip). Reduces sliding velocity on contact.
+</ParamField>
+
+<ParamField path="bounce" type="number" default="0">
+  Restitution (bounciness). `0` = no bounce, `1` = perfectly elastic. Values above `0.8` produce very bouncy objects.
+</ParamField>
+
+<ParamField path="isStatic" type="boolean" default="false">
+  Makes the body completely immovable. Use for platforms, walls, and terrain. Static bodies still participate in collisions — they push other bodies but are never moved themselves.
+</ParamField>
+
+<ParamField path="useGravity" type="boolean" default="true">
+  Whether global gravity applies to this body. Set to `false` for top-down characters, floating objects, or projectiles.
+</ParamField>
+
+## Global Gravity
+
+The default gravity is `980 px/s²` downward — roughly Earth gravity in pixel units. Change it globally at any time:
+
+```tsx
+import { PhysicsSystem, vector2 } from 'fraxel'
+
+// Standard downward gravity
+PhysicsSystem.gravity = vector2(0, 980)
+
+// Low gravity (moon-like)
+PhysicsSystem.gravity = vector2(0, 160)
+
+// Zero gravity (space / top-down)
+PhysicsSystem.gravity = vector2(0, 0)
+```
+
+## Applying Forces and Impulses
+
+Access the physics body through the `useRigidBody` hook for the cleanest API:
+
+<CodeGroup>
+```tsx useRigidBody (recommended)
+import { useRigidBody, useAction } from 'fraxel/hooks'
+import { Input, shapes } from 'fraxel'
+
+const Jump = Input.createAction({ key: ' ' })
+
+function Player() {
+  const body = useRigidBody()
+  const jump = useAction(Jump)
+
+  useEffect(() => {
+    if (jump.justPressed() && body.isGrounded()) {
+      body.applyImpulse([0, -500])
+    }
+  })
+
+  return (
+    <rigid-body ref={body.ref} position={[100, 200]}>
+      <sprite textureId={PLAYER} sourceSize={[32, 48]} displaySize={[64, 96]} />
+      <collider shape={shapes.rectangle(32, 48)} group={['player']} collidesWith={['ground']} />
+    </rigid-body>
+  )
+}
+```
+
+```tsx useNode (lower level)
+import { useNode, useEvent } from 'fraxel/hooks'
+import { PrimaryNode, vector2 } from 'fraxel'
+
+function Rocket() {
+  const body = useNode(PrimaryNode.RigidBody)
+
+  useEvent(body, 'updated', (delta) => {
+    // Continuous upward thrust
+    body.node.physicsBody.applyForce(vector2(0, -300))
+  })
+
+  return (
+    <rigid-body ref={body} useGravity={false} position={[100, 400]}>
+      <sprite textureId={ROCKET} />
+      <collider shape={shapes.capsule(40, 12)} group={['rocket']} collidesWith={['wall']} />
+    </rigid-body>
+  )
+}
+```
+</CodeGroup>
+
+### Force vs Impulse
+
+- **`applyForce(vector)`** — Continuous force applied per frame (units: px/s²). Use for thrust, wind, or gravity overrides.
+- **`applyImpulse(vector)`** — Instant velocity change (units: px/s). Use for jumps, explosions, knockback.
+- **`setVelocity(vector)`** — Overrides the current velocity entirely. Use for clamped movement.
+
+## The `useRigidBody` Hook
+
+`useRigidBody` bundles the node ref, reactive state signals, and control methods into one object:
+
+```tsx Player.tsx
+import { useRigidBody } from 'fraxel/hooks'
+
+function Player() {
+  const { ref, velocity, isGrounded, applyImpulse, setVelocity } = useRigidBody()
+
+  // Move horizontally at a fixed speed
+  useEffect(() => {
+    setVelocity([120, velocity().y])
+  })
+
+  return <rigid-body ref={ref}>{/* ... */}</rigid-body>
+}
+```
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `ref` | `NodeReference` | Pass to `<rigid-body ref={ref}>` |
+| `velocity` | `SignalGetter<{x, y}>` | Reactive current velocity in px/s |
+| `isGrounded` | `SignalGetter<boolean>` | `true` when resting on a surface |
+| `applyForce` | `(v: VectorLike) => void` | Apply a continuous force |
+| `applyImpulse` | `(v: VectorLike) => void` | Apply an instant velocity change |
+| `setVelocity` | `(v: VectorLike) => void` | Set velocity directly |
+
+## Static Bodies (Platforms and Terrain)
+
+Set `isStatic` on any body that should never move:
+
+```tsx Platform.tsx
+function Platform({ x, y, width }: { x: number; y: number; width: number }) {
+  return (
+    <rigid-body position={[x, y]} isStatic>
+      <sprite textureId={PLATFORM} sourceSize={[width, 16]} />
+      <collider
+        shape={shapes.rectangle(width, 16)}
+        group={['ground']}
+        collidesWith={['player', 'enemy', 'ball']}
+      />
+    </rigid-body>
+  )
+}
+```
+
+Static bodies still fire collision events — see [Collision Groups](/guides/collision-groups) for filtering.
+
+## Multiple Colliders
+
+A single `<rigid-body>` can contain multiple `<collider>` nodes to form compound shapes:
+
+```tsx CompositePlayer.tsx
+function Player() {
+  return (
+    <rigid-body mass={1}>
+      {/* Body hitbox */}
+      <collider shape={shapes.rectangle(24, 32)} group={['body']} collidesWith={['ground', 'enemy']} />
+      {/* Wider foot hitbox for ground detection */}
+      <collider shape={shapes.rectangle(28, 4)} group={['foot']} collidesWith={['ground']} />
+    </rigid-body>
+  )
+}
+```
+
+## Complete Example: Falling Ball Scene
+
+```tsx FallingBallScene.tsx
+import { useRigidBody } from 'fraxel/hooks'
+import { PhysicsSystem, shapes, vector2 } from 'fraxel'
+import { loadTexture } from 'fraxel/assets'
+
+const BALL = await loadTexture('/assets/ball.png')
+const GROUND = await loadTexture('/assets/ground.png')
+
+// Slightly reduced gravity for a floatier feel
+PhysicsSystem.gravity = vector2(0, 600)
+
+function FallingBallScene() {
+  return (
+    <transform>
+      {/* Bouncy ball */}
+      <rigid-body position={[200, 50]} mass={1} bounce={0.75} friction={0.05}>
+        <sprite textureId={BALL} sourceSize={[32, 32]} />
+        <collider shape={shapes.circle(16)} group={['ball']} collidesWith={['ground']} />
+      </rigid-body>
+
+      {/* Ground platform */}
+      <rigid-body position={[0, 380]} isStatic>
+        <sprite textureId={GROUND} sourceSize={[480, 24]} />
+        <collider
+          shape={shapes.rectangle(480, 24)}
+          group={['ground']}
+          collidesWith={['ball']}
+        />
+      </rigid-body>
+    </transform>
+  )
+}
+```
+
+<Note>
+  For collision events (detecting which objects touched), see [Collision Groups](/guides/collision-groups). For adding forces in response to input, see [Hooks in Depth](/guides/hooks-in-depth).
+</Note>

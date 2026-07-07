@@ -1,0 +1,267 @@
+---
+title: "Fraxel Components — Reusable Scene Pieces"
+sidebarTitle: "Components"
+description: "Learn how to build reusable Fraxel components with props, children, and hooks. Compose complex game scenes from focused, testable functions."
+---
+
+A component in Fraxel is a function that accepts props and returns a JSX node tree. Components are the primary tool for breaking a complex game scene into focused, reusable pieces. An `Enemy` component encapsulates its sprite, collider, health logic, and movement. A `HUD` component owns its score labels and health bar. Each piece is self-contained and easy to reason about independently.
+
+If you have used React or another component-based UI framework, the mental model is familiar. The key difference is that Fraxel components return **engine nodes** that live in a canvas scene tree, not DOM elements — and they are called **once** at scene construction time, not re-called on every state change.
+
+## Your first component
+
+A component is just a TypeScript function. Define it, use it in JSX like a built-in tag.
+
+```tsx src/components/Coin.tsx
+import { loadTexture } from 'fraxel/assets'
+import { useSignal, useNode, useEvent } from 'fraxel/hooks'
+import { PrimaryNode, shapes } from 'fraxel'
+
+const COIN_TEX = await loadTexture('/assets/coin.png')
+
+export function Coin() {
+  const sprite = useNode(PrimaryNode.Sprite)
+  const clickable = useNode(PrimaryNode.Clickable)
+  const [collected, setCollected] = useSignal(false)
+
+  useEvent(clickable, 'clicked', () => setCollected(true))
+
+  return (
+    <sprite
+      ref={sprite}
+      textureId={COIN_TEX}
+      opacity={() => (collected() ? 0 : 1)}
+    >
+      <clickable ref={clickable} size={[16, 16]} disabled={() => collected()} />
+    </sprite>
+  )
+}
+```
+
+```tsx src/scenes/main.tsx
+import { Coin } from '../components/Coin'
+
+export function MainScene() {
+  return (
+    <transform>
+      <Coin />
+    </transform>
+  )
+}
+```
+
+## Props
+
+Pass data to a component through its props object. Define a TypeScript interface for the props to get type checking and editor autocomplete.
+
+```tsx src/components/Enemy.tsx
+import type { VectorLike } from 'fraxel'
+
+interface EnemyProps {
+  position: VectorLike
+  maxHealth?: number
+}
+
+export function Enemy({ position, maxHealth = 100 }: EnemyProps) {
+  const [health, setHealth] = useSignal(maxHealth)
+
+  return (
+    <transform position={position}>
+      <sprite
+        textureId={ENEMY_TEX}
+        brightness={() => 0.5 + health() / (maxHealth * 2)}
+      />
+      <collider
+        shape={shapes.circle(12)}
+        group={['enemy']}
+        collidesWith={['projectile']}
+      />
+    </transform>
+  )
+}
+```
+
+```tsx
+// Instantiate with different configurations
+<Enemy position={[50, 60]} />
+<Enemy position={[120, 60]} maxHealth={200} />
+```
+
+## Children
+
+Accept child nodes by including `children` in your props type. Render them by placing `{children}` in the JSX you return.
+
+```tsx src/components/FloatingLabel.tsx
+import type { Fraxel } from 'fraxel/jsx'
+
+interface FloatingLabelProps {
+  position: [number, number]
+  children: Fraxel.Node | Fraxel.Node[]
+}
+
+export function FloatingLabel({ position, children }: FloatingLabelProps) {
+  return (
+    <transform position={position}>
+      <geometry shape={shapes.rectangle(80, 20)} fillColor={[0, 0, 0, 0.6]} />
+      {children}
+    </transform>
+  )
+}
+```
+
+```tsx
+<FloatingLabel position={[10, 10]}>
+  <text text="Score: 0" style={{ foregroundColor: '#fff', fontSize: 12 }} />
+</FloatingLabel>
+```
+
+## Hooks inside components
+
+Hooks must be called at the **top level of the component function** — not inside loops, conditionals, or nested functions. This rule exists because Fraxel registers hooks during the component's initialization pass, and the order must be consistent.
+
+```tsx
+// ✅ Correct — hooks at the top level
+function Player() {
+  const sprite = useNode(PrimaryNode.Sprite)
+  const [hp, setHp] = useSignal(100)
+  const [alive, setAlive] = useSignal(true)
+
+  useEvent(sprite, 'updated', (delta) => {
+    // Game logic here
+  })
+
+  return <sprite ref={sprite} textureId={PLAYER_TEX} />
+}
+
+// ❌ Wrong — hook inside a conditional
+function Player() {
+  if (someCondition) {
+    const sprite = useNode(PrimaryNode.Sprite) // Do not do this
+  }
+  // ...
+}
+```
+
+## Composing a scene from components
+
+Break your scene into logical components, then assemble them in the scene function. Each component manages its own state and events — the scene function just declares what exists and where.
+
+```tsx src/scenes/main.tsx
+import { Player } from '../components/Player'
+import { Enemy } from '../components/Enemy'
+import { HUD } from '../components/HUD'
+import { BG_TEX } from '../assets'
+
+export function MainScene() {
+  return (
+    <transform>
+      {/* Background */}
+      <sprite textureId={BG_TEX} />
+
+      {/* Player */}
+      <Player position={[96, 80]} />
+
+      {/* Enemies */}
+      <Enemy position={[30, 40]} maxHealth={80} />
+      <Enemy position={[150, 55]} maxHealth={120} />
+
+      {/* HUD — rendered last so it appears on top */}
+      <HUD />
+    </transform>
+  )
+}
+```
+
+## Sharing state between components
+
+Use `createContext` and `useContext` to share state down a component tree without prop drilling.
+
+```tsx src/context.ts
+import { createContext } from 'fraxel/hooks'
+
+export const GameCtx = createContext({ score: 0, lives: 3 })
+```
+
+```tsx src/scenes/main.tsx
+import { useSignal } from 'fraxel/hooks'
+import { GameCtx } from '../context'
+import { HUD } from '../components/HUD'
+import { Player } from '../components/Player'
+
+export function MainScene() {
+  const [score, setScore] = useSignal(0)
+  const [lives, setLives] = useSignal(3)
+
+  return (
+    <GameCtx.Provider value={{ score, lives }}>
+      <transform>
+        <Player />
+        <HUD />
+      </transform>
+    </GameCtx.Provider>
+  )
+}
+```
+
+```tsx src/components/HUD.tsx
+import { useContext, useSignal } from 'fraxel/hooks'
+import { GameCtx } from '../context'
+
+export function HUD() {
+  const { score } = useContext(GameCtx)
+
+  return (
+    <text
+      position={[8, 8]}
+      text={() => `Score: ${score()}`}
+      style={{ foregroundColor: '#fff', fontSize: 12 }}
+    />
+  )
+}
+```
+
+## Spawning components dynamically
+
+Use `useSpawn` to add nodes to the scene at runtime — for example, when spawning bullets or enemies.
+
+```tsx
+import { useNode, useSpawn, useEvent } from 'fraxel/hooks'
+import { PrimaryNode } from 'fraxel'
+
+function BulletSpawner() {
+  const container = useNode(PrimaryNode.Transform)
+  const spawn = useSpawn(container)
+
+  useEvent(container, 'updated', () => {
+    if (Input.justActionPressed(Shoot)) {
+      spawn(<Bullet position={container.node.globalPosition} />)
+    }
+  })
+
+  return <transform ref={container} />
+}
+```
+
+`spawn` returns a function. Every call to it creates a new node subtree and inserts it as a child of `container`.
+
+<Note>
+  `useSpawn` does not re-render the component. It imperatively inserts nodes. Spawned nodes are managed by the engine's scene tree — they will be destroyed when their parent is destroyed or when they call their own destroy logic.
+</Note>
+
+## Class components (advanced)
+
+For game objects that benefit from encapsulating logic in a class with persistent references, Fraxel supports class components. Define a class that extends nothing special — it just needs a `render()` method that returns JSX. This is a less common pattern; prefer function components for most cases.
+
+```tsx
+class Player {
+  private health = 100
+
+  takeDamage(amount: number) {
+    this.health = Math.max(0, this.health - amount)
+  }
+
+  render() {
+    return <sprite textureId={PLAYER_TEX} />
+  }
+}
+```

@@ -1,0 +1,157 @@
+---
+title: "<clickable> — Pointer interaction area node"
+sidebarTitle: "<clickable>"
+description: "Detect mouse clicks, hover enter/exit, and per-frame mouseOver events within a rectangular hit area. Use with onClick, onMouseEnter, and onMouseExit prop shortcuts."
+---
+
+Use `<clickable>` to add pointer interaction to any game object. It performs hit-testing against a rectangular area each frame and emits events when the pointer enters, exits, or clicks within that area. There is no default size — `size` is required. The `disabled` prop suppresses all events without removing the node.
+
+```tsx
+import { useNode, useEvent } from 'fraxel/hooks'
+import { PrimaryNode } from 'fraxel'
+
+function MenuButton() {
+  const btn = useNode(PrimaryNode.Clickable)
+
+  useEvent(btn, 'clicked', () => {
+    startGame()
+  })
+
+  return (
+    <sprite textureId={BTN_TEX} position={[160, 120]}>
+      <clickable
+        ref={btn}
+        size={[120, 40]}
+        onMouseEnter={() => console.log('hover in')}
+        onMouseExit={() => console.log('hover out')}
+      />
+    </sprite>
+  )
+}
+```
+
+## Props
+
+<ParamField path="size" type="VectorLike | SignalGetter<VectorLike>" required>
+  Dimensions of the rectangular hit area in pixels. Accepts an `[x, y]` tuple,
+  an `{ x, y }` object, a single number (square), or a reactive
+  `SignalGetter`. There is no default — omitting `size` is a runtime error.
+
+  ```tsx
+  <clickable size={[64, 32]} />
+  <clickable size={48} />              {/* 48×48 square */}
+  <clickable size={() => btnSize()} /> {/* reactive */}
+  ```
+</ParamField>
+
+<ParamField path="disabled" type="boolean | SignalGetter<boolean>">
+  When `true`, all event detection is suspended. The hit area is still visible
+  in debug mode (drawn in grey). Defaults to `false`.
+
+  ```tsx
+  <clickable size={[80, 30]} disabled={!isReady()} />
+  ```
+</ParamField>
+
+<ParamField path="position" type="VectorLike | SignalGetter<VectorLike>">
+  Top-left corner of the hit area relative to the parent node. Defaults to
+  `[0, 0]`. Align with the sprite's top-left corner for accurate hit detection.
+</ParamField>
+
+<ParamField path="onClick" type="(position: Vector2) => void">
+  Shortcut prop — registers a `clicked` event handler inline. Equivalent to
+  calling `useEvent(ref, 'clicked', callback)`.
+</ParamField>
+
+<ParamField path="onMouseEnter" type="() => void">
+  Shortcut prop — registers a `mouseEntered` event handler inline.
+</ParamField>
+
+<ParamField path="onMouseExit" type="() => void">
+  Shortcut prop — registers a `mouseExited` event handler inline.
+</ParamField>
+
+<ParamField path="ref" type="NodeReference<PrimaryNode.Clickable>">
+  Attach a node reference to access the instance or subscribe to events
+  programmatically.
+</ParamField>
+
+## Events
+
+| Event name | Callback signature | Description |
+|---|---|---|
+| `clicked` | `(localPos: Vector2) => void` | Fires when the pointer is **released** inside the hit area. `localPos` is relative to the node's top-left corner. |
+| `mouseEntered` | `() => void` | Fires once when the pointer moves into the hit area. |
+| `mouseExited` | `() => void` | Fires once when the pointer moves out of the hit area. |
+| `mouseOver` | `(localPos: Vector2) => void` | Fires **every frame** while the pointer is inside the area. `localPos` is relative to the top-left corner. Use for hover effects that need continuous updates. |
+| `started` | `() => void` | Fires once after `start()`. |
+| `updated` | `(delta: number) => void` | Fires every frame. |
+| `destroyed` | `() => void` | Fires on removal. |
+
+<CodeGroup>
+
+```tsx Hover tint effect
+import { useNode, useEvent, useSignal } from 'fraxel/hooks'
+import { PrimaryNode } from 'fraxel'
+
+function HoverButton() {
+  const btn = useNode(PrimaryNode.Clickable)
+  const [tint, setTint] = useSignal<[number,number,number,number]>([1,1,1,1])
+
+  useEvent(btn, 'mouseEntered', () => setTint([1, 0.8, 0.2, 1]))
+  useEvent(btn, 'mouseExited',  () => setTint([1, 1, 1, 1]))
+
+  return (
+    <sprite textureId={BTN_TEX} modulate={tint}>
+      <clickable ref={btn} size={[96, 32]} />
+    </sprite>
+  )
+}
+```
+
+```tsx Drag-to-move
+import { useNode, useEvent } from 'fraxel/hooks'
+import { PrimaryNode, Input } from 'fraxel'
+
+function DraggableCard() {
+  const card = useNode(PrimaryNode.Transform)
+  const click = useNode(PrimaryNode.Clickable)
+  let dragging = false
+
+  useEvent(click, 'mouseEntered', () => { dragging = Input.isPointerPressed })
+  useEvent(click, 'mouseExited',  () => { dragging = false })
+  useEvent(click, 'mouseOver',    () => {
+    if (dragging) {
+      card.node.position.x = Input.pointerPosition.x
+      card.node.position.y = Input.pointerPosition.y
+    }
+  })
+
+  return (
+    <transform ref={card}>
+      <sprite textureId={CARD_TEX} />
+      <clickable ref={click} size={[64, 96]} />
+    </transform>
+  )
+}
+```
+
+</CodeGroup>
+
+<Note>
+  The hit area is always a **rectangle** — there is no circle or polygon option.
+  For non-rectangular buttons, shrink the clickable area to fit safely inside
+  the visual bounds.
+</Note>
+
+<Tip>
+  Enable `gameConfig.testOptions.showClickables = true` during development to
+  see all hit areas drawn as coloured overlays (yellow when enabled, grey when
+  disabled). Disable before shipping.
+</Tip>
+
+## Related
+
+- [Nodes overview](/getting-started/nodes) — all available nodes
+- [`<audio-player>`](/api/nodes/audio-player) — play a sound on click
+- [`<sprite>`](/api/nodes/sprite) — common parent for a clickable sprite button

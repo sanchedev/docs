@@ -1,0 +1,168 @@
+---
+title: "<rigid-body> — Physics simulation node"
+sidebarTitle: "<rigid-body>"
+description: "Add gravity, velocity, forces, and collision response to game objects. Must contain a <collider> child. Control motion with applyForce, applyImpulse, and setVelocity."
+---
+
+Use `<rigid-body>` to subject a game object to physics simulation. The node integrates velocity into position each frame, applies configurable gravity, and resolves collisions with other rigid bodies through its child `<collider>` nodes. A rigid body **requires** at least one `<collider>` child — without one it registers with the physics system but has nothing to collide against.
+
+```tsx
+import { shapes } from 'fraxel'
+
+function FallingRock() {
+  return (
+    <rigid-body position={[200, 0]} mass={2} bounce={0.6} friction={0.2}>
+      <sprite textureId={ROCK_TEX} />
+      <collider
+        shape={shapes.circle(16)}
+        group={['rock']}
+        collidesWith={['ground', 'player']}
+      />
+    </rigid-body>
+  )
+}
+```
+
+## Props
+
+<ParamField path="position" type="VectorLike | SignalGetter<VectorLike>">
+  Initial world-space position. Defaults to `[0, 0]`. Once the node is started
+  the physics system controls position; avoid setting this reactively after
+  `start()`.
+</ParamField>
+
+<ParamField path="mass" type="number">
+  Body mass. Higher values are harder to move. Set to `0` for infinite mass
+  (equivalent to `isStatic`). Defaults to `1`.
+</ParamField>
+
+<ParamField path="friction" type="number">
+  Friction coefficient applied during collision response. Range `0–1`. `0` =
+  frictionless, `1` = maximum friction. Defaults to `0.1`.
+</ParamField>
+
+<ParamField path="bounce" type="number">
+  Restitution (bounciness). `0` = no bounce (inelastic), `1` = perfect elastic
+  bounce. Defaults to `0`.
+
+  ```tsx
+  {/* Bouncy ball */}
+  <rigid-body mass={1} bounce={0.9} friction={0.01} />
+  ```
+</ParamField>
+
+<ParamField path="isStatic" type="boolean">
+  When `true`, the body never moves regardless of forces. Other bodies still
+  resolve collisions against it. Defaults to `false`. Equivalent to `mass={0}`.
+</ParamField>
+
+<ParamField path="useGravity" type="boolean">
+  When `false`, `PhysicsSystem.gravity` is not applied to this body. Useful for
+  top-down games or floating objects. Defaults to `true`.
+</ParamField>
+
+<ParamField path="ref" type="NodeReference<PrimaryNode.RigidBody>">
+  Attach a node reference to call methods or read velocity at runtime.
+</ParamField>
+
+## Instance properties
+
+| Property | Type | Description |
+|---|---|---|
+| `velocity` | `Vector2` | Current velocity in pixels per second. Readable and writable. |
+| `isGrounded` | `boolean` (read-only) | `true` when the body is resting on a surface below it. Updated automatically each frame. |
+
+## Methods
+
+| Method | Signature | Description |
+|---|---|---|
+| `applyForce` | `(force: Vector2) => void` | Accumulate a continuous force (px/s²). Forces are applied during physics integration and reset each frame. Use for thrust, wind, or gravity-like effects. |
+| `applyImpulse` | `(impulse: Vector2) => void` | Apply an instant velocity change (px/s). No-ops on static bodies. Use for jumps, explosions, or knockback. |
+| `setVelocity` | `(v: Vector2) => void` | Directly overwrite the current velocity. |
+| `destroy` | `() => void` | Remove the body and its children from the scene. |
+
+## Events
+
+| Event name | Callback | Description |
+|---|---|---|
+| `started` | `() => void` | Fires once after `start()`. |
+| `updated` | `(delta: number) => void` | Fires every frame — use this to apply per-frame forces. |
+| `destroyed` | `() => void` | Fires on removal. |
+
+<CodeGroup>
+
+```tsx Platformer player with jump
+import { useNode, useEvent } from 'fraxel/hooks'
+import { PrimaryNode, shapes, vector2 } from 'fraxel'
+
+function Player() {
+  const body = useNode(PrimaryNode.RigidBody)
+
+  useEvent(body, 'updated', (_delta) => {
+    // Horizontal movement
+    if (Input.isKeyDown('ArrowRight')) {
+      body.node.velocity.x = 160
+    } else if (Input.isKeyDown('ArrowLeft')) {
+      body.node.velocity.x = -160
+    } else {
+      body.node.velocity.x *= 0.8
+    }
+  })
+
+  const jump = () => {
+    if (body.node.isGrounded) {
+      body.node.applyImpulse(vector2(0, -480))
+    }
+  }
+
+  return (
+    <rigid-body ref={body} position={[100, 50]} mass={1} friction={0.05}>
+      <sprite textureId={PLAYER_TEX} />
+      <collider
+        shape={shapes.rectangle(16, 24)}
+        group={['player']}
+        collidesWith={['ground']}
+      />
+    </rigid-body>
+  )
+}
+```
+
+```tsx Static platform
+function Platform() {
+  return (
+    <rigid-body position={[0, 300]} isStatic>
+      <sprite textureId={PLATFORM_TEX} />
+      <collider
+        shape={shapes.rectangle(256, 16)}
+        group={['ground']}
+        collidesWith={['player', 'rock']}
+      />
+    </rigid-body>
+  )
+}
+```
+
+</CodeGroup>
+
+<Note>
+  The default gravity is **980 px/s² downward**. Change it globally with
+  `PhysicsSystem.gravity = vector2(0, newValue)`. Setting `useGravity={false}`
+  only disables gravity for the individual body.
+</Note>
+
+<Tip>
+  Use `useRigidBody()` from `fraxel/hooks` for a declarative API that exposes
+  reactive `velocity`, `isGrounded`, `applyImpulse`, and a pre-wired `ref` —
+  no need to call `useNode` manually.
+
+  ```tsx
+  const { ref, isGrounded, applyImpulse } = useRigidBody()
+  ```
+</Tip>
+
+## Related
+
+- [Physics guide](/guides/physics) — gravity, forces, impulses, collision response, and `useRigidBody`
+- [Collision guide](/guides/collision-groups) — shapes and group filtering
+- [`<collider>`](/api/nodes/collider) — required child for physics to work

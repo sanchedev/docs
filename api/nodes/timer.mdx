@@ -1,0 +1,136 @@
+---
+title: "<timer> — Countdown and elapsed-time node"
+sidebarTitle: "<timer>"
+description: "Count up to a duration and fire a timeout event. Drive cooldowns, delays, and spawn intervals. Supports autoPlay, pause/resume, and reactive duration via SignalGetter."
+---
+
+Use `<timer>` to measure elapsed time without visual output. It increments an internal counter by `delta` each frame and fires `timeout` when the counter reaches `duration`. Use `autoPlay` to start immediately, or call `play()` imperatively. The counter can be paused, resumed, and reset. `duration` accepts a reactive `SignalGetter<number>` so you can change the interval at runtime.
+
+```tsx
+import { useNode, useEvent } from 'fraxel/hooks'
+import { PrimaryNode } from 'fraxel'
+
+function RespawnDelay() {
+  const timer = useNode(PrimaryNode.Timer)
+
+  useEvent(timer, 'timeout', () => {
+    spawnPlayer()
+  })
+
+  useEvent(timer, 'timeChanged', (elapsed) => {
+    setCountdownLabel(`Respawning in ${(3 - elapsed).toFixed(1)}s`)
+  })
+
+  return <timer ref={timer} duration={3} autoPlay />
+}
+```
+
+## Props
+
+<ParamField path="duration" type="number | SignalGetter<number>" required>
+  Total timer duration in seconds. The `timeout` event fires when the counter
+  reaches this value. Accepts a reactive `SignalGetter<number>` to change the
+  target time while the timer is running.
+
+  ```tsx
+  <timer duration={5} autoPlay />
+  <timer duration={() => difficulty() * 2} autoPlay />
+  ```
+</ParamField>
+
+<ParamField path="autoPlay" type="boolean">
+  When `true`, the timer starts counting immediately when the node is added to
+  the scene. Equivalent to calling `timer.node.play()` in `useMount`. Defaults
+  to `false`.
+</ParamField>
+
+<ParamField path="ref" type="NodeReference<PrimaryNode.Timer>">
+  Attach a node reference to call `play()`, `pause()`, and `stop()`, or to
+  subscribe to events programmatically.
+</ParamField>
+
+<ParamField path="zIndex" type="number">
+  Rendering order. The timer has no visual output, so this only affects child
+  nodes. Defaults to `0`.
+</ParamField>
+
+## Methods
+
+| Method | Signature | Description |
+|---|---|---|
+| `play` | `(from?: number) => void` | Start or resume counting. Pass `from` (seconds) to seek before playing. Clamped to `[0, duration]`. |
+| `pause` | `() => void` | Pause without resetting the elapsed time. Call `play()` again to resume from where it stopped. |
+| `stop` | `() => void` | Stop and reset the counter to `0`. |
+
+## Events
+
+| Event name | Callback signature | Description |
+|---|---|---|
+| `timeout` | `() => void` | Fires once when the counter reaches `duration`. The timer stops itself before emitting. |
+| `timeChanged` | `(elapsed: number) => void` | Fires every frame while the timer is playing. `elapsed` is the current counter value in seconds. |
+| `started` | `() => void` | Fires once after `start()`. |
+| `updated` | `(delta: number) => void` | Fires every frame (timer logic runs here). |
+| `destroyed` | `() => void` | Fires on removal. |
+
+<CodeGroup>
+
+```tsx Repeating spawn interval
+import { useNode, useEvent } from 'fraxel/hooks'
+import { PrimaryNode } from 'fraxel'
+
+function EnemySpawner() {
+  const timer = useNode(PrimaryNode.Timer)
+
+  useEvent(timer, 'timeout', () => {
+    spawnEnemy()
+    // Restart for the next interval
+    timer.node.play(0)
+  })
+
+  return <timer ref={timer} duration={2.5} autoPlay />
+}
+```
+
+```tsx Cooldown bar driven by timeChanged
+function AbilityButton() {
+  const timer = useNode(PrimaryNode.Timer)
+  const [progress, setProgress] = useSignal(0)
+
+  useEvent(timer, 'timeChanged', (elapsed) => {
+    setProgress(elapsed / 5) // 5-second cooldown
+  })
+
+  useEvent(timer, 'timeout', () => {
+    setProgress(1) // fully charged
+  })
+
+  return (
+    <transform>
+      <geometry
+        shape={shapes.rectangle(progress() * 64, 8)}
+        fillColor={[0.2, 0.8, 0.3, 1]}
+      />
+      <timer ref={timer} duration={5} autoPlay />
+    </transform>
+  )
+}
+```
+
+</CodeGroup>
+
+<Note>
+  The timer counts **up** to `duration`, not down. To display a countdown,
+  compute `duration - elapsed` inside the `timeChanged` callback.
+</Note>
+
+<Tip>
+  To build a repeating interval, call `timer.node.play(0)` inside the `timeout`
+  handler to restart from zero. This avoids accumulation drift that would occur
+  from using `setTimeout`.
+</Tip>
+
+## Related
+
+- [Nodes overview](/getting-started/nodes) — full node reference table
+- [`<text>`](/api/nodes/text) — display elapsed or remaining time as a label
+- [`<geometry>`](/api/nodes/geometry) — render a progress bar driven by `timeChanged`

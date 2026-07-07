@@ -1,0 +1,197 @@
+---
+title: "UI Text and HUD Elements in Fraxel"
+sidebarTitle: "UI & Text"
+description: "Render scores, labels, and HUD elements in Fraxel using the text node and geometry shapes. Build health bars, overlays, and reactive on-screen displays."
+---
+
+Every game needs a heads-up display: a score counter, a health bar, a timer, a dialogue line. Fraxel renders text directly to the canvas with the `<text>` node and provides geometric shapes with `<geometry>` for backgrounds and bars. Both nodes update reactively — when your signal changes, the display updates automatically.
+
+## Rendering Text
+
+The `<text>` node calls the canvas `fillText()` API. Pass a string or a reactive `SignalGetter<string>` as the `text` prop, and style it with a `TextStyle` object:
+
+```tsx ScoreLabel.tsx
+import { useSignal } from 'fraxel/hooks'
+import { loadTexture } from 'fraxel/assets'
+
+function ScoreLabel() {
+  const [score] = useSignal(0)
+
+  return (
+    <text
+      position={[16, 24]}
+      text={() => `Score: ${score()}`}
+      style={{
+        fontSize: 18,
+        fontFamily: 'monospace',
+        fontWeight: 'bold',
+        foregroundColor: '#ffffff',
+        textAlign: 'left',
+      }}
+    />
+  )
+}
+```
+
+When `score` changes, the label re-renders automatically on the next frame — no imperative DOM update needed.
+
+## TextStyle Fields
+
+<ParamField path="fontSize" type="number">
+  Font size in pixels. Maps directly to the canvas font string.
+</ParamField>
+
+<ParamField path="fontFamily" type="string">
+  CSS font family. Use `'monospace'` for pixel-style readouts, `'sans-serif'` for clean HUDs.
+</ParamField>
+
+<ParamField path="fontWeight" type="string | number">
+  CSS font weight — `'normal'`, `'bold'`, `700`, etc.
+</ParamField>
+
+<ParamField path="foregroundColor" type="string">
+  CSS color string for the text fill — `'#ffffff'`, `'rgba(255,255,0,1)'`, etc.
+</ParamField>
+
+<ParamField path="textAlign" type="'left' | 'center' | 'right'">
+  Horizontal text alignment, matching the canvas `textAlign` property.
+</ParamField>
+
+## Drawing Shapes with `<geometry>`
+
+The `<geometry>` node renders filled or stroked rectangles, circles, and capsules using the same `shapes` factory used by colliders. It's perfect for HUD backgrounds, health bars, and debug outlines:
+
+```tsx
+import { shapes } from 'fraxel'
+
+// Green rectangle
+<geometry
+  shape={shapes.rectangle(200, 20)}
+  fillColor={[0.2, 0.8, 0.2, 1]}
+/>
+
+// Red circle
+<geometry
+  shape={shapes.circle(12)}
+  fillColor={[1, 0.2, 0.2, 1]}
+  strokeColor={[1, 1, 1, 1]}
+  strokeWidth={2}
+/>
+```
+
+Colors use the `Color` type: a `[r, g, b, a]` tuple with values from `0` to `1`. See [Filters](/guides/filters) for more on the `Color` type.
+
+## Building a Health Bar
+
+Combine a background rectangle with a reactive foreground bar to display a health meter:
+
+```tsx HealthBar.tsx
+import { useSignal, useComputed } from 'fraxel/hooks'
+import { shapes } from 'fraxel'
+
+const MAX_HEALTH = 100
+const BAR_WIDTH = 120
+
+function HealthBar() {
+  const [health] = useSignal(100)
+
+  // Width of the green bar, proportional to current health
+  const fillWidth = useComputed(() => (health() / MAX_HEALTH) * BAR_WIDTH)
+
+  return (
+    <transform position={[16, 16]}>
+      {/* Dark background */}
+      <geometry
+        shape={shapes.rectangle(BAR_WIDTH, 16)}
+        fillColor={[0.2, 0.1, 0.1, 0.9]}
+        strokeColor={[0.8, 0.8, 0.8, 1]}
+        strokeWidth={2}
+      />
+      {/* Green health fill — width is reactive */}
+      <geometry
+        shape={() => shapes.rectangle(fillWidth(), 16)}
+        fillColor={[0.2, 0.9, 0.3, 1]}
+      />
+      {/* Numeric label */}
+      <text
+        position={[BAR_WIDTH / 2, 13]}
+        text={() => `${health()} / ${MAX_HEALTH}`}
+        style={{ fontSize: 11, textAlign: 'center', foregroundColor: '#ffffff' }}
+      />
+    </transform>
+  )
+}
+```
+
+## Pinning the HUD to the Screen
+
+Game objects move with the world, but HUD elements should stay fixed on screen. The easiest approach is to position UI nodes at a fixed offset relative to the camera using the camera's `offset` as a reference, or by placing them as children of a separate root node that sits at a known screen position.
+
+```tsx HUD.tsx
+function HUD() {
+  // These coordinates are in world space but chosen to always map
+  // to the top-left of the viewport when the camera is at the origin.
+  // For a scrolling camera, attach this to a group that follows the camera.
+  return (
+    <transform position={[0, 0]}>
+      <ScoreLabel />
+      <HealthBar />
+    </transform>
+  )
+}
+```
+
+<Tip>
+  For large games, use the camera's `screenToWorld` method to convert a fixed screen coordinate (e.g., `[16, 16]`) into the correct world position for your HUD root transform. This keeps the HUD locked even as the camera scrolls.
+</Tip>
+
+## Full HUD Example
+
+```tsx GameHUD.tsx
+import { useSignal, useComputed } from 'fraxel/hooks'
+import { shapes } from 'fraxel'
+
+export const [getHealth, setHealth] = [() => 100, (_: number) => {}] // provided by your game state
+
+function GameHUD() {
+  const [health, setHealthLocal] = useSignal(100)
+  const [score, setScore] = useSignal(0)
+  const [lives, setLives] = useSignal(3)
+
+  const barFill = useComputed(() => (health() / 100) * 120)
+  const barColor = useComputed(() =>
+    health() > 50
+      ? ([0.2, 0.9, 0.3, 1] as const)
+      : health() > 25
+        ? ([1, 0.8, 0, 1] as const)
+        : ([1, 0.2, 0.2, 1] as const),
+  )
+
+  return (
+    <transform position={[8, 8]}>
+      {/* Health bar */}
+      <geometry shape={shapes.rectangle(120, 14)} fillColor={[0.15, 0.15, 0.15, 0.8]} />
+      <geometry shape={() => shapes.rectangle(barFill(), 14)} fillColor={barColor} />
+      <text
+        position={[4, 12]}
+        text={() => `HP ${health()}`}
+        style={{ fontSize: 10, foregroundColor: '#fff', fontFamily: 'monospace' }}
+      />
+
+      {/* Score */}
+      <text
+        position={[140, 12]}
+        text={() => `${score().toString().padStart(6, '0')}`}
+        style={{ fontSize: 14, foregroundColor: '#ffe066', fontFamily: 'monospace', fontWeight: 'bold' }}
+      />
+
+      {/* Lives */}
+      <text
+        position={[280, 12]}
+        text={() => `♥ × ${lives()}`}
+        style={{ fontSize: 13, foregroundColor: '#ff4d4d', fontFamily: 'sans-serif' }}
+      />
+    </transform>
+  )
+}
+```

@@ -1,0 +1,218 @@
+---
+title: "Sprite Filters and Visual Effects in Fraxel"
+sidebarTitle: "Filters"
+description: "Apply visual filters to sprites in Fraxel — brightness, grayscale, modulate tint, contrast, saturation, hue rotation, invert, and opacity. Use signals reactively."
+---
+
+Visual feedback is a core part of game feel. A character flashing white when they take a hit, an enemy going gray when they die, a power-up glowing brighter as the player approaches — these effects communicate state without requiring extra artwork. Fraxel's sprite filter system gives you eight CSS-inspired filter properties directly on the `<sprite>` node, all reactive and composable.
+
+## How Filters Work
+
+Filters are applied via the canvas `ctx.filter` property before each draw call, and are reset afterwards so they don't bleed into other nodes. The `modulate` tint uses `globalCompositeOperation: 'multiply'` for color multiplication over the drawn pixels.
+
+Because filters are per-node props, you can animate them with signals or tweens without any extra setup.
+
+## All Filter Props
+
+<ParamField path="brightness" type="Reactive<number>" default="1">
+  Scales the sprite's luminosity. `0` = fully black, `1` = unchanged, `2` = fully white. Use values above `1` for damage flashes or power-up glows.
+</ParamField>
+
+<ParamField path="grayscale" type="Reactive<number>" default="0">
+  Desaturates the sprite. `0` = full color, `1` = fully grayscale. Use for dead, frozen, or disabled states.
+</ParamField>
+
+<ParamField path="modulate" type="Reactive<Color>" default="[1, 1, 1, 1]">
+  Multiplies each pixel's color channels by the given RGBA values. `[1, 1, 1, 1]` = no change. `[1, 0.3, 0.3, 1]` = reddish tint.
+</ParamField>
+
+<ParamField path="contrast" type="Reactive<number>" default="1">
+  Adjusts the contrast. `0` = flat uniform gray, `1` = unchanged, values above `1` exaggerate contrast.
+</ParamField>
+
+<ParamField path="saturate" type="Reactive<number>" default="1">
+  Adjusts color saturation. `0` = fully desaturated, `1` = unchanged, `2` = double saturation.
+</ParamField>
+
+<ParamField path="hueRotate" type="Reactive<number>" default="0">
+  Rotates all hue values by the given number of degrees. `0` = unchanged, `180` = complementary colors, `360` = full rotation (back to normal).
+</ParamField>
+
+<ParamField path="invert" type="Reactive<number>" default="0">
+  Inverts the sprite's colors. `0` = normal, `1` = fully inverted (negative image).
+</ParamField>
+
+<ParamField path="opacity" type="Reactive<number>" default="1">
+  Controls overall alpha. `0` = invisible, `1` = fully opaque. Distinct from `modulate`'s alpha channel — `opacity` uses the native canvas `opacity` filter.
+</ParamField>
+
+## The `Color` Type
+
+The `modulate` prop (and `fillColor`/`strokeColor` on `<geometry>`) uses the `Color` type: a 4-element tuple `[r, g, b, a]` with each channel in the `0`–`1` range:
+
+```ts
+import type { Color } from 'fraxel'
+
+const red: Color = [1, 0, 0, 1]
+const orange: Color = [1, 0.5, 0, 1]
+const semiTransparentBlue: Color = [0, 0.3, 1, 0.6]
+const white: Color = [1, 1, 1, 1] // no tint
+```
+
+## Reactive Filters
+
+Pass a `SignalGetter` (zero-argument function returning the value) as any filter prop to make it update every frame. The engine reads the getter during rendering:
+
+```tsx Player.tsx
+import { useSignal, useComputed } from 'fraxel/hooks'
+
+function Player() {
+  const [isHit, setIsHit] = useSignal(false)
+  const [isDead, setIsDead] = useSignal(false)
+
+  // Brightness jumps to 2 on hit, then fades back (see tween below)
+  const brightness = useComputed(() => (isHit() ? 2 : 1))
+  const gray = useComputed(() => (isDead() ? 1 : 0))
+
+  return <sprite textureId={PLAYER} brightness={brightness} grayscale={gray} />
+}
+```
+
+## Common Patterns
+
+### Damage Flash
+
+Flash the sprite white for a fraction of a second when the player takes damage. Use `tween` to fade the brightness back:
+
+```tsx Player.tsx
+import { useNode, useMount } from 'fraxel/hooks'
+import { PrimaryNode } from 'fraxel'
+import { tween } from 'fraxel/animation'
+
+function Player() {
+  const sprite = useNode(PrimaryNode.Sprite)
+
+  const takeDamage = () => {
+    // Instant white flash, fade back over 0.2 seconds
+    sprite.node.brightness = 2.5
+    tween({
+      target: sprite.node,
+      prop: 'brightness',
+      from: 2.5,
+      to: 1,
+      duration: 0.2,
+    })
+  }
+
+  return <sprite ref={sprite} textureId={PLAYER} />
+}
+```
+
+### Death Grayscale
+
+Smoothly desaturate an enemy as it dies:
+
+```tsx Enemy.tsx
+import { useNode } from 'fraxel/hooks'
+import { tween } from 'fraxel/animation'
+import { PrimaryNode } from 'fraxel'
+
+function Enemy() {
+  const sprite = useNode(PrimaryNode.Sprite)
+
+  const die = () => {
+    tween({
+      target: sprite.node,
+      prop: 'grayscale',
+      from: 0,
+      to: 1,
+      duration: 0.6,
+      onComplete: () => sprite.node.parent?.destroy(),
+    })
+  }
+
+  return <sprite ref={sprite} textureId={ENEMY} />
+}
+```
+
+### Color Tint (Modulate)
+
+Apply a reactive tint to show an enemy's health state:
+
+```tsx Enemy.tsx
+import { useSignal, useComputed } from 'fraxel/hooks'
+
+function Enemy() {
+  const [health, setHealth] = useSignal(100)
+
+  // Shift from white to red as health drops
+  const tint = useComputed<[number, number, number, number]>(() => {
+    const t = health() / 100 // 1 at full health, 0 at zero
+    return [1, t, t, 1] // full red at 0 health
+  })
+
+  return <sprite textureId={ENEMY} modulate={tint} />
+}
+```
+
+### Hit Brightness + Tint Together
+
+Combine multiple filters for a richer effect:
+
+```tsx
+<sprite
+  textureId={PLAYER}
+  brightness={() => (isHit() ? 1.8 : 1)}
+  modulate={() => (isHit() ? [1, 0.4, 0.4, 1] : [1, 1, 1, 1])}
+  grayscale={() => (isDead() ? 1 : 0)}
+/>
+```
+
+### Invincibility Flicker
+
+Alternate `opacity` between `0` and `1` rapidly to indicate temporary invincibility after taking damage:
+
+```tsx
+import { useSignal, useEffect } from 'fraxel/hooks'
+
+function Player() {
+  const [invincible, setInvincible] = useSignal(false)
+  const [opacity, setOpacity] = useSignal(1)
+
+  useEffect(() => {
+    if (!invincible()) {
+      setOpacity(1)
+      return
+    }
+    // Toggle every 100ms using a timer
+    const interval = setInterval(() => {
+      setOpacity((prev) => (prev === 1 ? 0 : 1))
+    }, 100)
+    return () => clearInterval(interval)
+  })
+
+  return <sprite textureId={PLAYER} opacity={opacity} />
+}
+```
+
+## All Filters at Once
+
+```tsx
+<sprite
+  textureId={TEX}
+  brightness={1.2}
+  grayscale={0.3}
+  modulate={[1, 0.8, 0.5, 1]}
+  contrast={1.1}
+  saturate={1.4}
+  hueRotate={15}
+  invert={0}
+  opacity={0.9}
+/>
+```
+
+Filters compose multiplicatively — applying `brightness={1.2}` and `contrast={1.2}` stacks both effects simultaneously.
+
+<Tip>
+  For smooth filter transitions over time, combine reactive signals with `tween()`. See [Tweening](/guides/tweening) for animation patterns.
+</Tip>

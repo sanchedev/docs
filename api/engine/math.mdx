@@ -1,0 +1,309 @@
+---
+title: "Math Utilities — Fraxel Engine API Reference"
+sidebarTitle: "Math"
+description: "Reference for Fraxel's math module: Vector2 class, vector2 factory, Bounds class, bounds factory, VectorLike type, Color type, and clamp."
+---
+
+Fraxel's math module provides `Vector2`, `Bounds`, and a set of related types and utility functions. All are importable from `'fraxel'`. Most engine APIs accept the flexible `VectorLike` type rather than requiring a `Vector2` instance, so you can pass tuples, plain objects, or a scalar directly where a vector is expected.
+
+---
+
+## Vector2
+
+A mutable 2D vector. Mutating methods (e.g. `add`, `subtract`) modify the vector in place and return `this` for chaining. Non-mutating counterparts (e.g. `toAdded`, `toSubtracted`) always return a new `Vector2` instance.
+
+### Constructor
+
+```ts
+new Vector2(x: number, y: number): Vector2
+new Vector2(uniform: number): Vector2          // both x and y = uniform
+new Vector2([x, y]: [number, number]): Vector2
+new Vector2({ x, y }: Position): Vector2
+new Vector2(other: Vector2): Vector2
+```
+
+```ts
+import { Vector2 } from 'fraxel'
+
+const a = new Vector2(10, 20)        // (10, 20)
+const b = new Vector2(5)             // (5, 5)
+const c = new Vector2([3, 4])        // (3, 4)
+const d = new Vector2({ x: 1, y: 2}) // (1, 2)
+const e = new Vector2(a)             // copy of a
+```
+
+### Static Properties
+
+| Property | Value | Description |
+|---|---|---|
+| `Vector2.ZERO` | `(0, 0)` | Returns a new zero vector each time. |
+| `Vector2.ONE` | `(1, 1)` | Returns a new unit vector each time. |
+
+### Instance Properties
+
+| Property | Type | Description |
+|---|---|---|
+| `x` | `number` | Horizontal component. |
+| `y` | `number` | Vertical component. |
+
+---
+
+### Methods
+
+#### Mutating (in-place, returns `this`)
+
+| Method | Description |
+|---|---|
+| `add(v: VectorLike)` | Adds `v` to this vector component-wise. |
+| `subtract(v: VectorLike)` | Subtracts `v` from this vector. |
+| `multiply(v: VectorLike)` | Multiplies this vector by `v` component-wise. |
+| `divide(v: VectorLike)` | Divides this vector by `v` component-wise. |
+| `lerp(to: VectorLike, weight: number)` | Linearly interpolates this vector toward `to` by `weight` (0–1). |
+| `apply(fn: (coord, axis) => number)` | Transforms each component with a callback. |
+| `normalize()` | Scales to unit length; no-op if the vector is zero. |
+
+#### Non-mutating (returns a new `Vector2`)
+
+| Method | Description |
+|---|---|
+| `toAdded(v: VectorLike)` | Returns `this + v`. |
+| `toSubtracted(v: VectorLike)` | Returns `this - v`. |
+| `toMultiplied(v: VectorLike)` | Returns `this * v` component-wise. |
+| `toDivided(v: VectorLike)` | Returns `this / v` component-wise. |
+| `toLerped(to: VectorLike, weight: number)` | Returns interpolation between `this` and `to`. |
+| `toApplied(fn: (coord, axis) => number)` | Returns a new vector with the callback applied to each component. |
+| `clone()` | Returns an independent copy of this vector. |
+
+#### Other methods
+
+| Method | Returns | Description |
+|---|---|---|
+| `equals(v: VectorLike)` | `boolean` | `true` if both components are equal. |
+| `toJSON()` | `Position` | Returns `{ x, y }`. |
+
+```ts
+import { Vector2 } from 'fraxel'
+
+const velocity = new Vector2(3, 4)
+
+// Mutating
+velocity.add([1, 0])          // velocity is now (4, 4)
+velocity.normalize()          // scale to unit length
+
+// Non-mutating
+const speed    = velocity.toMultiplied(150)  // new Vector2
+const next     = velocity.toAdded(speed)     // new Vector2
+
+// Chaining
+const result = new Vector2(0, 0)
+  .add([10, 5])
+  .subtract([2, 1])
+  .multiply([3, 3])
+```
+
+---
+
+## vector2 (factory function)
+
+Convenience function equivalent to `new Vector2(...)`. Accepts every format that the constructor does.
+
+```ts
+vector2(x: number, y: number): Vector2
+vector2(uniform: number): Vector2
+vector2([x, y]: [number, number]): Vector2
+vector2({ x, y }: Position): Vector2
+vector2(other: Vector2): Vector2
+vector2(like: VectorLike): Vector2
+```
+
+```ts
+import { vector2 } from 'fraxel'
+
+const pos     = vector2(100, 200)
+const uniform = vector2(5)          // (5, 5)
+const fromArr = vector2([16, 32])
+```
+
+---
+
+## Vector2.from (static)
+
+Identical to the factory function but called as a static method.
+
+```ts
+Vector2.from(like: VectorLike): Vector2
+Vector2.from(x: number, y: number): Vector2
+```
+
+---
+
+## VectorLike
+
+A union type accepted wherever a `Vector2` is expected. Use it in your own APIs to accept flexible vector input.
+
+```ts
+type VectorLike = Vector2 | Position | [x: number, y: number] | number
+```
+
+| Form | Interpretation |
+|---|---|
+| `Vector2` | Used as-is. |
+| `{ x, y }` (`Position`) | Unpacked into `x` and `y`. |
+| `[number, number]` | Index 0 → `x`, index 1 → `y`. |
+| `number` | Scalar: both `x` and `y` are set to this value. |
+
+### isVectorLike
+
+Type guard that returns `true` if `object` is a valid `VectorLike`.
+
+```ts
+isVectorLike(object: unknown): object is VectorLike
+```
+
+```ts
+import { isVectorLike } from 'fraxel'
+
+isVectorLike(new Vector2(1, 2)) // true
+isVectorLike([3, 4])            // true
+isVectorLike({ x: 5, y: 6 })   // true
+isVectorLike(7)                 // true
+isVectorLike('hello')           // false
+```
+
+---
+
+## Bounds
+
+Represents a rectangular padding or limit region with four independent edges. Used for camera constraints, UI margins, and spatial limits.
+
+### Constructor
+
+```ts
+new Bounds()                                      // all edges = 0
+new Bounds(all: number)                           // all edges = all
+new Bounds(horizontal, vertical)                  // left=right=h, top=bottom=v
+new Bounds(left, vertical, right)                 // top=bottom=vertical
+new Bounds(left, top, right, bottom)              // all independent
+new Bounds(boundsLike: BoundsLike)                // from object/tuple
+```
+
+### Instance Properties
+
+| Property | Type | Description |
+|---|---|---|
+| `left` | `number` | Left edge offset. |
+| `top` | `number` | Top edge offset. |
+| `right` | `number` | Right edge offset. |
+| `bottom` | `number` | Bottom edge offset. |
+
+```ts
+import { Bounds } from 'fraxel'
+
+const margin  = new Bounds(16)              // 16px all sides
+const hv      = new Bounds(8, 16)           // 8px horizontal, 16px vertical
+const custom  = new Bounds(0, 0, 320, 180)  // left=0, top=0, right=320, bottom=180
+```
+
+---
+
+## bounds (factory function)
+
+Convenience function equivalent to `new Bounds(...)`.
+
+```ts
+bounds(): Bounds
+bounds(all: number): Bounds
+bounds(h: number, v: number): Bounds
+bounds(l: number, v: number, r: number): Bounds
+bounds(l: number, t: number, r: number, b: number): Bounds
+bounds(like: BoundsLike): Bounds
+```
+
+```ts
+import { bounds } from 'fraxel'
+
+const padding = bounds(8, 16)
+const limit   = bounds(0, 0, 320, 180)
+```
+
+---
+
+## BoundsLike
+
+All formats accepted by `Bounds` and `bounds`.
+
+```ts
+type BoundsLike =
+  | number
+  | [horizontal: number, vertical: number]
+  | [left: number, vertical: number, right: number]
+  | [left: number, top: number, right: number, bottom: number]
+  | { horizontal: number; vertical: number }
+  | { left: number; vertical: number; right: number }
+  | { left: number; top: number; right: number; bottom: number }
+  | Bounds
+```
+
+---
+
+## Position
+
+A lightweight `{ x, y }` plain object type — used as the return type of `Vector2.toJSON()` and accepted anywhere a `VectorLike` is expected.
+
+```ts
+interface Position {
+  x: number
+  y: number
+}
+```
+
+---
+
+## Color
+
+A `[r, g, b, a]` tuple where each component is in the `0`–`1` range (not `0`–`255`). Used by node props such as `fillColor`, `borderColor`, and `tint`.
+
+```ts
+type Color = [r: number, g: number, b: number, a: number]
+```
+
+```ts
+const red:         Color = [1,   0,   0,   1]
+const halfOpaque:  Color = [0,   0,   1,   0.5]
+const transparent: Color = [0,   0,   0,   0]
+const white:       Color = [1,   1,   1,   1]
+```
+
+---
+
+## clamp
+
+Restricts a value to a closed interval `[min, max]`.
+
+```ts
+clamp(min: number, value: number, max: number): number
+```
+
+<ParamField path="min" type="number" required>
+  Lower bound (inclusive).
+</ParamField>
+<ParamField path="value" type="number" required>
+  Value to clamp.
+</ParamField>
+<ParamField path="max" type="number" required>
+  Upper bound (inclusive).
+</ParamField>
+
+If `min >= max`, `min` is always returned.
+
+```ts
+import { clamp } from 'fraxel'
+
+clamp(0, 5, 10)   // 5  — within range
+clamp(0, -3, 10)  // 0  — below min
+clamp(0, 15, 10)  // 10 — above max
+clamp(5, 3, 5)    // 5  — min = max
+
+// Practical: keep health in 0–100
+health = clamp(0, health - damage, 100)
+```

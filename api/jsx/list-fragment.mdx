@@ -1,0 +1,178 @@
+---
+title: "List & Fragment Components — Fraxel JSX API"
+sidebarTitle: "List & Fragment"
+description: "Reference for Fraxel's List component (keyed reactive array rendering) and Fragment (zero-overhead child grouping without a wrapper node)."
+---
+
+`<List>` and `<Fragment>` are structural JSX components that control how children are grouped and reconciled. `<List>` renders a reactive array with keyed diffing so only changed items are created or destroyed. `<Fragment>` groups multiple nodes under a single JSX expression without inserting a wrapper node into the scene tree.
+
+---
+
+## \<List\>
+
+Renders a dynamic, reactive array of nodes with keyed reconciliation. When the source array changes, `<List>` adds only new items and destroys only removed items — unchanged items (matched by key) are left untouched.
+
+`<List>` uses an internal hidden `<transform>` as an anchor node; the rendered items become its children. No additional wrapper is visible in the scene tree.
+
+### Props
+
+```ts
+interface ListOptions<T> {
+  array:   Reactive<T[]>
+  itemKey: (value: T, index: number, arr: T[]) => string | symbol
+  children: (value: T, index: number, arr: T[]) => Fraxel.Node
+  empty?:  Fraxel.Node
+}
+```
+
+<ParamField path="array" type="Reactive<T[]>" required>
+  A `SignalGetter<T[]>` (or a plain array — see `Reactive<T>`). When the signal updates, `<List>` reconciles the rendered nodes automatically.
+</ParamField>
+<ParamField path="itemKey" type="(value: T, index: number, arr: T[]) => string | symbol" required>
+  Returns a stable, unique key for each item. Items with the same key from one render to the next are considered identical and are not recreated. Items with new keys are created; items whose keys disappear are destroyed.
+</ParamField>
+<ParamField path="children" type="(value: T, index: number, arr: T[]) => Fraxel.Node" required>
+  Render function called for each item. Must return exactly one root node. The function receives the item value, its current index, and the full array.
+</ParamField>
+<ParamField path="empty" type="Fraxel.Node">
+  Optional node rendered when `array` is empty. Destroyed again when the array becomes non-empty.
+</ParamField>
+
+### Reconciliation Rules
+
+| Scenario | Behaviour |
+|---|---|
+| Item key exists in previous render | Node is **kept** — not destroyed or recreated. |
+| Item key is new | `children` is called once; returned node is mounted. |
+| Item key is gone | Node is **destroyed** immediately. |
+| Array becomes empty | `empty` node (if provided) is mounted. |
+| Array becomes non-empty | `empty` node is destroyed. |
+
+<Note>
+Each call to `children` must return exactly one root node. Returning a Fragment or an array will throw `HookRequiresNodeRootError`. Wrap multiple nodes in a `<transform>` if needed.
+</Note>
+
+### Basic Example
+
+```tsx
+import { List } from 'fraxel/jsx'
+import { useSignal } from 'fraxel/hooks'
+
+function EnemyList() {
+  const [enemies, setEnemies] = useSignal([
+    { id: 1, x: 40,  y: 80 },
+    { id: 2, x: 100, y: 80 },
+    { id: 3, x: 160, y: 80 },
+  ])
+
+  return (
+    <List
+      array={enemies}
+      itemKey={(enemy) => enemy.id}
+    >
+      {(enemy) => (
+        <transform position={[enemy.x, enemy.y]}>
+          <sprite textureId={ENEMY_TEX} />
+          <collider shape={shapes.circle(8)} group={['enemy']} collidesWith={['bullet']} />
+        </transform>
+      )}
+    </List>
+  )
+}
+```
+
+### Empty Fallback
+
+```tsx
+<List
+  array={inventory}
+  itemKey={(item) => item.id}
+  empty={
+    <transform position={[80, 90]}>
+      <text text="Inventory empty" />
+    </transform>
+  }
+>
+  {(item) => <ItemSlot item={item} />}
+</List>
+```
+
+### Reactive Mutation Pattern
+
+Combine `<List>` with `useSignal` and array spread to add or remove items reactively:
+
+```tsx
+import { List } from 'fraxel/jsx'
+import { useSignal, useGame } from 'fraxel/hooks'
+import { Input } from 'fraxel'
+
+let nextId = 0
+const Spawn = Input.createAction({ key: 'e' })
+
+function BulletManager() {
+  const [bullets, setBullets] = useSignal<{ id: number; x: number }[]>([])
+  const { justPressed } = useAction(Spawn)
+
+  useEffect(() => {
+    // Add
+    if (justPressed()) {
+      setBullets([...bullets(), { id: ++nextId, x: playerX() }])
+    }
+  })
+
+  return (
+    <List array={bullets} itemKey={(b) => b.id}>
+      {(b) => (
+        <Bullet
+          startX={b.x}
+          onDestroy={() =>
+            setBullets(bullets().filter((v) => v.id !== b.id))
+          }
+        />
+      )}
+    </List>
+  )
+}
+```
+
+---
+
+## \<Fragment\>
+
+Groups multiple sibling nodes under a single JSX expression without adding any wrapper node to the scene tree. Identical in purpose to React's `<Fragment>` or `<>...</>`.
+
+### Props
+
+`<Fragment>` accepts only `children` — there are no other props.
+
+```tsx
+import { Fragment } from 'fraxel/jsx'
+
+function TwoSprites() {
+  return (
+    <Fragment>
+      <sprite textureId={TEX_A} position={[0,  0]} />
+      <sprite textureId={TEX_B} position={[32, 0]} />
+    </Fragment>
+  )
+}
+```
+
+`Fragment` is also used internally by `createContext` providers and `List` to group nodes without a parent.
+
+<Tip>
+Use `<Fragment>` when a component function must return a single JSX expression but you need to mount multiple sibling nodes. No anchor node is inserted into the scene.
+</Tip>
+
+---
+
+## Comparison: List vs manual useSpawn
+
+Both approaches can render dynamic children, but they serve different use cases:
+
+| | `<List>` | `useSpawn` |
+|---|---|---|
+| Input | Reactive signal array | Imperative call |
+| Reconciliation | Keyed diffing — only new/removed items change | None — you manage add/remove |
+| Best for | Data-driven lists (inventory, enemies, etc.) | One-off dynamic spawning (explosions, particles) |
+| Cleanup | Automatic when key disappears | You must call `node.destroy()` manually |

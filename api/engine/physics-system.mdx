@@ -1,0 +1,244 @@
+---
+title: "PhysicsSystem — Fraxel Engine API Reference"
+sidebarTitle: "PhysicsSystem"
+description: "Reference for Fraxel's PhysicsSystem: gravity configuration, collision shape factories, and the spatial-hash broadphase CollisionSystem."
+---
+
+The physics system integrates gravity, velocity, forces, and impulses for every `RigidBody` node in the active scene. It also manages collision detection and response across all registered colliders. Both `PhysicsSystem` and `CollisionSystem` are static singletons — they are updated automatically each frame by the game loop and require no manual setup beyond attaching `<rigid-body>` and `<collider>` nodes in your JSX.
+
+---
+
+## PhysicsSystem
+
+### PhysicsSystem.gravity
+
+The global gravity vector applied to every `RigidBody` that has `useGravity` enabled. Measured in **pixels per second squared**.
+
+```ts
+PhysicsSystem.gravity: Vector2  // default: Vector2(0, 980)
+```
+
+Read or write this property at any time to change the gravity for the entire scene.
+
+```ts
+import { PhysicsSystem, vector2 } from 'fraxel'
+
+// Default — Earth-like downward gravity
+PhysicsSystem.gravity = vector2(0, 980)
+
+// Moon gravity
+PhysicsSystem.gravity = vector2(0, 160)
+
+// Zero gravity (space)
+PhysicsSystem.gravity = vector2(0, 0)
+
+// Upward (float upward like bubbles)
+PhysicsSystem.gravity = vector2(0, -200)
+
+// Side-scrolling with a horizontal pull
+PhysicsSystem.gravity = vector2(200, 0)
+```
+
+<Note>
+`PhysicsSystem.gravity` is a live `Vector2`. Setting a new `vector2(...)` replaces both components atomically.
+</Note>
+
+---
+
+## CollisionSystem
+
+The `CollisionSystem` manages a **spatial hash broadphase** that partitions the game world into a grid. Each frame it:
+
+1. Updates every collider's position in the spatial hash.
+2. Queries candidate pairs using cell overlap.
+3. Passes candidate pairs to narrow-phase detection (`computeOverlap`).
+4. Calls `resolveCollision` on confirmed overlapping pairs.
+
+You do not interact with `CollisionSystem` directly in most games. Node events like `colliderEntered` and `colliderExited` are emitted as a result of the system's work each frame.
+
+---
+
+## shapes
+
+Factory object for creating collision shapes. Import from `fraxel` and pass results to a `<collider shape={...}>` prop.
+
+```ts
+import { shapes } from 'fraxel'
+```
+
+### shapes.rectangle
+
+Creates an axis-aligned rectangular collision shape.
+
+```ts
+shapes.rectangle(width: number, height: number): RectangleShape
+```
+
+<ParamField path="width" type="number" required>
+  Width of the rectangle in pixels.
+</ParamField>
+<ParamField path="height" type="number" required>
+  Height of the rectangle in pixels.
+</ParamField>
+
+```tsx
+<collider shape={shapes.rectangle(32, 16)} group={['player']} collidesWith={['ground']} />
+```
+
+---
+
+### shapes.circle
+
+Creates a circular collision shape.
+
+```ts
+shapes.circle(radius: number): CircleShape
+```
+
+<ParamField path="radius" type="number" required>
+  Radius of the circle in pixels.
+</ParamField>
+
+```tsx
+<collider shape={shapes.circle(8)} group={['projectile']} collidesWith={['enemy']} />
+```
+
+---
+
+### shapes.capsule
+
+Creates a capsule (stadium) collision shape — a rectangle with semicircular caps on two opposite ends. Useful for character controllers because it slides smoothly along floors and walls without catching on corners.
+
+```ts
+shapes.capsule(
+  length: number,
+  radius: number,
+  direction?: 'vertical' | 'horizontal'
+): CapsuleShape
+```
+
+<ParamField path="length" type="number" required>
+  Total tip-to-tip dimension including the caps. Must be `≥ radius * 2`. When `length === radius * 2`, the capsule degenerates to a circle.
+</ParamField>
+<ParamField path="radius" type="number" required>
+  Radius of the semicircular end caps.
+</ParamField>
+<ParamField path="direction" type="'vertical' | 'horizontal'">
+  Orientation of the capsule. Defaults to `'vertical'` (tall capsule).
+</ParamField>
+
+**Throws** `Error` if `length < radius * 2`.
+
+```tsx
+// Vertical player capsule (default)
+<collider shape={shapes.capsule(32, 8)} group={['player']} collidesWith={['ground']} />
+
+// Horizontal platform sensor
+<collider shape={shapes.capsule(64, 6, 'horizontal')} group={['sensor']} collidesWith={['item']} />
+```
+
+---
+
+## Shape Types
+
+All shapes are plain objects discriminated by a `type` field. Use the `type` property to narrow in a switch or if-chain.
+
+### RectangleShape
+
+```ts
+interface RectangleShape {
+  type: 'rectangle'
+  size: Vector2   // width = size.x, height = size.y
+}
+```
+
+### CircleShape
+
+```ts
+interface CircleShape {
+  type: 'circle'
+  radius: number
+}
+```
+
+### CapsuleShape
+
+```ts
+interface CapsuleShape {
+  type:      'capsule'
+  length:    number                    // tip-to-tip (including caps)
+  radius:    number                    // semicircle radius
+  direction: 'vertical' | 'horizontal'
+}
+```
+
+### Shape (union)
+
+```ts
+type Shape = RectangleShape | CircleShape | CapsuleShape
+```
+
+```ts
+import type { Shape } from 'fraxel'
+
+function describeShape(shape: Shape): string {
+  switch (shape.type) {
+    case 'rectangle': return `${shape.size.x}×${shape.size.y} box`
+    case 'circle':    return `circle r=${shape.radius}`
+    case 'capsule':   return `capsule l=${shape.length} r=${shape.radius}`
+  }
+}
+```
+
+---
+
+## Complete Physics Example
+
+```tsx
+import { useRigidBody, useAction, useActionAxis } from 'fraxel/hooks'
+import { PhysicsSystem, Input, shapes, vector2 } from 'fraxel'
+
+// Custom gravity for a floaty platformer
+PhysicsSystem.gravity = vector2(0, 600)
+
+const Jump  = Input.createAction({ key: ' ' })
+const Left  = Input.createAction({ key: 'ArrowLeft' })
+const Right = Input.createAction({ key: 'ArrowRight' })
+
+function Player() {
+  const { ref, isGrounded, applyImpulse, setVelocity } = useRigidBody()
+  const { justPressed } = useAction(Jump)
+  const axis = useActionAxis(Left, Right)
+
+  useEffect(() => {
+    setVelocity([axis() * 140, ref.node.velocity.y])
+    if (justPressed() && isGrounded()) {
+      applyImpulse([0, -340])
+    }
+  })
+
+  return (
+    <rigid-body ref={ref} mass={1} friction={0.05}>
+      <sprite textureId={PLAYER} />
+      <collider
+        shape={shapes.capsule(24, 6)}
+        group={['player']}
+        collidesWith={['ground', 'enemy']}
+      />
+    </rigid-body>
+  )
+}
+
+function Platform() {
+  return (
+    <rigid-body position={[0, 140]} isStatic>
+      <sprite textureId={PLATFORM} />
+      <collider
+        shape={shapes.rectangle(200, 16)}
+        group={['ground']}
+        collidesWith={['player']}
+      />
+    </rigid-body>
+  )
+}
+```

@@ -1,0 +1,165 @@
+---
+title: "<audio-player> — Audio playback node"
+sidebarTitle: "<audio-player>"
+description: "Play decoded audio buffers loaded with loadSound(). Supports looping, volume, playback rate, pause/resume, and persistUntilEnd for one-shot sounds on ephemeral nodes."
+---
+
+Use `<audio-player>` to play sounds and music loaded with `loadSound()`. It wraps the Web Audio API's `AudioBufferSourceNode` and `GainNode`, giving you volume control and playback rate adjustment with low overhead. Call `play()`, `pause()`, and `stop()` imperatively, or drive playback from events. For components that destroy themselves immediately after triggering a sound, set `persistUntilEnd` to keep the audio node alive until playback finishes.
+
+```tsx
+import { useNode, useEvent } from 'fraxel/hooks'
+import { PrimaryNode } from 'fraxel'
+import { loadSound } from 'fraxel/assets'
+
+const SHOOT_SFX = await loadSound('/assets/shoot.mp3')
+
+function Gun() {
+  const audio = useNode(PrimaryNode.AudioPlayer)
+  const clickable = useNode(PrimaryNode.Clickable)
+
+  useEvent(clickable, 'clicked', () => {
+    audio.node.play()
+  })
+
+  return (
+    <sprite ref={clickable} textureId={GUN_TEX}>
+      <clickable size={[48, 24]} />
+      <audio-player ref={audio} soundId={SHOOT_SFX} volume={0.8} />
+    </sprite>
+  )
+}
+```
+
+## Props
+
+<ParamField path="soundId" type="symbol" required>
+  The symbol returned by `loadSound()`. This is the only required prop.
+  Duplicate calls to `loadSound()` with the same URL return the same cached
+  symbol.
+
+  ```tsx
+  const BG_MUSIC = await loadSound('/assets/music.mp3')
+  <audio-player soundId={BG_MUSIC} loop volume={0.4} />
+  ```
+</ParamField>
+
+<ParamField path="loop" type="boolean">
+  Loop playback indefinitely. The `ended` event does **not** fire on looping
+  sounds. Defaults to `false`.
+</ParamField>
+
+<ParamField path="volume" type="number">
+  Initial playback volume. Range `0–1`. Can also be changed at runtime via the
+  `volume` setter. Defaults to `1`.
+</ParamField>
+
+<ParamField path="playbackRate" type="number">
+  Playback speed. `1` = normal, `2` = double speed, `0.5` = half speed. Can be
+  changed at runtime via the `playbackRate` setter. Defaults to `1`.
+</ParamField>
+
+<ParamField path="persistUntilEnd" type="boolean">
+  When `true`, calling `destroy()` while the sound is playing defers actual
+  cleanup until the sound finishes. Use this for one-shot sounds on nodes that
+  self-destruct (e.g. a projectile that plays a hit sound and is then removed).
+  Defaults to `false`.
+
+  ```tsx
+  // The pea destroys itself, but the splat sound plays out
+  useEvent(col, 'colliderEntered', () => {
+    audio.node.play()
+    transform.node.destroy() // audio-player survives until `ended`
+  })
+  <audio-player soundId={SPLAT} persistUntilEnd />
+  ```
+</ParamField>
+
+<ParamField path="ref" type="NodeReference<PrimaryNode.AudioPlayer>">
+  Attach a node reference to call methods and read state at runtime.
+</ParamField>
+
+## Instance properties (getters/setters)
+
+| Property | Access | Type | Description |
+|---|---|---|---|
+| `isPlaying` | get | `boolean` | `true` while the sound is playing. |
+| `volume` | get/set | `number` | Current volume `0–1`. Setting this also updates the live `GainNode`. |
+| `playbackRate` | get/set | `number` | Current playback speed. Setting this also updates the live `AudioBufferSourceNode`. |
+
+## Methods
+
+| Method | Signature | Description |
+|---|---|---|
+| `play` | `(offset?: number) => void` | Start or restart playback. Pass `offset` (in seconds) to start from a specific point. If paused, resumes from the pause position when no offset is given. |
+| `pause` | `() => void` | Pause playback without resetting the playback position. Call `play()` again to resume. |
+| `stop` | `() => void` | Stop playback and reset the position to `0`. The next `play()` starts from the beginning. |
+| `destroy` | `() => void` | Remove the node. Deferred until playback ends if `persistUntilEnd` is `true`. |
+
+## Events
+
+| Event name | Callback signature | Description |
+|---|---|---|
+| `ended` | `() => void` | Fires when non-looping playback reaches the end naturally. Does not fire on `stop()` or `pause()`. |
+| `error` | `(err: Error) => void` | Fires if playback fails (e.g. decoding error, missing buffer). |
+| `started` | `() => void` | Fires once after the node finishes `start()`. |
+| `destroyed` | `() => void` | Fires on removal (after any `persistUntilEnd` delay). |
+
+<CodeGroup>
+
+```tsx Background music with auto-resume
+import { useNode, useMount } from 'fraxel/hooks'
+import { PrimaryNode } from 'fraxel'
+import { getAudioContext } from 'fraxel/audio'
+
+const BG_MUSIC = await loadSound('/assets/music.mp3')
+
+function MusicPlayer() {
+  const music = useNode(PrimaryNode.AudioPlayer)
+
+  useMount(() => {
+    // Browsers require a user gesture before audio plays
+    const ctx = getAudioContext()
+    if (ctx.state === 'suspended') ctx.resume()
+    music.node.play()
+  })
+
+  return <audio-player ref={music} soundId={BG_MUSIC} loop volume={0.35} />
+}
+```
+
+```tsx Pitch-shifted variants
+const HIT_SFX = await loadSound('/assets/hit.mp3')
+
+function randomHitSound() {
+  const audio = useNode(PrimaryNode.AudioPlayer)
+
+  useMount(() => {
+    // Random pitch between 0.85× and 1.15×
+    audio.node.playbackRate = 0.85 + Math.random() * 0.3
+    audio.node.play()
+  })
+
+  return (
+    <audio-player ref={audio} soundId={HIT_SFX} persistUntilEnd />
+  )
+}
+```
+
+</CodeGroup>
+
+<Note>
+  The `AudioContext` is created lazily on first use. Browsers block audio until
+  a user gesture occurs — call `getAudioContext().resume()` inside a click or
+  key-down handler before playing sounds for the first time.
+</Note>
+
+<Tip>
+  A single `<audio-player>` creates one `AudioBufferSourceNode` per `play()`
+  call. To play multiple overlapping instances of the same sound (rapid gunfire),
+  create multiple `<audio-player>` nodes or call `play()` on separate instances.
+</Tip>
+
+## Related
+
+- [Audio guide](/guides/audio-playback) — `loadSound`, `AudioContext`, complete examples
+- [`<clickable>`](/api/nodes/clickable) — trigger `play()` from pointer events

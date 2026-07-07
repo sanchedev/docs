@@ -1,0 +1,254 @@
+---
+title: "Signals and Reactivity in Fraxel"
+sidebarTitle: "Signals"
+description: "Understand Fraxel's reactivity model: useSignal, useComputed, useEffect, auto-computed JSX props, the Signal class, clearSubs, useMatch, and useWhen patterns."
+---
+
+Fraxel's rendering model is reactive: instead of re-running your entire component function on every frame, only the specific node properties that depend on changed signals are updated. Understanding how signals, computed values, and effects work together gives you precise control over when and how your game responds to changing state.
+
+## The Reactivity Model
+
+A **signal** is a reactive container for a single value. When you change a signal's value, all subscribers are notified — effects re-run, computed signals recalculate, and any JSX props reading the signal update on the next render pass. This all happens automatically once you wire things up.
+
+There are three reactive primitives:
+
+| Primitive | Description |
+|-----------|-------------|
+| `useSignal` | Raw mutable state — a readable/writable value pair |
+| `useComputed` | Derived, read-only value that recalculates when dependencies change |
+| `useEffect` | Side effect that runs when any accessed signals change |
+
+## `useSignal`
+
+`useSignal` returns a `[getter, setter]` tuple. The getter is a zero-argument function — calling it returns the current value and registers the caller as a dependency:
+
+```tsx HealthTracker.tsx
+import { useSignal, useEffect } from 'fraxel/hooks'
+
+function HealthTracker() {
+  const [health, setHealth] = useSignal(100)
+
+  useEffect(() => {
+    // This runs once on mount, then again whenever health changes
+    console.log('Health:', health())
+
+    if (health() <= 0) {
+      console.log('Player died!')
+    }
+  })
+
+  return (
+    <transform>
+      <text
+        position={[10, 20]}
+        text={() => `HP: ${health()}`}
+        style={{ fontSize: 14, foregroundColor: '#fff' }}
+      />
+    </transform>
+  )
+}
+```
+
+<Note>
+  Always call the getter as a function — `health()` — not as a value. Writing `health` (without parentheses) gives you the function reference, not the current value.
+</Note>
+
+## `useComputed`
+
+`useComputed` creates a derived, read-only signal. Its value is recalculated whenever any signal read inside the callback changes:
+
+```tsx CooldownBar.tsx
+import { useSignal, useComputed } from 'fraxel/hooks'
+
+function CooldownBar() {
+  const [elapsed, setElapsed] = useSignal(0)
+  const DURATION = 3
+
+  // Automatically recalculates when elapsed changes
+  const progress = useComputed(() => Math.min(elapsed() / DURATION, 1))
+  const pct = useComputed(() => `${Math.round(progress() * 100)}%`)
+
+  return (
+    <transform>
+      <geometry
+        shape={() => shapes.rectangle(progress() * 120, 12)}
+        fillColor={[0.2, 0.7, 1, 1]}
+      />
+      <text
+        position={[130, 10]}
+        text={pct}
+        style={{ fontSize: 11, foregroundColor: '#aaa' }}
+      />
+    </transform>
+  )
+}
+```
+
+`useComputed` is memoized — if `elapsed()` didn't change between two reads, the callback won't re-run.
+
+## `useEffect`
+
+`useEffect` subscribes to any signals read during its execution and re-runs when they change. Re-executions are **batched** — if multiple signals change in the same synchronous block, the effect runs only once after all changes settle (via `queueMicrotask`):
+
+```tsx
+import { useSignal, useEffect } from 'fraxel/hooks'
+
+function GameState() {
+  const [x, setX] = useSignal(0)
+  const [y, setY] = useSignal(0)
+  const [z, setZ] = useSignal(0)
+
+  useEffect(() => {
+    // This runs once even though x, y, and z all changed synchronously
+    console.log(`Position: ${x()}, ${y()}, ${z()}`)
+  })
+
+  // All three trigger a single effect execution
+  setX(10)
+  setY(20)
+  setZ(30)
+
+  return <transform />
+}
+```
+
+The effect also runs once when the node starts (the initial execution), and cleanup is called automatically on destroy.
+
+## Auto-Computed JSX Props
+
+Any JSX prop that accepts `Reactive<T>` can receive a zero-argument function (a `SignalGetter<T>`). The engine reads this function each frame. This means you can make any prop reactive without calling `useComputed` explicitly:
+
+```tsx
+import { useSignal } from 'fraxel/hooks'
+
+function Enemy() {
+  const [health, setHealth] = useSignal(100)
+
+  return (
+    <sprite
+      textureId={ENEMY}
+      // brightness is re-read from the signal every frame
+      brightness={() => 1 + (1 - health() / 100)}
+      // opacity fades out below 20 health
+      opacity={() => (health() < 20 ? health() / 20 : 1)}
+    />
+  )
+}
+```
+
+This avoids creating intermediate `useComputed` signals when you only need the value in one place.
+
+## The `Signal` Class (Outside Components)
+
+For reactive state that lives outside a component — global game state, shared scores, event buses — use the `Signal` class directly:
+
+```tsx gameState.ts
+import { Signal } from 'fraxel'
+
+export const score = new Signal(0)
+export const lives = new Signal(3)
+
+// Subscribe manually
+score.sub((newScore) => {
+  console.log('Score changed:', newScore)
+})
+
+// Update
+score.value = score.value + 100
+```
+
+| Property / Method | Description |
+|-------------------|-------------|
+| `signal.value` | Get or set the current value |
+| `signal.getter` | `SignalGetter<T>` — a function returning the current value |
+| `signal.setter` | `SignalSetter<T>` — a function to update the value |
+| `signal.sub(fn)` | Subscribe to changes |
+| `signal.unsub(fn)` | Unsubscribe a specific callback |
+| `signal.clearSubs()` | Remove all subscribers |
+
+## `clearSubs()` for Cleanup
+
+When a signal's owner is destroyed and no more notifications should fire, call `clearSubs()` to detach all subscribers:
+
+```tsx
+import { Signal } from 'fraxel'
+
+const health = new Signal(100)
+const sub = health.sub((val) => console.log('Health:', val))
+
+health.value = 50 // logs: "Health: 50"
+
+// Later, when the entity owning this signal is gone:
+health.clearSubs()
+health.value = 0 // logs nothing — all subs removed
+```
+
+`useSignal` calls `clearSubs()` automatically via the node's `destroyed` event. Only call it manually on `Signal` instances you manage outside of components.
+
+## `useMatch` — Switch Expression
+
+Map a signal's current string value to another value, like a switch expression:
+
+```tsx
+import { useSignal, useMatch } from 'fraxel/hooks'
+
+function Player() {
+  const [state, setState] = useSignal<'idle' | 'walk' | 'jump' | 'attack'>('idle')
+
+  // currentAnim is a SignalGetter<string> that updates automatically
+  const currentAnim = useMatch(state, {
+    idle: 'idle-loop',
+    walk: 'walk-loop',
+    jump: 'jump-arc',
+    attack: 'attack-swing',
+  })
+
+  return (
+    <transform>
+      <sprite ref={sprite} sourceSize={[32, 48]} />
+      <animation-player
+        animations={() => ({ ... })}
+        currentAnim={currentAnim}
+      />
+    </transform>
+  )
+}
+```
+
+## `useWhen` — Reactive Ternary
+
+Toggle between two values based on a boolean signal:
+
+```tsx
+import { useCondition, useWhen } from 'fraxel/hooks'
+
+function Button() {
+  const clickable = useNode(PrimaryNode.Clickable)
+  const isHovered = useCondition(clickable, 'mouseEntered', 'mouseExited')
+
+  // brightness is 1.2 when hovered, 1.0 otherwise
+  const brightness = useWhen(isHovered, 1.2, 1.0)
+
+  return (
+    <sprite textureId={BTN} brightness={brightness}>
+      <clickable ref={clickable} size={[64, 24]} />
+    </sprite>
+  )
+}
+```
+
+## Signal Flow Diagram
+
+```
+useSignal → value stored in Signal instance
+    ↓
+signal changes → notifications sent to subscribers
+    ↓
+useEffect subscribers → batched via queueMicrotask → run once per tick
+useComputed subscribers → immediately recomputed, stored in derived Signal
+JSX prop getters → read during next draw call
+```
+
+<Tip>
+  For most reactive UI patterns, `useSignal` + inline getter functions in JSX props is all you need. Reach for `useComputed` when the derived value is expensive or used in multiple places.
+</Tip>

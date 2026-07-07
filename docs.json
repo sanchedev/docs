@@ -1,72 +1,166 @@
 {
   "$schema": "https://mintlify.com/docs.json",
-  "theme": "mint",
-  "name": "Mintlify Starter Kit",
-  "colors": {
-    "primary": "#16A34A",
-    "light": "#07C983",
-    "dark": "#15803D"
+  "name": "Fraxel",
+  "theme": "luma",
+  "logo": {
+    "light": "https://media.brand.dev/efaa462a-7e44-486c-a3fb-f587e0d18823.svg",
+    "dark": "https://media.brand.dev/efaa462a-7e44-486c-a3fb-f587e0d18823.svg"
   },
-  "favicon": "/favicon.svg",
+  "favicon": "https://icons.duckduckgo.com/ip3/typescriptlang.org.ico",
+  "colors": {
+    "primary": "#040404",
+    "light": "#6B7280",
+    "dark": "#040404"
+  },
   "navigation": {
-    "pages": [
+    "tabs": [
       {
-        "group": "Getting Started",
-        "pages": [
-          "index",
-          "quickstart"
+        "tab": "Getting Started",
+        "groups": [
+          {
+            "group": "Introduction",
+            "pages": [
+              "getting-started/introduction",
+              "getting-started/installation",
+              "getting-started/first-game",
+              "getting-started/project-structure"
+            ]
+          },
+          {
+            "group": "Core Concepts",
+            "pages": [
+              "getting-started/jsx-runtime",
+              "getting-started/nodes",
+              "getting-started/components",
+              "getting-started/signals"
+            ]
+          },
+          {
+            "group": "Essentials",
+            "pages": [
+              "getting-started/input",
+              "getting-started/collision",
+              "getting-started/audio",
+              "getting-started/deployment"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Guides",
+        "groups": [
+          {
+            "group": "Rendering",
+            "pages": [
+              "guides/sprites",
+              "guides/animation",
+              "guides/camera",
+              "guides/ui-text"
+            ]
+          },
+          {
+            "group": "Gameplay",
+            "pages": [
+              "guides/physics",
+              "guides/collision-groups",
+              "guides/spawning",
+              "guides/scenes"
+            ]
+          },
+          {
+            "group": "Assets & Audio",
+            "pages": [
+              "guides/asset-pipeline",
+              "guides/audio-playback",
+              "guides/filters"
+            ]
+          },
+          {
+            "group": "Advanced Patterns",
+            "pages": [
+              "guides/hooks-in-depth",
+              "guides/signals-reactivity",
+              "guides/scripts",
+              "guides/tweening"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Nodes",
+            "pages": [
+              "api/nodes/transform",
+              "api/nodes/sprite",
+              "api/nodes/text",
+              "api/nodes/collider",
+              "api/nodes/rigid-body",
+              "api/nodes/camera",
+              "api/nodes/animation-player",
+              "api/nodes/audio-player",
+              "api/nodes/clickable",
+              "api/nodes/timer",
+              "api/nodes/geometry",
+              "api/nodes/ray-cast"
+            ]
+          },
+          {
+            "group": "Hooks",
+            "pages": [
+              "api/hooks/core-hooks",
+              "api/hooks/derived-hooks"
+            ]
+          },
+          {
+            "group": "Engine",
+            "pages": [
+              "api/engine/game",
+              "api/engine/input",
+              "api/engine/physics-system",
+              "api/engine/assets",
+              "api/engine/math"
+            ]
+          },
+          {
+            "group": "JSX Components",
+            "pages": [
+              "api/jsx/game-scene",
+              "api/jsx/list-fragment"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Advanced",
+        "groups": [
+          {
+            "group": "Internals",
+            "pages": [
+              "advanced/architecture",
+              "advanced/jsx-runtime",
+              "advanced/rendering-pipeline",
+              "advanced/reactivity-internals",
+              "advanced/event-system"
+            ]
+          },
+          {
+            "group": "Systems",
+            "pages": [
+              "advanced/collision-pipeline",
+              "advanced/lifecycle",
+              "advanced/performance"
+            ]
+          }
         ]
       }
-    ],
-    "global": {
-      "anchors": [
-        {
-          "anchor": "Documentation",
-          "href": "https://mintlify.com/docs",
-          "icon": "book-open-cover"
-        },
-        {
-          "anchor": "Blog",
-          "href": "https://mintlify.com/blog",
-          "icon": "newspaper"
-        }
-      ]
-    }
-  },
-  "logo": {
-    "light": "/logo/light.svg",
-    "dark": "/logo/dark.svg"
-  },
-  "navbar": {
-    "links": [
-      {
-        "label": "Support",
-        "href": "mailto:hi@mintlify.com"
-      }
-    ],
-    "primary": {
-      "type": "button",
-      "label": "Dashboard",
-      "href": "https://app.mintlify.com"
-    }
-  },
-  "contextual": {
-    "options": [
-      "copy",
-      "view",
-      "chatgpt",
-      "claude",
-      "perplexity",
-      "mcp",
-      "cursor",
-      "vscode"
     ]
   },
-  "footer": {
-    "socials": {
-      "x": "https://x.com/mintlify",
-      "github": "https://github.com/mintlify",
-      "linkedin": "https://linkedin.com/company/mintlify"
+  "navbar": {
+    "primary": {
+      "type": "github",
+      "href": "https://github.com/sanchedev/fraxel"
     }
   }
 }

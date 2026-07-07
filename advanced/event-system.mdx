@@ -1,0 +1,162 @@
+---
+title: "Fraxel Event System Internals"
+sidebarTitle: "Event System"
+description: "How Event<T> works, node lifecycle events, the onXxx naming convention, useEvent auto-cleanup, FraxelScript.connect(), and cross-component communication."
+---
+
+Fraxel uses a lightweight, type-safe event system built on a single `Event<T, K>` class. Every node event — from `started` to `colliderEntered` — is an instance of this class, exposed as a plain public property. Understanding its contract makes it straightforward to subscribe, unsubscribe, and avoid memory leaks.
+
+## The `Event<T, K>` Class
+
+```ts
+const onDamage = new Event<[number], 'damage'>('damage', (amount) => {})
+
+onDamage.on((amount) => console.log('Damage:', amount))
+onDamage.emit(25)   // "Damage: 25"
+onDamage.off(handler)
+onDamage.clean()    // remove all listeners
+```
+
+Callbacks are stored in an array (`#list: Fun<T>[]`). Emission takes a snapshot of the array before iterating (`[...this.#list]`), so a callback that removes itself during emission does not cause missed calls or index errors.
+
+| Method | Behavior |
+|---|---|
+| `on(cb)` | Appends `cb` to the listener list |
+| `onFirst(cb)` | Prepends `cb` — highest priority, called before all others |
+| `off(cb)` | Removes the first occurrence of `cb` by reference |
+| `emit(...args)` | Calls all listeners with `args` (snapshot iteration) |
+| `clean()` | Empties the listener list |
+
+## The Event Naming Convention
+
+Every `Event` instance has a `baseName` property (the string passed to its constructor). The `getEventName` utility converts this to the JSX prop name:
+
+```ts
+getEventName('start')            // → 'onStart'
+getEventName('colliderEntered')  // → 'onColliderEntered'
+getEventName('destroy')          // → 'onDestroy'
+```
+
+The transformation is `'on' + capitalize(baseName)`. This means:
+
+- The **`Event` instance** is accessed directly as `node.started`, `node.updated`, etc.
+- The **JSX prop** that auto-subscribes on render is the capitalized form: `onStarted`, `onUpdated`, etc.
+
+`applyIntrinsicAttributesToNode` performs this mapping at scene construction. It scans all own properties of the node for `Event` instances, builds a `Map<string, Event>` keyed by `getEventName(baseName)`, then iterates the JSX props and calls `event.on(fn)` for any matching function-valued prop.
+
+```tsx
+// These are equivalent:
+<transform onStarted={() => console.log('started')} />
+
+// vs. manual subscription:
+useMount(() => {
+  transformRef.node.started.on(() => console.log('started'))
+})
+```
+
+## Node Lifecycle Events
+
+Every node has four built-in events defined in the `Node` base class:
+
+| Property | Base name | Emitted when |
+|---|---|---|
+| `started` | `'start'` | `node.start()` finishes (after all children start) |
+| `updated` | `'update'` | Every frame, during the update phase |
+| `drawed` | `'draw'` | Every frame, during the draw phase |
+| `destroyed` | `'destroy'` | `node.destroy()` is called (before children are destroyed) |
+
+Additionally, `Node` has a `zIndexChanged` event (`baseName: 'zIndexChange'`) emitted when `zIndex` is set to a new value. This is used internally by the parent to re-sort its children.
+
+### Event Lifecycle Methods
+
+When `node.start()` is called, the engine automatically wires `onStart`, `onUpdate`, `onDraw`, and `onDestroy` overridable methods to their respective events:
+
+```ts
+// In Node.start():
+for (const event of events) {
+  const key = getEventName(event.baseName)  // e.g. 'onStart'
+  if (this[key] == null) continue
+  event.on(this[key].bind(this))
+}
+```
+
+This means a `Node` subclass can override `onUpdate(delta: number)` as a method and it will automatically be called every frame without any manual `.on()` call.
+
+## `useEvent`: Auto-Unsubscribe on Destroy
+
+The `useEvent` hook provides a safe way to subscribe to node events from within a component:
+
+```tsx
+const sprite = useNode(PrimaryNode.Sprite)
+
+useEvent(sprite, 'updated', (delta) => {
+  // runs every frame while sprite is alive
+})
+
+return <sprite ref={sprite} />
+```
+
+`useEvent` pushes an effect that calls `event.on(listener)` once the node is available. Crucially, **it does not add a cleanup to `off()` the listener on destroy** — once the node is destroyed, `cleanEvents()` is called which calls `event.clean()` on all four lifecycle events, removing all listeners at once. This is safe because the node and all references to it become unreachable anyway.
+
+<Warning>
+`useEvent` only works during component render. Do not call it inside callbacks, `setTimeout`, or other asynchronous contexts — there will be no active hook context to register the effect.
+</Warning>
+
+## `FraxelScript.connect()`: Script-Based Subscriptions
+
+`FraxelScript` provides `connect()` as its equivalent of `useEvent` for class-based game logic:
+
+```ts
+class PlayerScript extends FraxelScript<PrimaryNode.Transform> {
+  setup() {
+    this.connect('started', () => {
+      console.log('Player spawned!')
+    })
+    this.connect('updated', (delta) => {
+      this.me.position.x += delta * 100
+    })
+  }
+}
+```
+
+`connect(ev, func)` accesses `this.me[ev]` (e.g., `this.me.started`) and calls `.on(func)`. The `me` getter returns the node the script is attached to. Since `connect` can only be called after `init()` (which runs during node construction), the node reference is always valid.
+
+## Cross-Component Communication: `Trigger` vs. `useEvent`
+
+For communication between two unrelated components that don't share a common ancestor node, Fraxel provides the `Trigger` pub/sub primitive.
+
+### `Trigger<T>`
+
+```ts
+// Create at module scope (shared between components)
+const plantedTrigger = createTrigger<[Plant]>()
+
+// Producer component
+function Garden() {
+  const handleClick = () => plantedTrigger.emit(new Plant())
+  return <clickable onClick={handleClick} />
+}
+
+// Consumer component
+function Counter() {
+  useTrigger(plantedTrigger, (plant) => {
+    console.log('New plant:', plant)
+  })
+  return <transform />
+}
+```
+
+`useTrigger` calls `trigger.connect(fn)` and registers a cleanup via `node.destroyed.on(() => trigger.disconnect(fn))`. This means the consumer's callback is automatically removed when the consumer node is destroyed, preventing stale subscriptions.
+
+### When to Use Which
+
+| Mechanism | Best for |
+|---|---|
+| `useEvent(nodeRef, eventName, cb)` | Reacting to a specific node's lifecycle or built-in events |
+| JSX `onEventName` prop | One-time static subscription set at scene construction |
+| `createTrigger + useTrigger` | Cross-component signaling where nodes don't share a parent |
+| `Signal` | Sharing reactive state values (not just notifications) between components |
+
+<Accordion title="Why not use the DOM EventTarget API?">
+Fraxel's `Event` class is simpler, typed at the TypeScript level, and has no overhead from `CustomEvent` construction or DOM event bubbling. It also works in non-browser environments (e.g., unit tests running in Node.js with a mocked canvas) without polyfills.
+</Accordion>

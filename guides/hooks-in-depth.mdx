@@ -1,0 +1,353 @@
+---
+title: "Hooks In Depth — Fraxel's Reactive API"
+sidebarTitle: "Hooks"
+description: "Master Fraxel's hooks: useNode, useEvent, useMount, useChild, useRef, useGame, useTrigger, createContext, and every derived hook with patterns and examples."
+---
+
+Hooks are Fraxel's primary tool for connecting JSX components to the engine's event system, reactive state, and node hierarchy. If you've used React hooks before, the mental model is familiar — functions that register behavior during a component's setup phase. In Fraxel, hooks run when the component function executes (before the JSX is returned) and are automatically cleaned up when the node is destroyed.
+
+## The Golden Rule
+
+Call hooks at the **top level of a component function**, never inside a callback, `if` statement, or loop:
+
+```tsx
+// ✅ Correct — called at component scope
+function Player() {
+  const sprite = useNode(PrimaryNode.Sprite)
+  const [health, setHealth] = useSignal(100)
+  useEffect(() => { /* ... */ })
+  return <sprite ref={sprite} textureId={PLAYER} />
+}
+
+// ❌ Wrong — called inside a callback
+function Player() {
+  const handleClick = () => {
+    const sprite = useNode(PrimaryNode.Sprite) // ERROR: wrong scope
+  }
+  return <sprite textureId={PLAYER} />
+}
+```
+
+## `useNode` + `useEvent`
+
+These two hooks form the foundation of node interaction. `useNode` creates a typed reference that you attach to a JSX element with `ref={}`. `useEvent` subscribes to an event on that reference:
+
+```tsx Enemy.tsx
+import { useNode, useEvent } from 'fraxel/hooks'
+import { PrimaryNode, shapes } from 'fraxel'
+
+function Enemy() {
+  const collider = useNode(PrimaryNode.Collider)
+  const body = useNode(PrimaryNode.RigidBody)
+
+  useEvent(collider, 'colliderEntered', (other) => {
+    if (other.node.name === 'bullet') {
+      body.node.destroy()
+    }
+  })
+
+  return (
+    <rigid-body ref={body} position={[300, 200]}>
+      <sprite textureId={ENEMY} />
+      <collider
+        ref={collider}
+        shape={shapes.circle(16)}
+        group={['enemy']}
+        collidesWith={['bullet']}
+      />
+    </rigid-body>
+  )
+}
+```
+
+`useEvent` subscriptions are automatically removed when the node is destroyed.
+
+## `useMount`
+
+Run code once when the node starts, with optional cleanup on destroy:
+
+```tsx FadeIn.tsx
+import { useMount, useNode } from 'fraxel/hooks'
+import { PrimaryNode } from 'fraxel'
+import { tween } from 'fraxel/animation'
+
+function FadeIn() {
+  const sprite = useNode(PrimaryNode.Sprite)
+
+  useMount(() => {
+    tween({ target: sprite.node, prop: 'opacity', from: 0, to: 1, duration: 0.5 })
+
+    // Return a cleanup function (runs on destroy)
+    return () => {
+      console.log('Node cleaned up')
+    }
+  })
+
+  return <sprite ref={sprite} textureId={TEX} />
+}
+```
+
+The cleanup function is optional. Use it to cancel intervals, clear external state, or stop tweens.
+
+## `useChild`
+
+Access a specific child node anywhere in the subtree by providing a path string (dot-separated node names) and the expected type:
+
+```tsx
+import { useChild } from 'fraxel/hooks'
+import { PrimaryNode } from 'fraxel'
+
+function Player() {
+  // Access the sprite named 'body' that's a child of 'visual'
+  const bodySprite = useChild('visual.body', PrimaryNode.Sprite)
+
+  useMount(() => {
+    bodySprite.node.brightness = 1.5
+  })
+
+  return (
+    <transform>
+      <transform name="visual">
+        <sprite name="body" textureId={PLAYER} />
+      </transform>
+    </transform>
+  )
+}
+```
+
+## `useRef`
+
+Store a mutable value that persists across renders without triggering reactive updates. Unlike `useSignal`, changing a ref's value doesn't re-run effects or recompute derived signals:
+
+```tsx
+import { useRef } from 'fraxel/hooks'
+
+function Player() {
+  const lastAttackTime = useRef(0)
+
+  const attack = () => {
+    const now = performance.now()
+    if (now - lastAttackTime.current > 500) { // 500ms cooldown
+      lastAttackTime.current = now
+      // Fire bullet...
+    }
+  }
+
+  return <transform>{/* ... */}</transform>
+}
+```
+
+## `useGame`
+
+Access the top-level `Game` instance from any component:
+
+```tsx
+import { useGame } from 'fraxel/hooks'
+
+function GameOverScreen() {
+  const game = useGame()
+
+  return (
+    <sprite textureId={RETRY_BTN}>
+      <clickable size={[120, 40]} onClick={() => game.changeScene('level1')} />
+    </sprite>
+  )
+}
+```
+
+See [Scenes](/guides/scenes) for all the game control methods.
+
+## `useTrigger` — Cross-Component Pub/Sub
+
+When components need to communicate without sharing props or a parent-child relationship, use triggers. Create a trigger at module scope with `createTrigger`, subscribe in one component with `useTrigger`, and emit from another:
+
+```tsx triggers.ts
+import { createTrigger } from 'fraxel/hooks'
+
+export const onPlayerDied = createTrigger<[]>()
+export const onScoreChanged = createTrigger<[number]>()
+```
+
+```tsx Player.tsx
+import { onPlayerDied } from './triggers'
+
+function Player() {
+  const takeDamage = (amount: number) => {
+    // ...
+    if (health <= 0) {
+      onPlayerDied.emit()
+    }
+  }
+  return <transform>{/* ... */}</transform>
+}
+```
+
+```tsx HUD.tsx
+import { useTrigger } from 'fraxel/hooks'
+import { onPlayerDied } from './triggers'
+
+function HUD() {
+  useTrigger(onPlayerDied, () => {
+    // Show game over UI
+  })
+  return <transform>{/* ... */}</transform>
+}
+```
+
+`useTrigger` subscriptions clean up automatically on destroy.
+
+## `createContext` / `useContext`
+
+Share data down a component tree without prop drilling. Create a context with a default value, wrap children in the `Provider`, and read it anywhere below with `useContext`:
+
+```tsx GameContext.tsx
+import { createContext, useContext } from 'fraxel/hooks'
+
+interface GameCtxValue {
+  difficulty: 'easy' | 'normal' | 'hard'
+  score: SignalGetter<number>
+}
+
+export const GameCtx = createContext<GameCtxValue>({
+  difficulty: 'normal',
+  score: () => 0,
+})
+```
+
+```tsx GameScene.tsx
+import { GameCtx } from './GameContext'
+
+function GameScene() {
+  const [score] = useSignal(0)
+
+  return (
+    <GameCtx.Provider value={{ difficulty: 'hard', score }}>
+      <Player />
+      <HUD />
+      <EnemySpawner />
+    </GameCtx.Provider>
+  )
+}
+```
+
+```tsx HUD.tsx
+import { GameCtx } from './GameContext'
+
+function HUD() {
+  const { difficulty, score } = useContext(GameCtx)
+
+  return (
+    <text
+      position={[240, 16]}
+      text={() => `[${difficulty.toUpperCase()}] Score: ${score()}`}
+      style={{ fontSize: 14, foregroundColor: '#fff', textAlign: 'center' }}
+    />
+  )
+}
+```
+
+## Derived Hooks Overview
+
+Fraxel ships several derived hooks that combine native hooks into domain-specific abstractions. They don't add new power — they reduce boilerplate.
+
+<CardGroup cols={2}>
+  <Card title="useCollider" href="/guides/collision-groups">
+    Reactive `colliding` and `other` state for `<collider>` nodes.
+  </Card>
+  <Card title="useRayCast" href="/guides/collision-groups">
+    Reactive `detected` and `collider` state for `<ray-cast>` nodes.
+  </Card>
+  <Card title="useRigidBody" href="/guides/physics">
+    Reactive `velocity` and `isGrounded` state plus force helpers.
+  </Card>
+  <Card title="useAnimation" href="/guides/animation">
+    Reactive `animName`, `frameIndex`, `ended` state and control methods.
+  </Card>
+  <Card title="useAudio" href="/guides/audio-playback">
+    Reactive `playing` state plus `play`, `pause`, `stop`.
+  </Card>
+  <Card title="useTimer" href="/guides/hooks-in-depth">
+    Reactive `time` and `progress` state plus timer controls.
+  </Card>
+  <Card title="useSignal / useComputed" href="/guides/signals-reactivity">
+    Raw reactive primitives for custom state management.
+  </Card>
+  <Card title="useClickable" href="/guides/hooks-in-depth">
+    Reactive `hovered` state for `<clickable>` nodes.
+  </Card>
+</CardGroup>
+
+### `useCondition`
+
+Creates a reactive boolean that flips between `true` and `false` based on two opposing events:
+
+```tsx
+// true while the raycast detects an enemy
+const isDetecting = useCondition(rayCast, 'colliderEntered', 'colliderExited')
+
+// true while the player is hovering over a button
+const isHovered = useCondition(clickable, 'mouseEntered', 'mouseExited')
+```
+
+### `useTimer`
+
+Wraps `<timer>` with reactive progress and control methods:
+
+```tsx Cooldown.tsx
+import { useTimer } from 'fraxel/hooks'
+import { shapes } from 'fraxel'
+
+function Cooldown() {
+  const { ref, time, progress, play, stop } = useTimer()
+
+  const barColor = useComputed(() =>
+    progress() >= 1 ? ([0.2, 0.9, 0.2, 1] as const) : ([0.9, 0.4, 0.1, 1] as const)
+  )
+
+  return (
+    <transform>
+      <timer ref={ref} duration={3} />
+      <geometry
+        shape={() => shapes.rectangle(progress() * 80, 8)}
+        fillColor={barColor}
+      />
+    </transform>
+  )
+}
+```
+
+### `useClickable`
+
+Returns a node ref and a reactive `hovered` boolean:
+
+```tsx Button.tsx
+import { useClickable, useComputed } from 'fraxel/hooks'
+
+function Button({ onClick }: { onClick: () => void }) {
+  const { ref, hovered } = useClickable()
+  const scale = useComputed(() => (hovered() ? 1.05 : 1.0))
+
+  return (
+    <sprite ref={ref} textureId={BTN} displaySize={() => [64 * scale(), 24 * scale()]}>
+      <clickable size={[64, 24]} onClick={onClick} />
+    </sprite>
+  )
+}
+```
+
+### `useMatch` and `useWhen`
+
+Convenience hooks for conditional signal values:
+
+```tsx
+// useMatch — like a switch expression on a signal
+const animName = useMatch(playerState, {
+  idle: 'idle',
+  walk: 'walk',
+  jump: 'jump',
+  attack: 'attack',
+})
+
+// useWhen — ternary on a boolean signal
+const brightness = useWhen(isHovered, 1.3, 1.0)
+```

@@ -1,0 +1,221 @@
+---
+title: "Asset Pipeline and Batch Loading in Fraxel"
+sidebarTitle: "Asset Pipeline"
+description: "Load textures and sounds efficiently in Fraxel with loadTexture, loadSound, loadBatch, and loadBatchAsset. Avoid frame drops with preloading and progress callbacks."
+---
+
+Every texture and sound your game uses needs to be fetched from the server and decoded before it can be displayed or played. If you load assets on demand — right when a sprite first appears — you'll see frame drops and pop-in. Fraxel's asset pipeline solves this with an upfront loading system that deduplicates requests and tracks progress, so you can show a loading screen while everything prepares.
+
+## How Assets Work: Symbol IDs
+
+`loadTexture` and `loadSound` each return a `symbol` — a unique, globally stable identifier for that resource. You pass symbols to node props like `textureId` and `soundId`. This design means:
+
+- **Deduplication**: calling `loadTexture('/assets/player.png')` twice returns the same symbol and skips the second network request.
+- **Decoupling**: components don't hold onto image data directly; they reference symbols, and the engine looks up the asset when needed.
+
+```ts assets.ts
+import { loadTexture } from 'fraxel/assets'
+
+// Called twice — returns the same symbol, makes one request
+const A = await loadTexture('/assets/player.png')
+const B = await loadTexture('/assets/player.png')
+
+console.log(A === B) // true
+```
+
+## Loading a Single Texture
+
+```tsx
+import { loadTexture } from 'fraxel/assets'
+
+const PLAYER = await loadTexture('/assets/player.png')
+const BACKGROUND = await loadTexture('/assets/bg.png')
+
+function Player() {
+  return <sprite textureId={PLAYER} />
+}
+```
+
+Load assets at **module top level** (outside component functions) so they're resolved before your game starts rendering. The `await` means this file only exports once the image is ready.
+
+## Loading a Single Sound
+
+```tsx
+import { loadSound } from 'fraxel/assets'
+
+const SHOOT_SFX = await loadSound('/assets/shoot.ogg')
+const BG_MUSIC = await loadSound('/assets/music.mp3')
+```
+
+See [Audio Playback](/guides/audio-playback) for using sound IDs with `<audio-player>`.
+
+## Batch Loading with Progress
+
+`loadBatch` fires all loaders in parallel and tracks progress with an `onProgress` callback. Use it for loading screens:
+
+```tsx preload.ts
+import { loadBatch, loadTexture, loadSound } from 'fraxel/assets'
+
+export async function preloadGameAssets(onProgress: (pct: number) => void) {
+  const [bg, player, enemy, shoot, music] = await loadBatch(
+    [
+      () => loadTexture('/assets/bg.png'),
+      () => loadTexture('/assets/player.png'),
+      () => loadTexture('/assets/enemy.png'),
+      () => loadSound('/assets/shoot.ogg'),
+      () => loadSound('/assets/music.mp3'),
+    ],
+    {
+      onProgress: (loaded, total) => onProgress(loaded / total),
+    },
+  )
+
+  return { bg, player, enemy, shoot, music }
+}
+```
+
+`onProgress` receives `(loaded: number, total: number)` — the count of completed assets and the total count. Calculate a percentage with `loaded / total`.
+
+## Typed Batch Loading with `loadBatchAsset`
+
+When all your assets are the same type, `loadBatchAsset` is more concise — pass the type as the first argument and an array of URLs:
+
+```tsx
+import { loadBatchAsset } from 'fraxel/assets'
+
+// Loads three textures in parallel
+const [bg, tileset, enemies] = await loadBatchAsset('texture', [
+  '/assets/level1-bg.png',
+  '/assets/tileset.png',
+  '/assets/enemies.png',
+])
+
+// Loads two sounds in parallel
+const [jump, land] = await loadBatchAsset('sound', [
+  '/assets/jump.ogg',
+  '/assets/land.ogg',
+])
+```
+
+## Full API Reference
+
+| Function | Returns | Description |
+|----------|---------|-------------|
+| `loadTexture(url)` | `Promise<symbol>` | Fetch and decode an image |
+| `loadSound(url)` | `Promise<symbol>` | Fetch and decode an audio buffer |
+| `loadBatch(loaders, options?)` | `Promise<symbol[]>` | Load multiple assets in parallel with progress |
+| `loadBatchAsset(type, urls, options?)` | `Promise<symbol[]>` | Typed parallel loading |
+| `unloadTexture(id)` | `void` | Release texture memory |
+| `unloadSound(id)` | `void` | Release audio buffer memory |
+
+### `loadBatch` Options
+
+<ParamField path="onProgress" type="(loaded: number, total: number) => void">
+  Called each time an asset finishes loading. Use to update a progress bar.
+</ParamField>
+
+## Unloading Assets
+
+Free memory when assets are no longer needed — typically when leaving a scene:
+
+```tsx
+import { unloadTexture, unloadSound } from 'fraxel/assets'
+
+// In a useMount cleanup function
+useMount(() => {
+  return () => {
+    unloadTexture(BOSS_TEXTURE)
+    unloadSound(BOSS_MUSIC)
+  }
+})
+```
+
+<Warning>
+  Don't unload shared assets like a player sprite while they're still in use by other scenes. Keep a reference count or only unload truly scene-specific assets.
+</Warning>
+
+## Complete Preloader Example with Progress Bar
+
+```tsx LoadingScene.tsx
+import { useSignal, useMount, useGame } from 'fraxel/hooks'
+import { loadBatch, loadTexture, loadSound } from 'fraxel/assets'
+import { shapes } from 'fraxel'
+
+const BAR_MAX_WIDTH = 200
+
+function LoadingScene() {
+  const game = useGame()
+  const [progress, setProgress] = useSignal(0)
+  const [status, setStatus] = useSignal('Loading…')
+
+  const barWidth = useComputed(() => progress() * BAR_MAX_WIDTH)
+
+  useMount(async () => {
+    const [bg, player, enemy, jump, music] = await loadBatch(
+      [
+        () => loadTexture('/assets/bg.png'),
+        () => loadTexture('/assets/player.png'),
+        () => loadTexture('/assets/enemy.png'),
+        () => loadSound('/assets/jump.ogg'),
+        () => loadSound('/assets/music.mp3'),
+      ],
+      {
+        onProgress: (loaded, total) => {
+          setProgress(loaded / total)
+          setStatus(`Loading… ${loaded}/${total}`)
+        },
+      },
+    )
+
+    setStatus('Ready!')
+
+    // Short delay so the player sees 100%, then go
+    await new Promise((r) => setTimeout(r, 300))
+    game.changeScene('level1')
+  })
+
+  return (
+    <transform>
+      {/* Dark background */}
+      <geometry
+        shape={shapes.rectangle(480, 270)}
+        fillColor={[0.05, 0.05, 0.1, 1]}
+      />
+
+      {/* Title */}
+      <text
+        position={[240, 100]}
+        text="SPACE SHOOTER"
+        style={{ fontSize: 28, foregroundColor: '#ffffff', textAlign: 'center', fontFamily: 'monospace' }}
+      />
+
+      {/* Progress bar background */}
+      <geometry
+        position={[140, 150]}
+        shape={shapes.rectangle(BAR_MAX_WIDTH, 16)}
+        fillColor={[0.2, 0.2, 0.2, 1]}
+        strokeColor={[0.5, 0.5, 0.5, 1]}
+        strokeWidth={1}
+      />
+
+      {/* Progress bar fill */}
+      <geometry
+        position={[140, 150]}
+        shape={() => shapes.rectangle(barWidth(), 16)}
+        fillColor={[0.2, 0.8, 0.4, 1]}
+      />
+
+      {/* Status text */}
+      <text
+        position={[240, 185]}
+        text={status}
+        style={{ fontSize: 12, foregroundColor: '#aaaaaa', textAlign: 'center', fontFamily: 'monospace' }}
+      />
+    </transform>
+  )
+}
+```
+
+<Tip>
+  For large games, split assets into groups by scene and use `loadBatch` inside each scene's `load` function. See [Scenes](/guides/scenes) for the per-scene loading pattern.
+</Tip>

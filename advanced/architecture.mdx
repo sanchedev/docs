@@ -1,0 +1,118 @@
+---
+title: "Fraxel Engine Architecture"
+sidebarTitle: "Architecture"
+description: "A complete map of Fraxel's internals: the four-layer stack, key subsystems, the game loop, and how scenes coordinate node trees."
+---
+
+Fraxel is organized as four cooperating layers that turn JSX declarations into pixels on a canvas. Understanding where each responsibility lives — and how data flows between layers — makes it far easier to debug subtle frame-timing issues, optimize performance, or extend the engine with new node types.
+
+## The Four-Layer Stack
+
+```
+┌───────────────────────────────────────────────────────┐
+│  Layer 1 – JSX                                        │
+│  <sprite>, <transform>, function components, hooks    │
+├───────────────────────────────────────────────────────┤
+│  Layer 2 – Nodes                                      │
+│  Node / Node2D class hierarchy, PrimaryNode registry  │
+├───────────────────────────────────────────────────────┤
+│  Layer 3 – Systems                                    │
+│  Reactivity · Collision · Physics · Input · Audio     │
+├───────────────────────────────────────────────────────┤
+│  Layer 4 – Canvas                                     │
+│  CanvasRenderingContext2D, DPR scaling, Camera        │
+└───────────────────────────────────────────────────────┘
+```
+
+Each layer only depends on the layers below it. JSX resolves to nodes, nodes interact with systems, and systems ultimately push pixels to the canvas.
+
+## Monorepo Structure
+
+The Fraxel repository is a monorepo under `packages/`. The main package (`packages/fraxel`) contains the full engine. A separate demo package provides reference implementations.
+
+Inside `packages/fraxel/src`, the top-level folders map directly to engine subsystems:
+
+| Folder | Responsibility |
+|---|---|
+| `jsx/` | JSX runtime, `renderToNodes`, element types |
+| `nodes/` | `Node`, `Node2D`, all built-in node classes, registry |
+| `reactivity/` | `Signal`, `SignalRegister`, `reactive`, `subReactive` |
+| `collision/` | Broadphase (spatial hash), narrowphase, physics |
+| `events/` | `Event<T>` class and type utilities |
+| `hooks/` | All user-facing hooks (`useSignal`, `useMount`, `useEffect`, …) |
+| `core/` | `Game`, `Scene`, `SceneManager`, `GameConfig` |
+| `input/` | Pointer and keyboard handling |
+| `assets/` | Texture and audio loading/caching |
+| `scripts/` | `FraxelScript` base class |
+| `math/` | `Vector2`, bounds, math utilities |
+
+## Key Subsystems
+
+### Reactivity
+A fine-grained signal system inspired by SolidJS. Signals hold values; getters track which computation last read them; when a signal changes, only the subscribers of that exact signal are notified. No diffing, no virtual tree. See [Reactivity Internals](/advanced/reactivity-internals) for a deep dive.
+
+### Nodes
+Every object in a Fraxel scene is a `Node`. The base `Node` class manages identity (`id`), parent/child relationships, z-ordering, delta scaling (`deltaIncrease`), events (`started`, `updated`, `destroyed`), and the core `start / update / draw / destroy` lifecycle. `Node2D` extends it with a `position` property and a translation-aware `draw()` that shifts the canvas context before rendering children. See [Lifecycle](/advanced/lifecycle) for the full lifecycle contract.
+
+### Collision & Physics
+Two singleton systems — `CollisionSystem` and `PhysicsSystem` — run every frame after node updates. `CollisionSystem` maintains a spatial hash for broadphase filtering and a narrowphase detector for precise shape tests. `PhysicsSystem` integrates velocity, applies gravity, and resolves overlaps. See [Collision Pipeline](/advanced/collision-pipeline) for details.
+
+### Input
+`Input` wraps browser pointer and keyboard events, normalizing coordinates against the canvas size. It is updated once per frame at the end of `Game.loop()`.
+
+### Audio
+A Web Audio API-backed system with URL-keyed asset caching. Loaded sounds are referenced by symbol, just like textures.
+
+### Animation
+`AnimationPlayer` nodes advance frame timers and swap `textureId` / `margin` / `sourceSize` on a `Sprite` sibling each frame.
+
+## The Game Loop
+
+`Game.play()` schedules `requestAnimationFrame`. Each tick calls `Game.loop(delta)`, which executes four sequential phases:
+
+<Steps>
+  <Step title="Clear">
+    `ctx.clearRect(0, 0, width, height)` wipes the previous frame.
+  </Step>
+  <Step title="Update phase">
+    `node.update(delta)` is called recursively from the scene root, emitting `updated` on each node and multiplying delta by each node's `deltaIncrease`.
+  </Step>
+  <Step title="Collision & Physics phase">
+    `CollisionSystem.update(delta)` runs broadphase → narrowphase → event emission. Then `PhysicsSystem.update(delta)` integrates velocity, applies gravity, and resolves overlaps.
+  </Step>
+  <Step title="Draw phase">
+    The active `Camera` applies its viewport transform (`ctx.save → camera.apply → node.draw → ctx.restore`). `node.draw(delta)` walks the tree; `Node2D.draw` translates the canvas context by `position` before drawing children, then translates back.
+  </Step>
+  <Step title="Input flush">
+    `Input.update()` clears single-frame state (just-pressed, just-released).
+  </Step>
+</Steps>
+
+<Note>
+The game pauses automatically when the browser window loses focus (`blur` event). `Game.play()` resumes the loop.
+</Note>
+
+## Scenes and SceneManager
+
+`Game.sceneManager` is a `SceneManager` instance that maps string names to `Scene` objects. A `Scene` wraps an async factory that returns the root `Node`.
+
+When `setScene('name')` is called:
+1. The current root node is destroyed (triggering the full `destroy` cascade).
+2. The scene factory is awaited.
+3. The resulting node is stored as `currentNode`.
+4. On the next frame, `Game.loop()` calls `node.start()` and the loop continues.
+
+`preloadScene()` lets you build the scene node tree in the background while the current scene is still running, then atomically swap it in with the returned setter function — no loading stutter.
+
+```
+SceneManager
+  ├── #scenes: Map<string, Scene>
+  ├── #currentScene: string | null
+  └── #currentNode: Node | null   ←── Game.loop() reads this every frame
+```
+
+The `currentNode` is the only entry point into the entire game tree. Every node traversal — update, collision, draw — starts here.
+
+## Canvas and DPR
+
+`Game.setup()` creates one `<canvas>` element, obtains a `CanvasRenderingContext2D`, and stores both in `GameConfig`. A `resize` listener calls `getDPRFromCtx`, which reads `window.devicePixelRatio`, resizes the canvas backing store to the physical pixel size, and scales the context uniformly so that game-space coordinates remain device-independent. All node draw calls work in game-space units (the `width`/`height` passed to `setup`).

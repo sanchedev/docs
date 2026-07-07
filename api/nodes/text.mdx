@@ -1,0 +1,143 @@
+---
+title: "<text> — Canvas text rendering node"
+sidebarTitle: "<text>"
+description: "Render styled text on the canvas with reactive content. Supports font size, family, weight, color, and alignment via TextStyle. Ideal for HUD labels and scores."
+---
+
+Use `<text>` to render a string directly onto the canvas using `ctx.fillText()`. Pass a plain string or a reactive `SignalGetter<string>` to `text` — the node re-draws automatically whenever the signal changes, making it the simplest way to display live game data like scores, timers, or dialogue. Style the text with a `Partial<TextStyle>` — any property you omit falls back to the engine default.
+
+```tsx
+import { useNode, useSignal } from 'fraxel/hooks'
+import { PrimaryNode } from 'fraxel'
+
+function ScoreLabel() {
+  const label = useNode(PrimaryNode.Text)
+  const [score] = useSignal(0)
+
+  return (
+    <text
+      ref={label}
+      position={[16, 16]}
+      text={() => `Score: ${score()}`}
+      style={{
+        fontSize: 18,
+        fontFamily: 'monospace',
+        foregroundColor: '#ffffff',
+        textAlign: 'left',
+      }}
+    />
+  )
+}
+```
+
+## Props
+
+<ParamField path="text" type="string | SignalGetter<string>" required>
+  The string to render. A plain `string` is rendered as-is. Pass a
+  `SignalGetter<string>` (a zero-argument function) to bind the label to reactive
+  state — the canvas updates automatically each frame when the signal changes.
+
+  ```tsx
+  {/* Static */}
+  <text text="Game Over" />
+
+  {/* Reactive */}
+  <text text={() => `HP: ${hp()}`} />
+  ```
+</ParamField>
+
+<ParamField path="position" type="VectorLike | SignalGetter<VectorLike>">
+  Position of the top-left text baseline relative to the parent node. Defaults
+  to `[0, 0]`. The engine sets `ctx.textBaseline = 'top'` so `position.y` aligns
+  to the top of the cap height.
+</ParamField>
+
+<ParamField path="style" type="Partial<TextStyle>">
+  Partial style object. Omitted fields inherit from `TextStyle.DEFAULT`. See the
+  **TextStyle** table below.
+</ParamField>
+
+<ParamField path="zIndex" type="number">
+  Rendering order relative to siblings. Defaults to `0`.
+</ParamField>
+
+<ParamField path="ref" type="NodeReference<PrimaryNode.Text>">
+  Attach a node reference to access the `Text` instance imperatively.
+</ParamField>
+
+## TextStyle properties
+
+| Property | Type | Default | Description |
+|---|---|---|---|
+| `fontSize` | `number` | `16` | Font size in pixels. |
+| `fontFamily` | `string` | `'sans-serif'` | CSS font family string. |
+| `fontWeight` | `string \| number` | `'normal'` | CSS `font-weight` value, e.g. `'bold'` or `700`. |
+| `foregroundColor` | `string` | `'#000000'` | CSS color string for the text fill. |
+| `textAlign` | `'left' \| 'center' \| 'right'` | `'left'` | Horizontal alignment of the text relative to `position.x`. |
+
+## Events
+
+| Event name | Callback | Description |
+|---|---|---|
+| `started` | `() => void` | Fires once after the node is initialized. |
+| `updated` | `(delta: number) => void` | Fires every frame during update. |
+| `destroyed` | `() => void` | Fires when the node is removed. |
+
+<CodeGroup>
+
+```tsx Countdown timer label
+import { useNode, useEvent } from 'fraxel/hooks'
+import { PrimaryNode } from 'fraxel'
+
+function CountdownLabel() {
+  const timer = useNode(PrimaryNode.Timer)
+  const label = useNode(PrimaryNode.Text)
+
+  return (
+    <>
+      <timer ref={timer} duration={10} autoPlay />
+      <text
+        position={[200, 10]}
+        text={() => {
+          const remaining = 10 - /* elapsed */ 0
+          return `Time: ${remaining.toFixed(1)}s`
+        }}
+        style={{ fontSize: 20, foregroundColor: '#ffdd44', textAlign: 'center' }}
+      />
+    </>
+  )
+}
+```
+
+```tsx Centered HUD label
+<text
+  position={[400, 240]}
+  text="Press SPACE to start"
+  style={{
+    fontSize: 24,
+    fontFamily: '"Press Start 2P", monospace',
+    foregroundColor: '#ffffff',
+    textAlign: 'center',
+  }}
+/>
+```
+
+</CodeGroup>
+
+<Note>
+  The `style` object is merged with `TextStyle.DEFAULT` at construction time —
+  it is **not** reactive. To change styles at runtime, update `node.text`
+  directly or recreate the node.
+</Note>
+
+<Tip>
+  For pixel-art games, set `fontFamily` to a bitmap-style web font and
+  `fontSize` to a small integer (e.g. `8`). Make sure the font is loaded via a
+  `@font-face` rule or the Web Font Loader before the scene starts.
+</Tip>
+
+## Related
+
+- [Nodes overview](/getting-started/nodes) — all available nodes
+- [`<transform>`](/api/nodes/transform) — position a `<text>` relative to other nodes
+- [`<timer>`](/api/nodes/timer) — measure elapsed time to drive reactive labels

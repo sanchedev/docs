@@ -1,0 +1,226 @@
+---
+title: "Deploying a Fraxel Game to Production"
+sidebarTitle: "Deployment"
+description: "Build a Fraxel game for production with Vite, configure asset paths, handle browser compatibility, and optimize load time with asset preloading."
+---
+
+Fraxel games are standard ES module applications. They bundle the same way as any other TypeScript project — there is no special build tool or CLI. This page walks through a production setup using Vite, covers asset path conventions, and lists the browser features your game depends on.
+
+## Bundler setup — Vite
+
+Vite is the recommended bundler for Fraxel games. It supports TypeScript and JSX out of the box, serves assets from the `public/` directory in development, and produces an optimized bundle for production.
+
+<Steps>
+  <Step title="Install Vite">
+    <CodeGroup>
+
+    ```bash npm
+    npm install --save-dev vite
+    ```
+
+    ```bash yarn
+    yarn add --dev vite
+    ```
+
+    ```bash pnpm
+    pnpm add --save-dev vite
+    ```
+
+    </CodeGroup>
+  </Step>
+
+  <Step title="Create vite.config.ts">
+
+    ```ts vite.config.ts
+    import { defineConfig } from 'vite'
+
+    export default defineConfig({
+      // No React plugin needed — Fraxel has its own JSX runtime
+      esbuild: {
+        jsxImportSource: 'fraxel',
+        jsx: 'automatic',
+      },
+      build: {
+        target: 'es2022',
+      },
+    })
+    ```
+
+    <Note>
+      Vite reads `jsxImportSource` from `tsconfig.json` for type checking, but you must also set it in `vite.config.ts` for the esbuild transform used during the dev server and production build.
+    </Note>
+
+  </Step>
+
+  <Step title="Add scripts to package.json">
+
+    ```json package.json
+    {
+      "scripts": {
+        "dev":   "vite",
+        "build": "tsc && vite build",
+        "preview": "vite preview"
+      }
+    }
+    ```
+
+  </Step>
+
+  <Step title="Build for production">
+
+    ```bash
+    npm run build
+    ```
+
+    Vite outputs your game to `dist/`. The `dist/` directory contains the HTML entry point, the bundled JavaScript, and all assets copied from `public/`.
+
+  </Step>
+</Steps>
+
+## Asset paths
+
+Fraxel assets (`loadTexture`, `loadSound`) take URL strings. In development these resolve against the Vite dev server. In production they resolve against the deployed origin.
+
+Place all your game assets in `public/assets/` and reference them with absolute paths starting with `/`:
+
+```ts src/assets.ts
+import { loadTexture, loadSound } from 'fraxel/assets'
+
+export const PLAYER_TEX = await loadTexture('/assets/sprites/player.png')
+export const JUMP_SFX   = await loadSound('/assets/sounds/jump.mp3')
+```
+
+Using absolute paths (starting with `/`) means the URLs work correctly regardless of whether the game is served from the root of the domain or a subdirectory — as long as you set Vite's `base` option when deploying to a subdirectory:
+
+```ts vite.config.ts
+export default defineConfig({
+  base: '/my-game/', // for deployment at example.com/my-game/
+  // ...
+})
+```
+
+<Warning>
+  Do **not** import asset files directly with ES import syntax (e.g., `import sprite from './sprite.png'`). Fraxel's asset system uses `fetch` internally to decode images and audio, so assets must be accessible at runtime via a URL, not bundled as data URIs.
+</Warning>
+
+## HTML entry point for production
+
+Your `index.html` does not change between development and production. Vite handles hashing, minification, and relative path rewriting automatically.
+
+```html index.html
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>My Game</title>
+    <style>
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      body {
+        background: #000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 100vh;
+        overflow: hidden;
+      }
+      canvas {
+        /* Preserve pixel art sharpness when scaled up */
+        image-rendering: pixelated;
+        image-rendering: crisp-edges;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+```
+
+## Browser compatibility
+
+Fraxel requires the following browser features:
+
+| Feature | Minimum version | Notes |
+|---|---|---|
+| Canvas 2D API | All modern browsers | `CanvasRenderingContext2D` |
+| ES2022 modules | Chrome 92+, Firefox 90+, Safari 15+ | `import` / `export`, top-level `await` |
+| Web Audio API | Chrome 66+, Firefox 60+, Safari 14+ | Required for `loadSound` and `<audio-player>` |
+| Pointer Events | All modern browsers | `pointerdown`, `pointermove`, `pointerup` |
+
+Fraxel does **not** support Internet Explorer.
+
+<Tip>
+  If you need to support older browsers, set `build.target` to `'es2020'` in your Vite config and use a polyfill for `structuredClone` if you use it anywhere. Top-level `await` requires `type="module"` on the script tag, which is already ES2022+.
+</Tip>
+
+## Preloading assets before `game.play()`
+
+Assets loaded with `loadTexture` and `loadSound` are decoded asynchronously. If `game.play()` is called before all textures are ready, the first few frames may show missing sprites.
+
+Because Fraxel uses top-level `await`, the recommended pattern — loading all assets before calling `createGame` — is simply how the code reads naturally:
+
+```tsx src/main.tsx
+import { createGame, Game, Scene } from 'fraxel/jsx'
+import { loadBatch } from 'fraxel/assets'
+
+// All assets are decoded before createGame is called
+const assets = await loadBatch({
+  PLAYER: { type: 'texture', url: '/assets/sprites/player.png' },
+  BG:     { type: 'texture', url: '/assets/sprites/bg.png' },
+  MUSIC:  { type: 'sound',   url: '/assets/sounds/music.mp3' },
+})
+
+const game = createGame(
+  <Game width={320} height={180} defaultScene="main">
+    <Scene name="main" component={() => <MainScene {...assets} />} />
+  </Game>,
+  document.querySelector('#root')!,
+)
+
+game.play()
+```
+
+For games with large asset sets, display a loading screen by rendering a simple HTML overlay while the `loadBatch` promise resolves.
+
+## Device pixel ratio (DPR)
+
+On high-DPI displays, the browser's device pixel ratio (`window.devicePixelRatio`) is greater than 1. The canvas logical size (your `width` / `height` in `<Game>`) is always in game pixels — Fraxel handles DPR scaling internally so sprites are not blurry on Retina screens.
+
+You do not need to multiply your canvas dimensions by `window.devicePixelRatio`. Set the game resolution you want and let Fraxel and the browser handle physical pixel scaling.
+
+## Scaling the canvas with CSS
+
+The canvas Fraxel creates fills the `#root` container. To make the game fill the browser window while maintaining aspect ratio, use CSS:
+
+```css
+#root {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+canvas {
+  /* Scale to fit while preserving aspect ratio */
+  max-width: 100%;
+  max-height: 100%;
+  image-rendering: pixelated;
+}
+```
+
+`Input.pointerPosition` is automatically adjusted to game coordinates regardless of CSS scaling, so click targets remain accurate at any display size.
+
+## Deploying to static hosting
+
+Fraxel games are static files — HTML, JavaScript, and assets. Deploy the `dist/` folder to any static host:
+
+- **GitHub Pages** — push `dist/` to the `gh-pages` branch or configure Pages to serve from `dist/`.
+- **Netlify / Vercel** — point the build output to `dist/` and set the build command to `npm run build`.
+- **itch.io** — zip the `dist/` folder contents (not the folder itself) and upload as an HTML game.
+
+<Tip>
+  For itch.io, make sure the HTML file at the root of your zip is named `index.html` and that asset paths use relative URLs — set `base: './'` in `vite.config.ts` when targeting itch.io.
+</Tip>

@@ -1,0 +1,195 @@
+---
+title: "Camera and Viewport Control in Fraxel"
+sidebarTitle: "Camera"
+description: "Control the Fraxel viewport with the camera node. Learn smoothing, zoom, screen shake, world limits, coordinate conversion, and follow-camera patterns."
+---
+
+A game world can be much larger than the visible screen. The `<camera>` node decides which part of that world the player actually sees. Without a camera, Fraxel renders everything from the origin with no scroll or zoom. Once you add one and mark it `current`, it takes over the viewport transform for every frame.
+
+## Adding a Camera
+
+Drop a `<camera current>` anywhere in your scene tree. One camera should be `current` at any given time:
+
+```tsx GameScene.tsx
+import { useNode } from 'fraxel/hooks'
+import { PrimaryNode } from 'fraxel'
+
+function GameScene() {
+  const camera = useNode(PrimaryNode.Camera)
+
+  return (
+    <transform>
+      <camera ref={camera} current />
+      <sprite textureId={BACKGROUND} />
+      <sprite textureId={PLAYER} position={[80, 50]} />
+    </transform>
+  )
+}
+```
+
+The camera starts at the world origin and shows the scene without any offset. Every prop below lets you tune exactly what gets shown and how.
+
+## Camera Props
+
+<ParamField path="current" type="boolean" default="false">
+  Marks this camera as the active viewport camera. Only one camera should be `current` at a time.
+</ParamField>
+
+<ParamField path="zoom" type="Reactive<VectorLike>" default="1">
+  Viewport scale factor. `2` zooms in (objects appear twice as large), `0.5` zooms out. Pass a `[x, y]` pair for non-uniform scaling.
+</ParamField>
+
+<ParamField path="smoothing" type="Reactive<number>" default="0">
+  How quickly the view position catches up to the camera's world position. `0` = instant snap. Values of `5`–`10` give a cinematic feel. Uses exponential interpolation: `factor = 1 - exp(-smoothing × delta)`.
+</ParamField>
+
+<ParamField path="offset" type="Reactive<VectorLike>" default="[0, 0]">
+  Screen-space offset applied after the viewport transform. Useful for keeping the player slightly above center so they can see more of the level ahead.
+</ParamField>
+
+<ParamField path="limit" type="Bounds">
+  World-space bounds the camera cannot scroll past. The viewport edges are adjusted by zoom when limits are enforced.
+</ParamField>
+
+<ParamField path="position" type="VectorLike" default="[0, 0]">
+  Camera's world position. Usually controlled by making the camera a child of a moving node.
+</ParamField>
+
+## Follow Camera
+
+The simplest way to follow a character is to parent the camera directly inside the player's `<rigid-body>` or `<transform>`. The camera inherits its parent's global position automatically:
+
+```tsx Player.tsx
+import { useRigidBody } from 'fraxel/hooks'
+import { shapes } from 'fraxel'
+
+function Player() {
+  const body = useRigidBody()
+
+  return (
+    <rigid-body ref={body.ref} position={[100, 200]}>
+      <camera current smoothing={6} offset={[0, -40]} />
+      <sprite textureId={PLAYER} sourceSize={[32, 32]} displaySize={[64, 64]} />
+      <collider shape={shapes.rectangle(32, 48)} group={['player']} collidesWith={['ground']} />
+    </rigid-body>
+  )
+}
+```
+
+The `offset={[0, -40]}` shifts the view 40 pixels upward in screen space, so the player sees more of what's above them — a common platformer trick.
+
+## World Limits
+
+Prevent the camera from scrolling past the edges of your level with the `limit` prop and the `bounds()` helper:
+
+```tsx
+import { bounds } from 'fraxel'
+
+// Level is 3200px wide and 600px tall
+<camera current limit={bounds(0, 0, 3200, 600)} />
+```
+
+The engine clamps the smoothed view position so the viewport never shows beyond those coordinates, factoring in the current zoom level.
+
+## Screen Shake
+
+Call `shake()` on the camera node for impact effects — explosions, landing, hits:
+
+```tsx
+import { useNode, useEvent } from 'fraxel/hooks'
+import { PrimaryNode } from 'fraxel'
+
+function GameScene() {
+  const camera = useNode(PrimaryNode.Camera)
+  const collider = useNode(PrimaryNode.Collider)
+
+  useEvent(collider, 'colliderEntered', () => {
+    camera.node.shake({ duration: 0.3, strength: 8 })
+  })
+
+  return (
+    <transform>
+      <camera ref={camera} current smoothing={5} />
+      <collider ref={collider} shape={shapes.circle(8)} group={['player']} collidesWith={['enemy']} />
+    </transform>
+  )
+}
+```
+
+The shake applies a random offset on top of the view position that decays linearly to zero over `duration` seconds.
+
+## Coordinate Conversion
+
+Convert between screen space (pixels from the top-left of the canvas) and world space (your game's coordinate system) using the camera's two conversion methods:
+
+```tsx
+const camera = useNode(PrimaryNode.Camera)
+
+// Convert a mouse click position to world coordinates
+const worldPos = camera.node.screenToWorld(pointerPosition)
+
+// Convert an enemy's world position to a screen position for UI elements
+const screenPos = camera.node.worldToScreen(enemy.globalPosition)
+```
+
+Both methods account for the current zoom level, screen-space offset, and the smoothed view position.
+
+## Complete Platformer Camera Example
+
+Here's a full platformer setup with a follow camera, smooth easing, a vertical look-ahead offset, and level bounds:
+
+```tsx Platformer.tsx
+import { useRigidBody, useAction } from 'fraxel/hooks'
+import { Input, shapes, bounds } from 'fraxel'
+import { loadTexture } from 'fraxel/assets'
+
+const PLAYER = await loadTexture('/assets/player.png')
+const GROUND = await loadTexture('/assets/ground.png')
+
+const Jump = Input.createAction({ key: ' ' })
+
+function PlatformerScene() {
+  const player = useRigidBody()
+  const jump = useAction(Jump)
+
+  useEffect(() => {
+    if (jump.justPressed()) {
+      player.applyImpulse([0, -500])
+    }
+  })
+
+  return (
+    <transform>
+      {/* Player with embedded follow camera */}
+      <rigid-body ref={player.ref} position={[100, 300]}>
+        <camera
+          current
+          smoothing={7}
+          offset={[0, -60]}
+          limit={bounds(0, 0, 3200, 600)}
+        />
+        <sprite textureId={PLAYER} sourceSize={[32, 48]} displaySize={[64, 96]} />
+        <collider
+          shape={shapes.rectangle(32, 48)}
+          group={['player']}
+          collidesWith={['ground']}
+        />
+      </rigid-body>
+
+      {/* Static ground platform */}
+      <rigid-body position={[0, 400]} isStatic>
+        <sprite textureId={GROUND} sourceSize={[3200, 32]} />
+        <collider
+          shape={shapes.rectangle(3200, 32)}
+          group={['ground']}
+          collidesWith={['player']}
+        />
+      </rigid-body>
+    </transform>
+  )
+}
+```
+
+<Tip>
+  Use `zoom={2}` to zoom into action sequences or `useComputed` on `zoom` for smooth zoom transitions driven by a signal.
+</Tip>

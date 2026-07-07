@@ -1,0 +1,242 @@
+---
+title: "Input — Fraxel Engine API Reference"
+sidebarTitle: "Input"
+description: "Reference for Fraxel's Input singleton: action creation, pointer tracking, keyboard queries, axis helpers, and pointer events."
+---
+
+`Input` is a static singleton that unifies keyboard and pointer handling. It is initialised automatically when you call `Game.setup()` (or `createGame()`), so you never instantiate it directly. Per-frame state (`justPressed`, `justUnpressed`) is cleared automatically at the end of each game loop iteration.
+
+---
+
+## Actions
+
+Actions map key combos to semantic symbols. Define them once at module scope so they can be shared across components and hook calls.
+
+### Input.createAction
+
+Registers a key binding and returns a unique `symbol` identifier for the action.
+
+```ts
+Input.createAction(options: InputKey): symbol
+```
+
+<ParamField path="options.key" type="string" required>
+  The key name as reported by `KeyboardEvent.key` (e.g. `'a'`, `' '`, `'ArrowLeft'`, `'ShiftLeft'`). Case-insensitive.
+</ParamField>
+<ParamField path="options.ctrl" type="boolean">
+  Require the Ctrl modifier to be held. Defaults to `false`.
+</ParamField>
+<ParamField path="options.shift" type="boolean">
+  Require the Shift modifier to be held. Defaults to `false`.
+</ParamField>
+<ParamField path="options.alt" type="boolean">
+  Require the Alt modifier to be held. Defaults to `false`.
+</ParamField>
+
+**Returns** `symbol` — an opaque identifier to pass to query methods and hooks.
+
+**Throws** `DuplicateKeyError` if the exact key combo is already bound to another action.
+
+```ts
+import { Input } from 'fraxel'
+
+// Simple keys
+const Jump  = Input.createAction({ key: ' ' })
+const Shoot = Input.createAction({ key: 'f' })
+
+// With modifiers
+const QuickSave = Input.createAction({ key: 's', ctrl: true })
+const Dash      = Input.createAction({ key: 'ShiftLeft', shift: true })
+```
+
+<Note>
+`createAction` automatically calls `preventDefault()` on keyboard events that match the binding, preventing browser shortcuts (e.g. Space scrolling the page) from firing during gameplay.
+</Note>
+
+---
+
+## Action Query Methods
+
+These methods check per-frame action state. Call them from inside `useEvent(body, 'updated', ...)` or from a `useEffect` that reads a frame-updated signal for correct timing.
+
+### Input.isActionPressed
+
+Returns `true` for every frame the action's key is held down.
+
+```ts
+Input.isActionPressed(action: symbol): boolean
+```
+
+### Input.justActionPressed
+
+Returns `true` only on the first frame the action's key is pressed.
+
+```ts
+Input.justActionPressed(action: symbol): boolean
+```
+
+### Input.justActionUnpressed
+
+Returns `true` only on the first frame the action's key is released.
+
+```ts
+Input.justActionUnpressed(action: symbol): boolean
+```
+
+```ts
+import { Input } from 'fraxel'
+
+const Jump = Input.createAction({ key: ' ' })
+
+// Inside an 'updated' event handler
+node.updated.on(() => {
+  if (Input.justActionPressed(Jump)) {
+    body.applyImpulse([0, -400])
+  }
+  if (Input.isActionPressed(Jump)) {
+    // Holding — apply extra lift
+    body.applyForce([0, -80])
+  }
+})
+```
+
+<Tip>
+Prefer `useAction` and `useActionAxis` from `fraxel/hooks` in components — they wrap these methods in reactive signals so you can use them inside `useEffect` without manually subscribing to update events.
+</Tip>
+
+---
+
+## Pointer
+
+The pointer system tracks the cursor or touch point in **game coordinates** (scaled relative to the logical canvas size, not the physical pixel size).
+
+### Input.pointerPosition
+
+Read-only `Vector2` representing the current pointer position in game coordinates.
+
+```ts
+Input.pointerPosition: Readonly<Vector2>
+```
+
+### Input.isPointerPressed
+
+`true` while the primary pointer button is held down.
+
+```ts
+Input.isPointerPressed: boolean
+```
+
+---
+
+## Pointer Events
+
+All three events emit the current pointer position as a `Vector2` in game coordinates.
+
+| Event | Fires when |
+|---|---|
+| `Input.pointerPressed` | The pointer button is pressed down. |
+| `Input.pointerUnpressed` | The pointer button is released. |
+| `Input.pointerMoved` | The pointer moves (even without pressing). |
+
+```ts
+import { Input } from 'fraxel'
+
+Input.pointerPressed.on((position) => {
+  console.log('Clicked at game coords:', position.x, position.y)
+})
+
+Input.pointerMoved.on((position) => {
+  cursor.node.position = position
+})
+
+Input.pointerUnpressed.on((position) => {
+  console.log('Released at:', position.x, position.y)
+})
+```
+
+---
+
+## Low-Level Keyboard API
+
+Use these when you need raw key queries without defining named actions — for example, in a key-binding settings screen, or when the action abstraction is overkill.
+
+### Input.isKeyPressed
+
+```ts
+Input.isKeyPressed(key: string, ctrl?: boolean, shift?: boolean, alt?: boolean): boolean
+```
+
+Returns `true` for every frame the key (with optional modifiers) is held.
+
+### Input.isJustKeyPressed
+
+```ts
+Input.isJustKeyPressed(key: string, ctrl?: boolean, shift?: boolean, alt?: boolean): boolean
+```
+
+Returns `true` on the first frame the key is pressed.
+
+### Input.isJustKeyUnpressed
+
+```ts
+Input.isJustKeyUnpressed(key: string, ctrl?: boolean, shift?: boolean, alt?: boolean): boolean
+```
+
+Returns `true` on the first frame the key is released.
+
+### Input.getKeyAxis
+
+Returns `-1`, `0`, or `1` based on which of two keys is held. Useful for directional movement without defining separate actions.
+
+```ts
+Input.getKeyAxis(positiveKey: string, negativeKey: string): -1 | 0 | 1
+```
+
+<ParamField path="positiveKey" type="string" required>
+  The key that returns `+1` (e.g. `'ArrowRight'`).
+</ParamField>
+<ParamField path="negativeKey" type="string" required>
+  The key that returns `-1` (e.g. `'ArrowLeft'`).
+</ParamField>
+
+```ts
+import { Input } from 'fraxel'
+
+node.updated.on(() => {
+  const horizontal = Input.getKeyAxis('ArrowRight', 'ArrowLeft')
+  const vertical   = Input.getKeyAxis('ArrowDown',  'ArrowUp')
+
+  body.velocity.x = horizontal * 150
+  body.velocity.y = vertical   * 150
+})
+```
+
+---
+
+## InputKey Interface
+
+```ts
+interface InputKey {
+  key:    string    // KeyboardEvent.key value, case-insensitive
+  ctrl?:  boolean   // Require Ctrl — default false
+  shift?: boolean   // Require Shift — default false
+  alt?:   boolean   // Require Alt — default false
+}
+```
+
+---
+
+## Input.destroy
+
+Removes all DOM event listeners, clears all registered actions, and resets all key and pointer state. Called automatically by `Game.destroy()`.
+
+```ts
+Input.destroy(): void
+```
+
+```ts
+import { Input } from 'fraxel'
+
+// Manual cleanup (only needed if not using Game.destroy())
+Input.destroy()
+```

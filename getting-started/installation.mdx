@@ -1,0 +1,131 @@
+---
+title: "Installing Fraxel — Setup & TypeScript Config"
+sidebarTitle: "Installation"
+description: "Install Fraxel with npm, yarn, or pnpm. Configure TypeScript's jsxImportSource and set up your HTML canvas entry point."
+---
+
+Fraxel is distributed as a single npm package. Because it ships its own JSX runtime, you also need a small TypeScript configuration change to tell the compiler to route JSX through Fraxel instead of React. This page walks through everything you need to go from zero to a working project.
+
+## Install the package
+
+<CodeGroup>
+
+```bash npm
+npm install fraxel
+```
+
+```bash yarn
+yarn add fraxel
+```
+
+```bash pnpm
+pnpm add fraxel
+```
+
+</CodeGroup>
+
+Fraxel has no runtime dependencies. Everything — the renderer, reactivity system, physics, audio, and input — ships in the single `fraxel` package.
+
+## Configure TypeScript
+
+Add the following to your `tsconfig.json`. The critical options are `jsx: "react-jsx"` and `jsxImportSource: "fraxel"`, which tell TypeScript to compile JSX using Fraxel's runtime instead of React's.
+
+```json tsconfig.json
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "strict": true,
+    "verbatimModuleSyntax": true,
+    "jsx": "react-jsx",
+    "jsxImportSource": "fraxel"
+  }
+}
+```
+
+<Note>
+  `verbatimModuleSyntax` enforces that type-only imports use the `import type` syntax. You will need to write `import type { NodeReference } from 'fraxel/hooks'` instead of `import { NodeReference } from 'fraxel/hooks'` for types. This keeps the emitted JavaScript clean and avoids accidental runtime imports of type-only symbols.
+</Note>
+
+## Create your HTML entry point
+
+Fraxel renders into a `<canvas>` element that it creates and mounts inside a container element in your HTML. Add a `div` with an `id` of `root` (or any ID you prefer) and a `<script>` tag pointing at your compiled entry file.
+
+```html index.html
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>My Fraxel Game</title>
+    <style>
+      body {
+        margin: 0;
+        background: #000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 100vh;
+      }
+      canvas {
+        image-rendering: pixelated;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+```
+
+<Tip>
+  Setting `image-rendering: pixelated` on the canvas prevents the browser from blurring low-resolution pixel-art games when the canvas is scaled up via CSS.
+</Tip>
+
+## Import paths
+
+The `fraxel` package exposes several sub-path imports, each scoped to a specific part of the engine. Import only what you need to keep your bundle lean.
+
+| Import path | What it provides |
+|---|---|
+| `fraxel` | Core nodes, math utilities (`Vector2`), collision shapes, `Input`, `Signal`, `PhysicsSystem` |
+| `fraxel/hooks` | All hooks: `useSignal`, `useEffect`, `useNode`, `useEvent`, `useSpawn`, `useAction`, and more |
+| `fraxel/jsx` | JSX components: `Game`, `Scene`, `List`, `Fragment`; and `createGame` |
+| `fraxel/assets` | `loadTexture`, `loadSound`, `loadBatch` |
+| `fraxel/animation` | `tween`, easing functions, `animationFromSheet` |
+| `fraxel/audio` | `getAudioContext` for manual AudioContext management |
+
+A typical game file imports from two or three of these paths:
+
+```tsx main.tsx
+import { createGame } from 'fraxel/jsx'
+import { Game, Scene } from 'fraxel/jsx'
+import { loadTexture } from 'fraxel/assets'
+import { useSignal, useEvent, useNode } from 'fraxel/hooks'
+import { PrimaryNode, shapes } from 'fraxel'
+```
+
+## Verify your setup
+
+Create a minimal `src/main.tsx` and run your bundler. If TypeScript compiles without errors and you see a black canvas in the browser, your setup is correct.
+
+```tsx src/main.tsx
+import { createGame, Game, Scene } from 'fraxel/jsx'
+
+const scene = () => <transform />
+
+const game = createGame(
+  <Game width={320} height={180} defaultScene="main">
+    <Scene name="main" component={scene} />
+  </Game>,
+  document.querySelector('#root')!,
+)
+
+game.play()
+```
+
+<Note>
+  Fraxel uses `top-level await` for asset loading in most projects. Make sure your bundler targets ES2022 or later and your `<script>` tag uses `type="module"`.
+</Note>

@@ -1,0 +1,230 @@
+---
+title: "Game — Fraxel Engine API Reference"
+sidebarTitle: "Game"
+description: "Reference for Fraxel's Game class and GameControls interface: setup, play, pause, destroy, scene management, and the tab-blur event."
+---
+
+The `Game` class is the static singleton that owns the canvas, drives the game loop, and manages scenes. In most projects you interact with it indirectly through `createGame` and the `GameControls` object it returns — but the static API is available for advanced use cases such as custom loop control or imperative scene switching outside a component.
+
+---
+
+## createGame
+
+The recommended way to bootstrap a Fraxel application. Parses a `<Game>` JSX tree, sets up the engine, registers all `<Scene>` children, loads the default scene, and returns `GameControls`.
+
+```ts
+createGame(jsx: Fraxel.Node, root: HTMLElement): GameControls
+```
+
+<ParamField path="jsx" type="Fraxel.Node" required>
+  A `<Game>` element containing one or more `<Scene>` children.
+</ParamField>
+<ParamField path="root" type="HTMLElement" required>
+  The DOM element that will become the parent of the generated `<canvas>`. Must not be `null`.
+</ParamField>
+
+**Returns** [`GameControls`](#gamecontrols).
+
+**Throws:**
+- `MissingGameRootError` — `root` is `null` or `undefined`.
+- `InvalidGameElementError` — the top-level JSX element is not `<Game>`.
+- `MissingSceneError` — a child element is not `<Scene>`.
+- `InvalidSceneComponentError` — the scene component did not return exactly one root node.
+
+```ts
+import { createGame } from 'fraxel'
+import { Game, Scene } from 'fraxel/jsx'
+
+const game = createGame(
+  <Game width={320} height={180} defaultScene="main">
+    <Scene name="main"  component={() => import('./scenes/main.js')} />
+    <Scene name="menu"  component={() => import('./scenes/menu.js')} />
+  </Game>,
+  document.querySelector('#root')!
+)
+
+game.play()
+```
+
+<Note>
+`createGame` automatically calls `Game.setup()`, registers all scenes with `Game.sceneManager`, and loads `defaultScene`. You do not need to call `Game.setup()` separately.
+</Note>
+
+---
+
+## GameControls
+
+The object returned by `createGame` and `useGame`. Provides the primary API for controlling the running game.
+
+```ts
+interface GameControls {
+  play():                          void
+  pause():                         void
+  destroy():                       void
+  changeScene(name: string):       Promise<void>
+  preloadScene(name: string):      Promise<() => void>
+  getSize():                       Vector2
+}
+```
+
+| Method | Description |
+|---|---|
+| `play()` | Starts (or resumes) the game loop. Acquires a screen wake-lock if available. |
+| `pause()` | Pauses the game loop. Call `play()` to resume. |
+| `destroy()` | Stops the loop, tears down the current scene, destroys the input system, and releases all resources. |
+| `changeScene(name)` | Destroys the current scene, loads the named scene, and resolves when the transition is complete. |
+| `preloadScene(name)` | Loads a scene in the background without switching to it. Resolves with a function you can call later to perform the instant switch. |
+| `getSize()` | Returns a `Vector2` with the canvas's logical pixel dimensions (as configured in `<Game width height>`). |
+
+<CodeGroup>
+```ts Basic lifecycle
+const game = createGame(<Game ...>, root)
+
+game.play()
+
+// Later — e.g. on window unload
+window.addEventListener('unload', () => game.destroy())
+```
+```ts Scene transitions
+const game = createGame(<Game ...>, root)
+game.play()
+
+// Switch immediately
+await game.changeScene('level-2')
+
+// Or preload first, then switch instantly
+const activate = await game.preloadScene('boss-fight')
+// ... show a loading bar, then:
+activate()
+```
+</CodeGroup>
+
+---
+
+## Game (static class)
+
+The underlying static singleton. `createGame` wraps this, but you can use it directly when you need imperative control outside the JSX bootstrap path.
+
+### Game.setup
+
+Initialises the canvas, input system, and renderer. Must be called before `play()`.
+
+```ts
+Game.setup(options: SetupOptions): void
+```
+
+<ParamField path="options.width" type="number" required>
+  Logical canvas width in pixels.
+</ParamField>
+<ParamField path="options.height" type="number" required>
+  Logical canvas height in pixels.
+</ParamField>
+<ParamField path="options.root" type="HTMLElement" required>
+  Parent DOM element for the generated canvas.
+</ParamField>
+<ParamField path="options.testOptions" type="Partial<TestOptions>">
+  Debug overlays. See [`TestOptions`](#testoptions).
+</ParamField>
+<ParamField path="options.theme" type="Theme">
+  Custom render theme. Defaults to `new Theme()`.
+</ParamField>
+
+```ts
+import { Game } from 'fraxel'
+
+Game.setup({
+  width:  480,
+  height: 270,
+  root:   document.querySelector('#root')!,
+  testOptions: { showColliders: true },
+})
+```
+
+### Game.play
+
+Starts the animation-frame loop. Throws `EngineNotSetupError` if called before `Game.setup`.
+
+```ts
+Game.play(): void
+```
+
+### Game.pause
+
+Pauses the loop. The canvas freezes on the last rendered frame.
+
+```ts
+Game.pause(): void
+```
+
+### Game.destroy
+
+Cancels the animation frame, tears down input listeners, destroys the active scene, and resets setup state.
+
+```ts
+Game.destroy(): void
+```
+
+### Game.sceneManager
+
+Read-only reference to the `SceneManager` singleton that tracks all registered scenes.
+
+```ts
+Game.sceneManager: SceneManager
+```
+
+| Method | Description |
+|---|---|
+| `addScene(name, scene)` | Register a named `Scene`. |
+| `setScene(name)` | Switch to the named scene. Returns `Promise<void>`. |
+| `preloadScene(name)` | Load scene assets without switching. Returns `Promise<() => void>`. |
+| `currentNode` | The root `Node` of the active scene, or `null`. |
+
+---
+
+## Game.blured
+
+An `Event` that fires whenever the browser window loses focus (tab switch, minimize, etc.). The game is automatically paused when this fires.
+
+```ts
+Game.blured: Event<[], 'blur'>
+```
+
+```ts
+import { Game } from 'fraxel'
+
+Game.blured.on(() => {
+  console.log('Game paused — tab lost focus')
+  showPauseOverlay()
+})
+```
+
+<Note>
+The game auto-pauses on blur and resumes when the player calls `game.play()` again. You can hook into `Game.blured` to show a pause screen.
+</Note>
+
+---
+
+## TestOptions
+
+Debug rendering options passed to `Game.setup` or `<Game testOptions={...}>`.
+
+```ts
+interface TestOptions {
+  showColliders:  boolean  // Draw collider shapes — default false
+  showRayCasts:   boolean  // Draw ray cast lines — default false
+  showClickables: boolean  // Draw clickable areas — default false
+}
+```
+
+All properties default to `false`. Enable them during development to visualise invisible game objects:
+
+```ts
+Game.setup({
+  width: 320, height: 180, root,
+  testOptions: {
+    showColliders:  true,
+    showRayCasts:   true,
+    showClickables: true,
+  },
+})
+```

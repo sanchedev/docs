@@ -1,0 +1,176 @@
+---
+title: "<animation-player> — Frame animation node"
+sidebarTitle: "<animation-player>"
+description: "Play frame-based sprite animations. Define named animations from sprite sheets, switch between them reactively, queue the next clip, and auto-destroy on end."
+---
+
+Use `<animation-player>` to drive frame-based sprite animations. Pass a map of named `Animation` objects via the `animations` prop and specify the initial clip with `currentAnim`. The player advances frames by `fps × delta` each update — no manual frame tracking required. Pair it with `animationFromSheet()` to generate keyframes directly from a sprite-sheet texture.
+
+```tsx
+import { useNode, useEvent } from 'fraxel/hooks'
+import { PrimaryNode, animationFromSheet } from 'fraxel'
+
+const SHEET = await loadTexture('/assets/hero.png')
+
+function Hero() {
+  const sprite = useNode(PrimaryNode.Sprite)
+  const anim = useNode(PrimaryNode.AnimationPlayer)
+
+  return (
+    <sprite ref={sprite} textureId={SHEET} sourceSize={[16, 24]}>
+      <animation-player
+        ref={anim}
+        animations={() => ({
+          idle: animationFromSheet(sprite.node, SHEET, { columns: 4, duration: 1, loop: true }),
+          walk: animationFromSheet(sprite.node, SHEET, { columns: 4, rows: 2, range: [4, 7], duration: 0.5, loop: true }),
+        })}
+        currentAnim="idle"
+      />
+    </sprite>
+  )
+}
+```
+
+## Props
+
+<ParamField path="animations" type="() => Record<string, Animation>">
+  A **function** that returns a map of animation names to `Animation` objects.
+  It is called once when the node starts (deferred), which ensures that sibling
+  sprite nodes are already initialised. Returning a new object from the function
+  replaces all animations at once.
+
+  ```tsx
+  <animation-player
+    animations={() => ({
+      idle: { fps: 8, keyframes: idleFrames, loop: true },
+      run:  { fps: 12, keyframes: runFrames, loop: true },
+    })}
+  />
+  ```
+</ParamField>
+
+<ParamField path="currentAnim" type="string | SignalGetter<string>">
+  The animation to play. Accepts a static string or a reactive
+  `SignalGetter<string>`. When a `SignalGetter` is provided, the player tracks
+  its dependencies and switches animations automatically when the value changes.
+
+  ```tsx
+  const animName = useComputed(() => isRunning() ? 'run' : 'idle')
+  <animation-player animations={...} currentAnim={animName} />
+  ```
+</ParamField>
+
+<ParamField path="destroyOnEnd" type="boolean">
+  When `true`, the node destroys itself after the current animation ends (after
+  `animationEnded` fires and no next animation is queued). Useful for one-shot
+  explosion or hit effects. Defaults to `false`.
+
+  ```tsx
+  <animation-player
+    animations={() => ({ explode: { fps: 12, keyframes: frames } })}
+    currentAnim="explode"
+    destroyOnEnd
+  />
+  ```
+</ParamField>
+
+<ParamField path="ref" type="NodeReference<PrimaryNode.AnimationPlayer>">
+  Attach a node reference to call methods or read state at runtime.
+</ParamField>
+
+## Animation object
+
+| Field | Type | Description |
+|---|---|---|
+| `fps` | `number` | Frames per second for this animation. |
+| `keyframes` | `AnimationKeyframe[]` | Array of frame functions. Each receives a `time` value `0–1` within the frame and applies the visual state to the sprite. Generate with `keyframesFromSheet()` or `animationFromSheet()`. |
+| `loop` | `boolean` | Whether the animation restarts when it reaches the last frame. Defaults to `false`. |
+
+## Computed properties
+
+| Property | Type | Description |
+|---|---|---|
+| `currentAnim` | `string \| null` (read-only) | The name of the animation currently playing, or `null` if none. |
+| `index` | `number` (read-only) | The current frame index (floored). |
+
+## Methods
+
+| Method | Signature | Description |
+|---|---|---|
+| `play` | `(animName: string, index?: number) => void` | Play the named animation, optionally from a specific frame. If the animation is already playing at that index, this is a no-op. |
+| `setNext` | `(animName: string \| null) => void` | Queue an animation to play after the current one ends. Pass `null` to stop after the current animation. |
+| `stop` | `() => void` | Stop the current animation and reset to frame 0. |
+| `add` | `(name: string, animation: Animation) => this` | Register a single animation. Chainable. |
+| `define` | `(animations: Record<string, Animation>) => this` | Register multiple animations at once. Chainable. |
+
+## Events
+
+| Event name | Callback signature | Description |
+|---|---|---|
+| `animationEnded` | `(animName: string) => void` | Fires when a non-looping animation reaches its last frame. |
+| `animationChanged` | `(newAnim: string, oldAnim: string \| null) => void` | Fires whenever the active animation switches. |
+| `animationIndexChanged` | `(index: number) => void` | Fires when the current frame index changes. |
+| `animationStopped` | `(animName: string) => void` | Fires when `stop()` is called. |
+| `updated` | `(delta: number) => void` | Fires every frame during update. |
+| `destroyed` | `() => void` | Fires on removal. |
+
+<CodeGroup>
+
+```tsx Reactive animation switching
+import { useComputed } from 'fraxel/hooks'
+
+function Character() {
+  const sprite = useNode(PrimaryNode.Sprite)
+  const [isWalking] = useSignal(false)
+
+  const animName = useComputed(() => isWalking() ? 'walk' : 'idle')
+
+  return (
+    <sprite ref={sprite} textureId={SHEET} sourceSize={[16, 24]}>
+      <animation-player
+        animations={() => ({
+          idle: animationFromSheet(sprite.node, SHEET, { columns: 4, duration: 1, loop: true }),
+          walk: animationFromSheet(sprite.node, SHEET, { columns: 4, rows: 2, range: [4, 7], duration: 0.5, loop: true }),
+        })}
+        currentAnim={animName}
+      />
+    </sprite>
+  )
+}
+```
+
+```tsx One-shot attack with transition back to idle
+function SwordSwing() {
+  const anim = useNode(PrimaryNode.AnimationPlayer)
+
+  useEvent(anim, 'animationEnded', () => {
+    anim.node.setNext('idle')
+  })
+
+  return (
+    <sprite ref={sprite} textureId={SHEET} sourceSize={[32, 32]}>
+      <animation-player
+        ref={anim}
+        animations={() => ({
+          idle:   animationFromSheet(sprite.node, SHEET, { columns: 4, duration: 1, loop: true }),
+          attack: animationFromSheet(sprite.node, SHEET, { columns: 6, rows: 2, range: [8, 13], duration: 0.4 }),
+        })}
+        currentAnim="idle"
+      />
+    </sprite>
+  )
+}
+```
+
+</CodeGroup>
+
+<Note>
+  The `animations` prop is a **function**, not an object. This deferral ensures
+  that sprite nodes constructed at the same time are fully available when
+  `animationFromSheet()` needs to reference them.
+</Note>
+
+## Related
+
+- [Animation guide](/guides/animation) — `animationFromSheet`, `keyframesFromSheet`, tweening, and sequences
+- [`<sprite>`](/api/nodes/sprite) — the target node that animation keyframes modify

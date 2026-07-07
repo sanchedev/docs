@@ -1,0 +1,264 @@
+---
+title: "Assets — Fraxel Engine API Reference"
+sidebarTitle: "Assets"
+description: "Reference for Fraxel's asset pipeline: loadTexture, loadSound, loadBatch, loadBatchAsset, unloadTexture, unloadSound, and progress tracking."
+---
+
+The asset pipeline loads image and audio files and returns opaque `symbol` identifiers you pass to node props like `textureId` and `soundId`. All loaders are Promise-based and deduplicate identical URLs automatically — loading the same URL twice returns the same `symbol` without fetching again.
+
+---
+
+## loadTexture
+
+Loads an image from a URL and registers it with the renderer.
+
+```ts
+loadTexture(url: string): Promise<symbol>
+```
+
+<ParamField path="url" type="string" required>
+  Absolute or root-relative URL to the image file. Supported formats depend on the browser (PNG, JPEG, WebP, SVG).
+</ParamField>
+
+**Returns** `Promise<symbol>` — resolves to a stable `symbol` ID unique to that URL. Identical URLs always resolve to the same `symbol`.
+
+```ts
+import { loadTexture } from 'fraxel/assets'
+
+const PLAYER = await loadTexture('/assets/sprites/player.png')
+const ENEMY  = await loadTexture('/assets/sprites/enemy.png')
+
+// Later in JSX:
+// <sprite textureId={PLAYER} />
+```
+
+---
+
+## loadSound
+
+Loads an audio file from a URL and decodes it into an audio buffer.
+
+```ts
+loadSound(url: string): Promise<symbol>
+```
+
+<ParamField path="url" type="string" required>
+  Absolute or root-relative URL to the audio file. Supported formats depend on the browser (MP3, OGG, WAV, AAC).
+</ParamField>
+
+**Returns** `Promise<symbol>` — resolves to a stable `symbol` ID for the audio buffer.
+
+```ts
+import { loadSound } from 'fraxel/assets'
+
+const SHOOT = await loadSound('/assets/sounds/shoot.ogg')
+const JUMP  = await loadSound('/assets/sounds/jump.mp3')
+
+// Later in JSX:
+// <audio-player soundId={SHOOT} />
+```
+
+---
+
+## loadBatch
+
+Loads multiple assets in parallel. Each loader is a zero-argument function that returns a `Promise`. Progress is reported as assets complete.
+
+```ts
+loadBatch<T>(
+  loaders: (() => Promise<T>)[],
+  options?: LoaderOptions
+): Promise<T[]>
+```
+
+<ParamField path="loaders" type="(() => Promise<T>)[]" required>
+  Array of loader functions. Each is called immediately and runs concurrently.
+</ParamField>
+<ParamField path="options" type="LoaderOptions">
+  Optional progress and error configuration. See [`LoaderOptions`](#loaderoptions).
+</ParamField>
+
+**Returns** `Promise<T[]>` — resolves with results in the **same order** as the input loaders, regardless of completion order.
+
+```ts
+import { loadBatch, loadTexture, loadSound } from 'fraxel/assets'
+
+const [BG, PLAYER, ENEMY, SHOOT] = await loadBatch(
+  [
+    () => loadTexture('/assets/bg.png'),
+    () => loadTexture('/assets/player.png'),
+    () => loadTexture('/assets/enemy.png'),
+    () => loadSound('/assets/shoot.ogg'),
+  ],
+  {
+    onProgress: (loaded, total) => {
+      document.querySelector('#progress')!.textContent =
+        `Loading… ${loaded}/${total}`
+    },
+  },
+)
+```
+
+---
+
+## loadBatchAsset
+
+Typed convenience variant of `loadBatch` for loading multiple assets of the same type from a plain URL array.
+
+```ts
+loadBatchAsset(
+  type: 'texture' | 'sound',
+  urls: string[],
+  options?: LoaderOptions
+): Promise<symbol[]>
+```
+
+<ParamField path="type" type="'texture' | 'sound'" required>
+  Which loader to use for all URLs in the batch.
+</ParamField>
+<ParamField path="urls" type="string[]" required>
+  Array of URLs to load.
+</ParamField>
+<ParamField path="options" type="LoaderOptions">
+  Optional progress callback.
+</ParamField>
+
+**Returns** `Promise<symbol[]>` — resolves with `symbol` IDs in the same order as `urls`.
+
+```ts
+import { loadBatchAsset } from 'fraxel/assets'
+
+// Load all level-1 textures
+const [BG, TILES, ENEMIES] = await loadBatchAsset('texture', [
+  '/assets/level1/bg.png',
+  '/assets/level1/tiles.png',
+  '/assets/level1/enemies.png',
+])
+
+// Load all SFX
+const [JUMP, SHOOT, HIT] = await loadBatchAsset('sound', [
+  '/assets/sfx/jump.ogg',
+  '/assets/sfx/shoot.ogg',
+  '/assets/sfx/hit.ogg',
+])
+```
+
+---
+
+## unloadTexture
+
+Frees the GPU and memory resources associated with a texture ID.
+
+```ts
+unloadTexture(id: symbol): void
+```
+
+<ParamField path="id" type="symbol" required>
+  The `symbol` returned by `loadTexture`.
+</ParamField>
+
+---
+
+## unloadSound
+
+Frees the audio buffer associated with a sound ID.
+
+```ts
+unloadSound(id: symbol): void
+```
+
+<ParamField path="id" type="symbol" required>
+  The `symbol` returned by `loadSound`.
+</ParamField>
+
+```ts
+import { unloadTexture, unloadSound } from 'fraxel/assets'
+
+// Clean up when leaving a scene
+unloadTexture(LEVEL_1_BG)
+unloadSound(LEVEL_1_MUSIC)
+```
+
+---
+
+## LoaderOptions
+
+Options accepted by `loadBatch` and `loadBatchAsset`.
+
+```ts
+interface LoaderOptions {
+  onProgress?: (loaded: number, total: number) => void
+}
+```
+
+<ParamField path="onProgress" type="(loaded: number, total: number) => void">
+  Called once for each asset that finishes loading. `loaded` is the number completed so far; `total` is the total requested. Useful for progress bars.
+</ParamField>
+
+---
+
+## Deduplication
+
+Every URL is tracked internally by a map. If you call `loadTexture('/assets/player.png')` twice before the first resolves, only one network request is made and both calls receive the same `symbol`. This means it is safe to call `loadTexture` / `loadSound` at the top level of multiple scene modules without worrying about redundant fetches.
+
+```ts
+const A = await loadTexture('/assets/shared.png')
+const B = await loadTexture('/assets/shared.png')
+
+console.log(A === B) // true — same symbol
+```
+
+---
+
+## Usage Patterns
+
+<CodeGroup>
+```ts Module-level (simple)
+// assets.ts — loaded once when the module imports
+import { loadTexture, loadSound } from 'fraxel/assets'
+
+export const PLAYER = await loadTexture('/assets/player.png')
+export const SHOOT  = await loadSound('/assets/shoot.ogg')
+```
+```ts Preload screen
+// preload.ts
+import { loadBatch, loadTexture, loadSound } from 'fraxel/assets'
+
+export async function preload(onProgress: (p: number) => void) {
+  await loadBatch(
+    [
+      () => loadTexture('/assets/bg.png'),
+      () => loadTexture('/assets/player.png'),
+      () => loadTexture('/assets/enemy.png'),
+      () => loadSound('/assets/music.ogg'),
+      () => loadSound('/assets/jump.ogg'),
+    ],
+    {
+      onProgress: (loaded, total) => onProgress(loaded / total),
+    },
+  )
+}
+```
+```ts Per-scene loading
+// scenes/level2.ts
+import { loadBatchAsset } from 'fraxel/assets'
+
+const [BG, BOSS, FLOOR] = await loadBatchAsset('texture', [
+  '/assets/level2/bg.png',
+  '/assets/level2/boss.png',
+  '/assets/level2/floor.png',
+])
+
+export default function Level2() {
+  return (
+    <transform>
+      <sprite textureId={BG} />
+    </transform>
+  )
+}
+```
+</CodeGroup>
+
+<Note>
+`await` at module top level requires your bundler to support top-level `await` (Vite, esbuild ≥ 0.14, Webpack 5 with `experiments.topLevelAwait`). Alternatively, wrap the `await` inside an async scene component function.
+</Note>

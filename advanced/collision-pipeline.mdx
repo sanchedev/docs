@@ -1,0 +1,166 @@
+---
+title: "Fraxel Collision Pipeline"
+sidebarTitle: "Collision Pipeline"
+description: "Broadphase spatial hashing, narrowphase shape algorithms, collision event emission, raycasting, and how RigidBody integrates with the collision system."
+---
+
+Fraxel's collision system is a classic two-phase pipeline: a broadphase that quickly eliminates impossible collision pairs using a spatial hash grid, followed by a narrowphase that performs precise geometric intersection tests. Both phases run every frame, after the update phase and before the draw phase.
+
+## System Overview
+
+`CollisionSystem` is a singleton. Colliders and raycasts self-register when their node starts and self-unregister when it is destroyed:
+
+```
+CollisionSystem (singleton)
+  ├── #spatialHash: SpatialHash(64)
+  ├── #colliders: Set<Collider>
+  ├── #colliderGroups: Map<string, Set<Collider>>
+  └── #raycasts: Set<RayCast>
+```
+
+The `#colliderGroups` map is separate from the spatial hash — it stores colliders organized by their `group` strings, used by raycasts which bypass the spatial hash entirely.
+
+A `#dirty` flag is set to `true` whenever a collider is added, removed, or moves. If the flag is set, the spatial hash is rebuilt before any queries run. This avoids redundant rebuilds within a single frame.
+
+## Broadphase: `SpatialHash`
+
+The `SpatialHash` divides the world into a uniform grid of cells. Each cell is a `Set<Collider>`. Colliders are inserted into every cell their AABB (axis-aligned bounding box) overlaps:
+
+```
+World space               Cell size = 64px
+
+  (0,0)────────────────────────────►
+    │  [0,0] [1,0] [2,0] [3,0]
+    │  [0,1] [1,1] [2,1] [3,1]
+    │  [0,2] [1,2] [2,2] [3,2]
+    ▼
+```
+
+**Insertion:**
+
+```
+minCellX = floor(bounds.from.x / cellSize)
+minCellY = floor(bounds.from.y / cellSize)
+maxCellX = floor(bounds.to.x   / cellSize)
+maxCellY = floor(bounds.to.y   / cellSize)
+
+for x in [minCellX, maxCellX]:
+  for y in [minCellY, maxCellY]:
+    grid[key(x, y)].add(collider)
+```
+
+**Query** (finding candidates for a given collider): compute the AABB of the querying collider, convert to cell coordinates, and union the contents of all overlapping cells into a result set. The querying collider itself is removed from the result.
+
+The default cell size is `64`. You should tune this relative to the typical collider size in your game — see [Performance](/advanced/performance) for guidance.
+
+<Note>
+The spatial hash is rebuilt from scratch every frame when `#dirty` is `true`. This is intentional: incremental updates (tracking which cells a collider occupied last frame) are more complex to implement correctly and are rarely faster for games with many moving objects.
+</Note>
+
+## Narrowphase: `Narrowphase.detect(a, b)`
+
+After broadphase filters down the candidate pairs, the narrowphase runs exact intersection tests. `Narrowphase.detect` dispatches to a shape-specific algorithm based on the pair of shape types:
+
+| Shape A | Shape B | Algorithm |
+|---|---|---|
+| Rectangle | Rectangle | AABB overlap (4 comparisons) |
+| Circle | Circle | Squared-distance vs. summed radii |
+| Rectangle | Circle | Closest point on AABB to circle centre, vs. radius |
+| Circle | Rectangle | Same as above, arguments swapped |
+| Capsule | Capsule | Closest points on two line segments, vs. summed radii |
+| Rectangle | Capsule | Closest point on capsule bone to AABB centre, vs. radius |
+| Capsule | Rectangle | Same as above, arguments swapped |
+| Circle | Capsule | Closest point on capsule bone to circle centre, vs. summed radii |
+| Capsule | Circle | Same as above, arguments swapped |
+
+A **capsule** is modeled as two endpoint caps (circles) joined by a central line segment — the "bone". The bone endpoints in world space are computed from the capsule's `position`, `length`, `radius`, and `direction` (`'vertical'` or `'horizontal'`).
+
+All nine combinations are handled, making it safe to mix any two collider shapes without gaps.
+
+## Collision Groups and Filtering
+
+Before the narrowphase runs a test, the collision system checks whether the two colliders belong to matching groups:
+
+```ts
+#groupsMatch(a: Collider, b: Collider): boolean {
+  return Array.from(a.collidesWith).some((group) => b.group.has(group))
+}
+```
+
+A collider's `group` identifies what it is. Its `collidesWith` identifies what it can collide with. Only pairs where `a.collidesWith` overlaps `b.group` are tested. This allows you to create collision layers (e.g. `'player'`, `'enemy'`, `'wall'`) and filter interactions without any broadphase overhead.
+
+## Collision Event Emission
+
+Each collider maintains `_activeCollisions: Set<Collider>` — the set of colliders it is currently overlapping. After each narrowphase pass, the system compares the newly detected set against the previous active set and emits three distinct events:
+
+| Event | Condition | Fires |
+|---|---|---|
+| `colliderEntered` | Collider in `detected` but not in `previous` | First frame of contact |
+| `collided` | Collider in `detected` (regardless of previous) | Every frame of overlap |
+| `colliderExited` | Collider in `previous` but not in `detected` | First frame after separation |
+
+```ts
+for (const node of detected) {
+  if (!previous.has(node)) CollisionEmitter.emitEnter(collider, node)
+  CollisionEmitter.emitCollide(collider, node)
+}
+for (const node of previous) {
+  if (!detected.has(node)) CollisionEmitter.emitExit(collider, node)
+}
+collider._activeCollisions = detected
+```
+
+The `CollisionEmitter` class handles the actual event emission on both colliders in the pair (both sides fire `colliderEntered`/`collided`/`colliderExited` for each contact).
+
+## RayCast
+
+`RayCast` nodes bypass the spatial hash entirely. They query `#colliderGroups` directly to iterate only colliders in the groups they care about, then test each candidate with a shape-specific ray intersection algorithm:
+
+| Shape | Algorithm |
+|---|---|
+| Rectangle | Ray segment vs. AABB overlap test |
+| Circle | Closest point on ray to circle centre vs. radius |
+| Capsule | Closest points on ray and capsule bone (line segments), vs. radius |
+
+The raycast system finds the **nearest** hit (minimum `t` value, where `t` is the parametric distance along the ray direction vector). Only one hit is reported per raycast per frame.
+
+Events emitted by `RayCast`:
+
+| Event | Condition |
+|---|---|
+| `colliderEntered` | A new collider is the nearest hit (was different last frame) |
+| `colliderExited` | No collider is hit, or a different one became nearest |
+
+Both events also fire on the hit collider (via `CollisionEmitter.emitRaycastEnter/Exit`).
+
+## `RigidBody` and Physics Integration
+
+`PhysicsSystem` reads from `CollisionSystem` but does not emit collision events itself — that is `CollisionSystem`'s responsibility. The physics system's role is **response**: after detecting overlaps, it applies position corrections and velocity impulses.
+
+The physics integration loop:
+
+<Steps>
+  <Step title="Clear grounded state">
+    All bodies have `isGrounded = false` at the start of each frame.
+  </Step>
+  <Step title="Integrate velocity">
+    For each non-static, gravity-enabled body:
+    ```
+    velocity += (gravity + pendingAcceleration) * delta
+    position += velocity * delta
+    ```
+  </Step>
+  <Step title="Iterative overlap resolution (4 passes)">
+    For each body's colliders, query `CollisionSystem.queryCandidates`. For each candidate pair not yet resolved this iteration:
+    1. Verify group match.
+    2. Call `computeOverlap` to get the overlap vector and contact normal.
+    3. Call `resolveCollision` to separate the bodies and apply impulse responses.
+    4. If the normal points downward (`normal.y < 0`), set `body.isGrounded = true`.
+  </Step>
+</Steps>
+
+The four resolution iterations reduce jitter and tunneling artifacts when multiple bodies are stacked or pressed together. Pairs are deduplicated within each iteration via a string key to avoid resolving the same pair twice.
+
+<Accordion title="Static vs. dynamic bodies">
+A `RigidBody` with `isStatic = true` participates in collision response but does not move — its velocity and position are never integrated. When a dynamic body collides with a static body, the static body absorbs the full impulse without moving, effectively acting as immovable terrain.
+</Accordion>

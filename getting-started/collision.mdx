@@ -1,0 +1,243 @@
+---
+title: "Collision Detection in Fraxel — Shapes & Events"
+sidebarTitle: "Collision"
+description: "Set up colliders with rectangle, circle, and capsule shapes, filter with groups, respond to colliderEntered events, and use RayCast for detection."
+---
+
+Collision detection answers a fundamental question every game needs to ask: which objects are overlapping right now? Fraxel provides a built-in collision system with three shape types, a spatial hash broadphase for performance, and an event-driven API so you can respond to overlaps declaratively.
+
+The collision system is completely decoupled from physics. You can use colliders for hit detection — bullets hitting enemies, a player collecting a coin — without enabling physics simulation at all.
+
+## Shapes
+
+Every `<collider>` node requires a `shape` prop. Create shapes using the `shapes` factory imported from `fraxel`.
+
+```tsx
+import { shapes } from 'fraxel'
+
+// A rectangle with width=32, height=32
+<collider shape={shapes.rectangle(32, 32)} />
+
+// A circle with radius=16
+<collider shape={shapes.circle(16)} />
+
+// A capsule with length=48, radius=10 (default orientation: vertical)
+<collider shape={shapes.capsule(48, 10)} />
+
+// Horizontal capsule
+<collider shape={shapes.capsule(48, 10, 'horizontal')} />
+```
+
+All three shapes support all nine pairwise overlap combinations: rectangle↔rectangle, circle↔circle, capsule↔capsule, and all cross-shape pairs. The engine dispatches the correct narrowphase algorithm automatically.
+
+## Groups and filtering
+
+Use `group` and `collidesWith` to control which colliders interact. A collider only fires overlap events when it belongs to at least one of the groups listed in the other collider's `collidesWith` array.
+
+```tsx
+{/* Player — collides with enemies and pickups, ignores bullets */}
+<collider
+  shape={shapes.capsule(28, 10)}
+  group={['player']}
+  collidesWith={['enemy', 'pickup']}
+/>
+
+{/* Enemy — collides with player and projectiles */}
+<collider
+  shape={shapes.circle(14)}
+  group={['enemy']}
+  collidesWith={['player', 'projectile']}
+/>
+
+{/* Bullet — collides with enemies only */}
+<collider
+  shape={shapes.circle(4)}
+  group={['projectile']}
+  collidesWith={['enemy']}
+/>
+```
+
+When a projectile overlaps an enemy collider, both nodes receive the collision events. The projectile's `colliderEntered` fires with the enemy collider as argument, and the enemy's `colliderEntered` fires with the projectile collider.
+
+## Responding to collisions
+
+Subscribe to collision events using `useEvent`. The three events are:
+
+| Event | Fires when |
+|---|---|
+| `colliderEntered` | Two colliders begin overlapping (first frame of contact) |
+| `collided` | Two colliders are currently overlapping (every frame of contact) |
+| `colliderExited` | Two colliders stop overlapping |
+
+```tsx src/components/Projectile.tsx
+import { useNode, useEvent } from 'fraxel/hooks'
+import { PrimaryNode, shapes } from 'fraxel'
+import { BULLET_TEX } from '../assets'
+
+export function Projectile() {
+  const collider = useNode(PrimaryNode.Collider)
+  const body     = useNode(PrimaryNode.Transform)
+
+  useEvent(collider, 'colliderEntered', (enemyCollider) => {
+    // Apply damage to whatever the bullet hit
+    enemyCollider.parent?.script?.takeDamage(20)
+
+    // Destroy the bullet
+    body.node.destroy()
+  })
+
+  return (
+    <transform ref={body}>
+      <sprite textureId={BULLET_TEX} />
+      <collider
+        ref={collider}
+        shape={shapes.circle(4)}
+        group={['projectile']}
+        collidesWith={['enemy']}
+      />
+    </transform>
+  )
+}
+```
+
+## The `useCollider` derived hook
+
+`useCollider` wraps the common pattern of a collider node with reactive `colliding` and `other` state:
+
+```tsx
+import { useCollider, useComputed } from 'fraxel/hooks'
+
+function Player() {
+  const { ref, colliding, other } = useCollider()
+  const flash = useComputed(() => colliding() ? 2.0 : 1.0)
+
+  return (
+    <sprite textureId={PLAYER_TEX} brightness={flash}>
+      <collider
+        ref={ref}
+        shape={shapes.capsule(28, 10)}
+        group={['player']}
+        collidesWith={['enemy']}
+      />
+    </sprite>
+  )
+}
+```
+
+- `colliding()` — `true` while touching at least one matching collider
+- `other()` — the most recently entered `Collider` node, or `null`
+
+## Placing a collider in the world
+
+A collider's position in the scene tree determines where it tests for overlaps. Parent it to a `<transform>` or `<sprite>` to follow the visual object.
+
+```tsx
+function Enemy() {
+  return (
+    <transform position={[120, 60]}>
+      <sprite textureId={ENEMY_TEX} />
+      {/* Collider sits at the same position as the transform */}
+      <collider
+        shape={shapes.circle(14)}
+        group={['enemy']}
+        collidesWith={['projectile', 'player']}
+      />
+    </transform>
+  )
+}
+```
+
+## RayCast — line-of-sight detection
+
+`<ray-cast>` projects an invisible ray from the node's position in the specified direction and detects colliders that intersect it. Use it for line-of-sight checks, ground detection, or laser beams.
+
+```tsx
+import { useNode, useEvent } from 'fraxel/hooks'
+import { PrimaryNode } from 'fraxel'
+
+function EnemyAI() {
+  const ray = useNode(PrimaryNode.RayCast)
+  const [spotted, setSpotted] = useSignal(false)
+
+  useEvent(ray, 'colliderEntered', () => setSpotted(true))
+  useEvent(ray, 'colliderExited',  () => setSpotted(false))
+
+  return (
+    <transform>
+      {/* Cast a 150px ray to the right, looking for the player */}
+      <ray-cast
+        ref={ray}
+        direction={[150, 0]}
+        collidesWith={['player']}
+      />
+      <sprite
+        textureId={ENEMY_TEX}
+        brightness={() => spotted() ? 1.5 : 1}
+      />
+    </transform>
+  )
+}
+```
+
+Use `useRayCast` for a more ergonomic API with reactive `detected` and `collider` state:
+
+```tsx
+import { useRayCast } from 'fraxel/hooks'
+
+function GroundDetector() {
+  const { ref, detected } = useRayCast()
+
+  return (
+    <transform>
+      <sprite textureId={PLAYER_TEX} />
+      {/* 20px downward ray to detect the ground */}
+      <ray-cast
+        ref={ref}
+        direction={[0, 20]}
+        collidesWith={['ground']}
+      />
+    </transform>
+  )
+}
+```
+
+`RayCast` events also fire on the collider that is detected, not just on the ray node itself.
+
+## Combining colliders with physics
+
+To add collision **response** (pushing objects apart, bouncing), wrap your collider in a `<rigid-body>`. The physics system uses the same collider shapes and group filtering.
+
+```tsx
+function Ball() {
+  return (
+    <rigid-body position={[96, 10]} mass={1} bounce={0.7} useGravity>
+      <sprite textureId={BALL_TEX} />
+      <collider
+        shape={shapes.circle(8)}
+        group={['ball']}
+        collidesWith={['ground', 'wall']}
+      />
+    </rigid-body>
+  )
+}
+```
+
+<Tip>
+  For full physics documentation including gravity configuration, forces, and impulses, see the Physics guide.
+</Tip>
+
+## Visualizing colliders
+
+During development, enable collider visualization to see hit areas drawn over your sprites:
+
+```ts
+import { GameConfig } from 'fraxel'
+
+// In your createGame options:
+const game = createGame(
+  <Game width={320} height={180} defaultScene="main" testOptions={{ showClickables: true }}>
+    ...
+  </Game>,
+  document.querySelector('#root')!,
+)
+```

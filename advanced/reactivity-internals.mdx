@@ -1,0 +1,186 @@
+---
+title: "Fraxel Reactivity Internals"
+sidebarTitle: "Reactivity"
+description: "How Fraxel's fine-grained signal system works: Signal, SignalRegister dependency tracking, computed values, effect batching, and memory management."
+---
+
+Fraxel's reactivity system is a compact, fine-grained signal implementation. It is the layer that lets you write `position={speed}` (where `speed` is a signal getter) in JSX and have the node's position prop update automatically whenever the signal changes — with no virtual DOM, no diffing, and no scheduler overhead.
+
+## The `Signal<T>` Class
+
+A `Signal` holds a single typed value and a set of subscriber callbacks. The public interface is intentionally minimal:
+
+```ts
+const hp = new Signal(100)
+
+hp.sub((val) => console.log('HP:', val))
+
+hp.value = 80   // triggers: "HP: 80"
+hp.value = 80   // no-op — same value, no notification
+```
+
+The setter uses a strict equality check (`val === this.#value`) before notifying. Listeners are stored in a `Set<(value: T) => void>` and a snapshot is taken before iteration (`Array.from(#listeners)`) so that a listener removing itself during notification does not cause a missed call.
+
+Every `Signal` also exposes two bound helper objects created at construction time:
+
+| Helper | Type | Purpose |
+|---|---|---|
+| `signal.getter` | `SignalGetter<T>` | A function that returns the current value **and** registers the signal as a dependency when called inside a `SignalRegister.watch` context |
+| `signal.setter` | `SignalSetter<T>` | A bound function equivalent to `signal.value = val` |
+
+The `getter` has two call modes:
+
+- **`getter()`** — registers the signal as a dependency of the innermost active `watch` context, then returns the value.
+- **`getter.value()`** — returns the value without dependency registration.
+
+This distinction lets you read a signal's current value inside an effect without accidentally subscribing to it.
+
+## Dependency Tracking: `SignalRegister`
+
+`SignalRegister` implements a simple thread-local (actually call-stack-local) dependency tracker using a stack of `Set<Signal>` objects:
+
+```ts
+class SignalRegister {
+  static #signals: Set<Signal<any>>[] = []
+
+  static watch<T>(fn: () => T, deps: (signals: Signal<any>[]) => void): T {
+    this.#signals.push(new Set())
+    const val = fn()                             // run fn; signals auto-register
+    deps(Array.from(this.#signals.at(-1) ?? []))
+    this.#signals.pop()
+    return val
+  }
+
+  static register(signal: Signal<any>) {
+    this.#signals.at(-1)?.add(signal)   // add to innermost set
+  }
+}
+```
+
+When you call `SignalRegister.watch(fn, onDeps)`:
+1. A fresh `Set` is pushed onto the stack.
+2. `fn()` is called. Any `signal.getter()` invocation inside `fn` calls `SignalRegister.register(signal)`, adding itself to the top set.
+3. After `fn` returns, `onDeps` receives the collected signal set.
+4. The set is popped off the stack.
+
+The stack supports nesting: if `fn` triggers another `watch`, the inner signals go into the inner set, not the outer one.
+
+## Computed Values: `reactive()` and `subReactive()`
+
+These two functions wrap the `SignalRegister.watch` primitive to build higher-level reactive abstractions.
+
+### `subReactive(value, onUse, onSet?)`
+
+This is the workhorse behind every reactive node prop. It accepts a `Reactive<T>` (either a plain value or a getter function) and wires it to a prop setter:
+
+```ts
+// propSignal in ternaries.ts calls subReactive like this:
+subReactive(
+  prop,                                   // the reactive value from JSX
+  (val) => (node[key] = val),             // called when value changes
+  (unsub) => node.destroyed.on(unsub),    // cleanup registration
+)
+```
+
+Internally, `subReactive` evaluates the getter inside `SignalRegister.watch` to collect all signals it reads. It subscribes `refresh` to every collected signal. When any of those signals changes, `refresh` unsubscribes from the old signals, re-evaluates the getter (capturing the new dependency set), resubscribes, and calls `onUse` with the new value.
+
+### `reactive(value)`
+
+Returns a new `SignalGetterLike<T>` that behaves like a computed signal. The returned getter re-evaluates its source whenever any dependency changes and re-registers all its dependencies when called inside a `watch` context. This is used by `applySignal` to compose reactive vector values.
+
+## `useEffect`: Fine-Grained Effects with Microtask Batching
+
+`useEffect` is the user-facing hook that combines `SignalRegister.watch` with lifecycle management:
+
+```ts
+useEffect(() => {
+  console.log('Position x:', posX())  // posX is a signal getter
+})
+```
+
+When the node starts, `useEffect` runs the effect function inside `SignalRegister.watch`. For every signal `posX` reads, it subscribes a `scheduleRefresh` callback. Crucially, `scheduleRefresh` uses `queueMicrotask`:
+
+```ts
+const scheduleRefresh = () => {
+  if (scheduled) return   // already queued — deduplicate
+  scheduled = true
+  queueMicrotask(refresh)
+}
+```
+
+**Batching effect**: if ten signals change synchronously within the same synchronous call stack, `scheduleRefresh` is invoked ten times but `scheduled = true` prevents more than one `queueMicrotask` from being enqueued. The effect re-runs exactly once, after all synchronous mutations settle, at the end of the current microtask queue.
+
+`useEffect` also runs cleanup: if the effect function returns a function, that cleanup is called before each re-run and when the node is destroyed.
+
+<Tip>
+`useEffect` re-runs whenever any signal it reads changes. `useMount` runs once on start (and calls the optional cleanup on destroy). Prefer `useMount` for imperative initialization that doesn't depend on reactive state, and `useEffect` when you need to react to signal changes.
+</Tip>
+
+## How Reactive Props Work End-to-End
+
+When you write:
+
+```tsx
+const [speed, setSpeed] = useSignal(5)
+
+return <transform position={[speed(), 0]} />
+```
+
+Wait — that passes the *current value* of `speed()` at render time, not a reactive getter. To make `position` reactive, pass a getter:
+
+```tsx
+return <transform position={() => [speed(), 0]} />
+```
+
+Now the `position` prop is a `Reactive<VectorLike>`. At node construction, `Node2DOptions` passes it to the `Node2D` constructor, which calls:
+
+```ts
+this.position = ns(
+  options.position,
+  (vector) => propSignal(this, 'position', signalVector(vector)),
+  this.position,
+)
+```
+
+`signalVector` wraps the getter to produce a `Reactive<Vector2>`. `propSignal` calls `subReactive`, which evaluates the getter, captures `speed` as a dependency, and subscribes `refresh`. When `setSpeed(10)` is called, `speed` notifies `refresh`, which calls `node.position = vector2(10, 0)`.
+
+## `clearSubs()` and Memory Management
+
+Signals hold strong references to their subscriber callbacks. A signal that outlives its consumers — for example, a module-level `Signal` used by a destroyed node — will prevent the callbacks from being garbage-collected.
+
+`useSignal` registers a cleanup that calls `signal.clearSubs()` when the node is destroyed:
+
+```ts
+node.destroyed.on(() => signal.clearSubs())
+```
+
+For signals created outside of hooks (e.g., global game state signals), you are responsible for calling `clearSubs()` or individual `unsub()` calls when they are no longer needed.
+
+`subReactive` also accepts an `onSet` callback for registering its own unsub with the node's `destroyed` event:
+
+```ts
+subReactive(prop, onUse, (unsub) => node.destroyed.on(unsub))
+```
+
+## Comparison to Other Reactivity Systems
+
+Fraxel's reactivity is most similar to SolidJS's fine-grained signals. Key similarities:
+
+- No virtual DOM or re-render cycle — updates go directly to the affected property.
+- Dependency tracking is automatic via getter calls inside tracked contexts.
+- Computeds re-evaluate only when their dependencies change.
+
+Key differences from React:
+
+- There is no component re-render. JSX is evaluated once.
+- There is no `setState` → re-render → reconcile cycle.
+- Effects are batched via microtasks, not a scheduler with priority lanes.
+
+Key differences from Vue's reactivity:
+
+- Fraxel uses explicit getter functions (not Proxy-trapped property access) to track dependencies.
+- The `SignalRegister` stack is a simple array, not a global mutable tracking variable.
+
+<Accordion title="Why explicit getters instead of Proxy?">
+Proxy-based reactivity (Vue, MobX) works by intercepting property reads transparently. Explicit getters (SolidJS, Fraxel) require you to call a function to access the value. The tradeoff: explicit getters are easier to reason about in TypeScript (the type system knows the difference between `T` and `() => T`), and they have zero overhead when read outside a tracked context (no Proxy trap overhead). The downside is the extra `()` when reading a signal value.
+</Accordion>

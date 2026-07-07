@@ -1,0 +1,172 @@
+---
+title: "<ray-cast> — Ray-based collider detection node"
+sidebarTitle: "<ray-cast>"
+description: "Project a ray from the node's position in a given direction and detect the first matching collider. Fires colliderEntered and colliderExited events as the hit target changes."
+---
+
+Use `<ray-cast>` to detect colliders along a straight line from the node's world position. Define a `direction` vector (in pixels) and a list of groups to check against. The ray queries collision groups directly — not the spatial hash — so it sees every registered collider in the target groups regardless of distance. Subscribe to `colliderEntered` and `colliderExited` to react when the first hit changes, or poll `getCollider()` each frame.
+
+```tsx
+import { useNode, useEvent } from 'fraxel/hooks'
+import { PrimaryNode } from 'fraxel'
+
+function LineOfSight() {
+  const ray = useNode(PrimaryNode.RayCast)
+
+  useEvent(ray, 'colliderEntered', (col) => {
+    console.log('Enemy spotted at', col.globalPosition)
+  })
+
+  useEvent(ray, 'colliderExited', () => {
+    console.log('Lost sight')
+  })
+
+  return (
+    <ray-cast
+      ref={ray}
+      direction={[200, 0]}   // 200 px to the right
+      collidesWith={['enemy']}
+    />
+  )
+}
+```
+
+## Props
+
+<ParamField path="direction" type="VectorLike | SignalGetter<VectorLike>" required>
+  The endpoint of the ray **relative to the node's world position**. The ray
+  travels from `globalPosition` to `globalPosition + direction`. Measured in
+  pixels, so `[200, 0]` casts 200 px to the right.
+
+  Accepts a reactive `SignalGetter<VectorLike>` for a dynamically rotating or
+  scaling ray.
+
+  ```tsx
+  <ray-cast direction={[150, 0]} collidesWith={['enemy']} />
+  <ray-cast direction={[0, 80]} collidesWith={['ground']} />  {/* downward */}
+  <ray-cast direction={() => aimVector()} collidesWith={['target']} />
+  ```
+</ParamField>
+
+<ParamField path="collidesWith" type="string[]" required>
+  Groups to test against. The ray only reports hits from colliders whose `group`
+  intersects this list. At least one entry is required.
+
+  ```tsx
+  <ray-cast direction={[100, 0]} collidesWith={['enemy', 'obstacle']} />
+  ```
+</ParamField>
+
+<ParamField path="position" type="VectorLike | SignalGetter<VectorLike>">
+  Local offset of the ray origin relative to the parent node. Defaults to
+  `[0, 0]`. Set this to offset the origin (e.g. to the gun barrel tip).
+</ParamField>
+
+<ParamField path="ref" type="NodeReference<PrimaryNode.RayCast>">
+  Attach a node reference to call `getCollider()` or subscribe to events.
+</ParamField>
+
+## Computed properties
+
+| Property | Type | Description |
+|---|---|---|
+| `direction` | `Vector2` | The resolved direction vector (mutable if not reactive). |
+| `collidesWith` | `string[]` (read-only) | The group filter list as passed at construction. |
+| `length` | `number` (read-only) | The Euclidean length of the `direction` vector in pixels. |
+| `globalPosition` | `Vector2` | The world-space origin of the ray. |
+
+## Methods
+
+| Method | Signature | Description |
+|---|---|---|
+| `getCollider` | `() => Collider \| null` | Returns the collider currently intersected by the ray, or `null` if none. Can be polled each frame instead of subscribing to events. |
+
+## Events
+
+| Event name | Callback signature | Description |
+|---|---|---|
+| `colliderEntered` | `(collider: Collider) => void` | Fires when a new collider is first hit by the ray. The same event fires on the hit collider as well. |
+| `colliderExited` | `(collider: Collider) => void` | Fires when the previously detected collider is no longer in the ray's path. The same event fires on the exiting collider as well. |
+| `started` | `() => void` | Fires once after `start()`. |
+| `updated` | `(delta: number) => void` | Fires every frame. |
+| `destroyed` | `() => void` | Fires on removal. |
+
+<CodeGroup>
+
+```tsx Ground detection for a platformer
+import { useNode, useEvent, useSignal } from 'fraxel/hooks'
+import { PrimaryNode } from 'fraxel'
+
+function Player() {
+  const body = useNode(PrimaryNode.RigidBody)
+  const groundRay = useNode(PrimaryNode.RayCast)
+  const [isGrounded, setGrounded] = useSignal(false)
+
+  useEvent(groundRay, 'colliderEntered', () => setGrounded(true))
+  useEvent(groundRay, 'colliderExited',  () => setGrounded(false))
+
+  return (
+    <rigid-body ref={body} mass={1} position={[100, 50]}>
+      <sprite textureId={PLAYER_TEX} />
+      <collider
+        shape={shapes.rectangle(14, 24)}
+        group={['player']}
+        collidesWith={['ground']}
+      />
+      {/* Short downward ray from the feet */}
+      <ray-cast
+        ref={groundRay}
+        position={[7, 24]}
+        direction={[0, 4]}
+        collidesWith={['ground']}
+      />
+    </rigid-body>
+  )
+}
+```
+
+```tsx Rotating laser sight
+import { useNode, useEvent, useSignal } from 'fraxel/hooks'
+
+function Turret() {
+  const ray = useNode(PrimaryNode.RayCast)
+  const [angle, setAngle] = useSignal(0)
+
+  useEvent(ray, 'updated', (delta) => {
+    setAngle(a => a + delta * 90) // rotate 90°/s
+  })
+
+  return (
+    <transform position={[200, 200]}>
+      <sprite textureId={TURRET_TEX} />
+      <ray-cast
+        ref={ray}
+        direction={() => [
+          Math.cos(angle() * Math.PI / 180) * 300,
+          Math.sin(angle() * Math.PI / 180) * 300,
+        ]}
+        collidesWith={['enemy']}
+      />
+    </transform>
+  )
+}
+```
+
+</CodeGroup>
+
+<Note>
+  Ray casts query **all registered colliders** in the target groups, not just
+  nearby ones. There is no distance cap other than the length of the `direction`
+  vector. Keep `direction` short if you want a finite-range sensor.
+</Note>
+
+<Tip>
+  Enable `gameConfig.testOptions.showRayCasts = true` to draw rays as red arrows
+  in the canvas during development.
+</Tip>
+
+## Related
+
+- [Collision System guide](/guides/collision-groups) — how groups and the spatial hash work
+- [`<collider>`](/api/nodes/collider) — the target nodes a ray can detect
+- [`<rigid-body>`](/api/nodes/rigid-body) — pair ray casts with rigid bodies for ground checks

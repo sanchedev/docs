@@ -1,0 +1,262 @@
+---
+title: "Audio Playback in Fraxel"
+sidebarTitle: "Audio"
+description: "Play sound effects and music in Fraxel with audio-player nodes, loadSound symbol IDs, and the useAudio hook. Handle browser autoplay and loop/volume control."
+---
+
+Sound makes gameplay feel alive — a crunch when a bullet lands, a musical sting when you clear a level, ambient effects that set the mood. Fraxel plays audio through the Web Audio API via the `<audio-player>` node. The workflow mirrors textures: load a sound file to get a symbol ID, then reference that symbol in your JSX.
+
+## Loading a Sound
+
+```tsx
+import { loadSound } from 'fraxel/assets'
+
+const SHOOT_SFX = await loadSound('/assets/shoot.mp3')
+const JUMP_SFX = await loadSound('/assets/jump.ogg')
+const BG_MUSIC = await loadSound('/assets/music.mp3')
+```
+
+`loadSound` fetches the file, decodes it with `AudioContext.decodeAudioData`, and returns a `symbol`. Identical URLs are deduplicated — calling `loadSound` twice with the same URL returns the same symbol without a second network request.
+
+## The `<audio-player>` Node
+
+Place `<audio-player>` anywhere in your scene tree and pass the sound's symbol ID. Call `play()` on the node to start playback:
+
+```tsx Gun.tsx
+import { useNode, useEvent } from 'fraxel/hooks'
+import { PrimaryNode } from 'fraxel'
+
+const SHOOT_SFX = await loadSound('/assets/shoot.mp3')
+
+function Gun() {
+  const audio = useNode(PrimaryNode.AudioPlayer)
+  const clickable = useNode(PrimaryNode.Clickable)
+
+  useEvent(clickable, 'clicked', () => {
+    audio.node.play()
+  })
+
+  return (
+    <sprite ref={clickable} textureId={GUN_TEX}>
+      <audio-player ref={audio} soundId={SHOOT_SFX} volume={0.8} />
+      <clickable size={[48, 32]} />
+    </sprite>
+  )
+}
+```
+
+## `<audio-player>` Props
+
+<ParamField path="soundId" type="symbol" required>
+  The symbol returned by `loadSound()`. Required — the node won't play without it.
+</ParamField>
+
+<ParamField path="loop" type="boolean" default="false">
+  Whether the sound loops continuously. Set to `true` for background music.
+</ParamField>
+
+<ParamField path="volume" type="number" default="1">
+  Playback volume from `0` (silent) to `1` (full). Values above `1` are technically allowed but can distort.
+</ParamField>
+
+<ParamField path="playbackRate" type="number" default="1">
+  Playback speed. `2` = double speed (higher pitch), `0.5` = half speed (lower pitch). Useful for varied sound effects.
+</ParamField>
+
+<ParamField path="persistUntilEnd" type="boolean" default="false">
+  When `true`, the node defers its own destruction until the sound finishes playing. Use this for one-shot sound effects attached to nodes that get destroyed on impact.
+</ParamField>
+
+## Methods and Getters
+
+```tsx
+const audio = useNode(PrimaryNode.AudioPlayer)
+
+// Start playback (optional offset in seconds)
+audio.node.play()
+audio.node.play(1.5) // start 1.5 seconds in
+
+// Pause without resetting position
+audio.node.pause()
+
+// Stop and reset to beginning
+audio.node.stop()
+
+// Read current state
+console.log(audio.node.isPlaying)    // boolean
+console.log(audio.node.volume)       // 0–1
+console.log(audio.node.playbackRate) // number
+```
+
+## Events
+
+| Event | Callback | Description |
+|-------|----------|-------------|
+| `ended` | `() => void` | Fires when a non-looping sound reaches the end |
+| `error` | `(err: Error) => void` | Fires if playback fails (e.g. unsupported format) |
+
+```tsx
+useEvent(audio, 'ended', () => {
+  console.log('Sound finished playing')
+})
+```
+
+## Browser Autoplay Policy
+
+Browsers block audio until the user has interacted with the page. If you try to play sound before a click or keypress, it will be silently blocked. Resume the `AudioContext` after the first user gesture:
+
+```tsx
+import { getAudioContext } from 'fraxel/audio'
+
+function GameScene() {
+  const clickable = useNode(PrimaryNode.Clickable)
+
+  useEvent(clickable, 'clicked', () => {
+    const ctx = getAudioContext()
+    if (ctx.state === 'suspended') {
+      ctx.resume()
+    }
+  })
+
+  return (
+    <sprite ref={clickable} textureId={START_BTN}>
+      <clickable size={[120, 40]} />
+    </sprite>
+  )
+}
+```
+
+<Warning>
+  Always call `getAudioContext().resume()` inside a user interaction handler (click, keydown, etc.) before attempting to play audio. Add this to your start button or first-click handler.
+</Warning>
+
+## The `useAudio` Derived Hook
+
+`useAudio` wraps `AudioPlayer` with reactive state and control methods, so you can build play/pause toggles and reactive UI without manual event wiring:
+
+```tsx MusicPlayer.tsx
+import { useAudio, useClickable } from 'fraxel/hooks'
+
+const BG_MUSIC = await loadSound('/assets/music.mp3')
+
+function MusicPlayer() {
+  const { ref, playing, play, pause, stop } = useAudio()
+  const { ref: btn, hovered } = useClickable()
+
+  const label = useComputed(() => (playing() ? 'Pause' : 'Play'))
+
+  return (
+    <transform>
+      <audio-player ref={ref} soundId={BG_MUSIC} loop volume={0.4} />
+      <sprite ref={btn} textureId={MUSIC_BTN}>
+        <clickable size={[64, 24]} onClick={() => (playing() ? pause() : play())} />
+        <text position={[8, 16]} text={label} style={{ fontSize: 12, foregroundColor: '#fff' }} />
+      </sprite>
+    </transform>
+  )
+}
+```
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `ref` | `NodeReference` | Pass to `<audio-player ref={ref}>` |
+| `playing` | `SignalGetter<boolean>` | `true` while audio is playing |
+| `play()` | `() => void` | Start playback |
+| `pause()` | `() => void` | Pause without resetting |
+| `stop()` | `() => void` | Stop and reset |
+
+## Music vs SFX Patterns
+
+<Tabs>
+  <Tab title="Background Music">
+    ```tsx GameMusic.tsx
+    import { useNode, useMount } from 'fraxel/hooks'
+    import { PrimaryNode } from 'fraxel'
+    import { getAudioContext } from 'fraxel/audio'
+
+    const BG_MUSIC = await loadSound('/assets/music.mp3')
+
+    function GameMusic() {
+      const music = useNode(PrimaryNode.AudioPlayer)
+
+      useMount(() => {
+        const ctx = getAudioContext()
+        if (ctx.state === 'suspended') ctx.resume()
+        music.node.play()
+      })
+
+      return <audio-player ref={music} soundId={BG_MUSIC} loop volume={0.3} />
+    }
+    ```
+  </Tab>
+  <Tab title="Sound Effects">
+    ```tsx SFXPlayer.tsx
+    // For one-shot SFX on collider hit:
+    function ExplosionSFX({ position }: { position: [number, number] }) {
+      const audio = useNode(PrimaryNode.AudioPlayer)
+
+      useMount(() => {
+        audio.node.play()
+      })
+
+      return (
+        <transform position={position}>
+          {/* persistUntilEnd keeps the node alive until the sound finishes */}
+          <audio-player ref={audio} soundId={BOOM_SFX} persistUntilEnd />
+        </transform>
+      )
+    }
+    ```
+  </Tab>
+  <Tab title="Varied Pitch SFX">
+    ```tsx VariedSFX.tsx
+    // Slightly randomize pitch for natural-sounding repeated effects
+    function Footstep() {
+      const audio = useNode(PrimaryNode.AudioPlayer)
+
+      const playFootstep = () => {
+        audio.node.playbackRate = 0.9 + Math.random() * 0.2
+        audio.node.play()
+      }
+
+      return <audio-player ref={audio} soundId={STEP_SFX} />
+    }
+    ```
+  </Tab>
+</Tabs>
+
+## Complete Example
+
+```tsx GameAudio.tsx
+import { useNode, useMount, useEvent } from 'fraxel/hooks'
+import { PrimaryNode } from 'fraxel'
+import { loadSound } from 'fraxel/assets'
+import { getAudioContext } from 'fraxel/audio'
+
+const BG_MUSIC = await loadSound('/assets/music.mp3')
+const SHOOT_SFX = await loadSound('/assets/shoot.mp3')
+const HIT_SFX = await loadSound('/assets/hit.mp3')
+
+function GameAudio() {
+  const music = useNode(PrimaryNode.AudioPlayer)
+  const sfx = useNode(PrimaryNode.AudioPlayer)
+  const hitSfx = useNode(PrimaryNode.AudioPlayer)
+
+  useMount(() => {
+    const ctx = getAudioContext()
+    if (ctx.state === 'suspended') ctx.resume()
+    music.node.play()
+  })
+
+  // Expose sfx nodes so other components can call .play()
+  // (typically via FraxelScript or trigger events)
+
+  return (
+    <transform>
+      <audio-player ref={music} soundId={BG_MUSIC} loop volume={0.25} />
+      <audio-player ref={sfx} soundId={SHOOT_SFX} volume={0.7} />
+      <audio-player ref={hitSfx} soundId={HIT_SFX} volume={0.9} />
+    </transform>
+  )
+}
+```

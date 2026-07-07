@@ -1,0 +1,186 @@
+---
+title: "Fraxel JSX Runtime — Not React"
+sidebarTitle: "JSX Runtime"
+description: "How Fraxel's JSX runtime works: intrinsic elements map to engine nodes, auto-computed props track signals, and components compose scenes."
+---
+
+JSX is a syntax extension for JavaScript that lets you write what looks like HTML tags inside your code. In React, those tags create virtual DOM nodes. In Fraxel, they create **game engine nodes** that are rendered to a Canvas 2D context. The syntax is identical — the runtime underneath is completely different.
+
+## How JSX compiles
+
+When TypeScript (or Babel) encounters JSX, it transforms it into function calls using the JSX runtime specified by `jsxImportSource`. With `jsxImportSource: "fraxel"` in your `tsconfig.json`, the following JSX:
+
+```tsx
+const el = <sprite textureId={PLAYER} position={[80, 50]} />
+```
+
+compiles to:
+
+```ts
+import { jsx } from 'fraxel/jsx-runtime'
+
+const el = jsx('sprite', { textureId: PLAYER, position: [80, 50] })
+```
+
+Fraxel's `jsx` function looks at the tag name — `'sprite'` in this case — and creates the corresponding `Sprite` engine node with the provided props. No DOM, no virtual DOM, no diffing.
+
+<Note>
+  The `fraxel/jsx-runtime` module is consumed automatically by the TypeScript compiler. You never import it directly in your game code. This is the same pattern React uses — `jsxImportSource` just points to a different package.
+</Note>
+
+## Intrinsic elements
+
+Intrinsic elements are lowercase JSX tags that map directly to built-in engine node types. TypeScript knows their prop types through Fraxel's type declarations.
+
+| JSX tag | Engine node | What it does |
+|---|---|---|
+| `<transform>` | `Transform` | Positional container for child nodes |
+| `<group>` | `Group` | Logical container with no spatial position |
+| `<sprite>` | `Sprite` | Renders a texture to the canvas |
+| `<text>` | `Text` | Renders a string to the canvas |
+| `<geometry>` | `Geometry` | Draws rectangles, circles, or capsules |
+| `<collider>` | `Collider` | Detects overlaps with other colliders |
+| `<ray-cast>` | `RayCast` | Projects a ray to find colliders |
+| `<rigid-body>` | `RigidBody` | Applies physics simulation |
+| `<animation-player>` | `AnimationPlayer` | Plays frame-based sprite animations |
+| `<audio-player>` | `AudioPlayer` | Plays a decoded audio buffer |
+| `<camera>` | `Camera` | Controls the canvas viewport |
+| `<clickable>` | `Clickable` | Detects pointer events within an area |
+| `<timer>` | `Timer` | Counts time and fires events |
+
+## Function components
+
+A function component is any JavaScript function that accepts a props object and returns JSX. Components let you encapsulate a piece of the node tree and reuse it.
+
+```tsx
+interface EnemyProps {
+  position: [number, number]
+  health: number
+}
+
+function Enemy({ position, health }: EnemyProps) {
+  return (
+    <transform position={position}>
+      <sprite textureId={ENEMY_TEX} brightness={() => health / 100} />
+      <collider shape={shapes.circle(16)} group={['enemy']} collidesWith={['projectile']} />
+    </transform>
+  )
+}
+
+// Used inside a scene:
+function GameScene() {
+  return (
+    <transform>
+      <Enemy position={[100, 50]} health={80} />
+      <Enemy position={[150, 50]} health={60} />
+    </transform>
+  )
+}
+```
+
+When Fraxel processes `<Enemy position={[100, 50]} health={80} />`, it calls `Enemy({ position: [100, 50], health: 80 })` immediately, collects the returned JSX, and instantiates the corresponding nodes. The function is not called again on subsequent frames the way a React component re-renders.
+
+## Auto-computed props
+
+The most powerful feature of Fraxel's JSX runtime is **auto-computed props**. Any prop that accepts a `SignalGetter` or an inline arrow function is automatically re-evaluated when its signal dependencies change.
+
+```tsx
+function HealthBar() {
+  const [health, setHealth] = useSignal(100)
+
+  return (
+    <geometry
+      shape={shapes.rectangle(100, 8)}
+      // Arrow function — re-runs whenever health() changes
+      fillColor={() => [1 - health() / 100, health() / 100, 0, 1]}
+    />
+  )
+}
+```
+
+When `setHealth` is called, Fraxel re-evaluates the `fillColor` function and updates only that property on the `Geometry` node. No re-render of the component tree occurs.
+
+You can pass a signal getter directly as a prop (without wrapping it in an arrow function) to the same effect:
+
+```tsx
+const [brightness, setBrightness] = useSignal(1)
+
+// Both are equivalent — the getter IS the computed expression
+<sprite textureId={TEX} brightness={brightness} />
+<sprite textureId={TEX} brightness={() => brightness()} />
+```
+
+<Tip>
+  Prefer passing the getter directly (`brightness={brightness}`) when you only need the raw signal value. Use an arrow function (`brightness={() => brightness() * 2}`) when you need to transform or combine signals.
+</Tip>
+
+## The `ref` prop
+
+Use the `ref` prop to bind a JSX element to a `NodeReference` created by `useNode`. This gives you imperative access to the underlying engine node inside event handlers.
+
+```tsx
+import { useNode, useEvent } from 'fraxel/hooks'
+import { PrimaryNode } from 'fraxel'
+
+function Player() {
+  const sprite = useNode(PrimaryNode.Sprite)
+
+  useEvent(sprite, 'updated', (delta) => {
+    // sprite.node is the live Sprite engine node
+    sprite.node.position.x += delta * 60
+  })
+
+  return <sprite ref={sprite} textureId={PLAYER_TEX} />
+}
+```
+
+The `ref` prop is not a regular prop — it is handled by the runtime before the node is created and instructs Fraxel to store the node reference in `sprite` once the node has started.
+
+## Children and Fragments
+
+Pass child nodes between opening and closing tags. They become child nodes in the engine's scene tree.
+
+```tsx
+<transform position={[100, 50]}>
+  <sprite textureId={BODY_TEX} />
+  <sprite textureId={HEAD_TEX} position={[0, -20]} />
+</transform>
+```
+
+Use `Fragment` (or the shorthand `<>...</>`) to return multiple nodes from a component without a wrapper node:
+
+```tsx
+import { Fragment } from 'fraxel/jsx'
+
+function Enemies() {
+  return (
+    <>
+      <Enemy position={[50, 50]} />
+      <Enemy position={[100, 50]} />
+      <Enemy position={[150, 50]} />
+    </>
+  )
+}
+```
+
+## Rendering lists reactively
+
+Use the `<List>` component to render a reactive array. It performs keyed reconciliation — when items are added or removed, only the affected nodes are created or destroyed.
+
+```tsx
+import { List } from 'fraxel/jsx'
+import { useSignal } from 'fraxel/hooks'
+
+function EnemyList() {
+  const [enemies, setEnemies] = useSignal([
+    { id: 1, x: 50 },
+    { id: 2, x: 100 },
+  ])
+
+  return (
+    <List array={enemies} itemKey={(e) => e.id}>
+      {(enemy) => <Enemy position={[enemy.x, 60]} />}
+    </List>
+  )
+}
+```

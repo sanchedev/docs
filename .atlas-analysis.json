@@ -1,0 +1,231 @@
+{
+  "projectType": "framework",
+  "projectName": "Fraxel",
+  "projectDescription": "A modern 2D game engine for the web that lets you build games using JSX syntax, fine-grained reactivity, and a custom canvas runtime — no React required.",
+  "theme": "luma",
+  "primaryColor": "#040404",
+  "lightColor": null,
+  "darkColor": "#040404",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Getting Started",
+        "groups": [
+          {
+            "group": "Introduction",
+            "pages": [
+              "getting-started/introduction",
+              "getting-started/installation",
+              "getting-started/first-game",
+              "getting-started/project-structure"
+            ]
+          },
+          {
+            "group": "Core Concepts",
+            "pages": [
+              "getting-started/jsx-runtime",
+              "getting-started/nodes",
+              "getting-started/components",
+              "getting-started/signals"
+            ]
+          },
+          {
+            "group": "Essentials",
+            "pages": [
+              "getting-started/input",
+              "getting-started/collision",
+              "getting-started/audio",
+              "getting-started/deployment"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Guides",
+        "groups": [
+          {
+            "group": "Rendering",
+            "pages": [
+              "guides/sprites",
+              "guides/animation",
+              "guides/camera",
+              "guides/ui-text"
+            ]
+          },
+          {
+            "group": "Gameplay",
+            "pages": [
+              "guides/physics",
+              "guides/collision-groups",
+              "guides/spawning",
+              "guides/scenes"
+            ]
+          },
+          {
+            "group": "Assets & Audio",
+            "pages": [
+              "guides/asset-pipeline",
+              "guides/audio-playback",
+              "guides/filters"
+            ]
+          },
+          {
+            "group": "Advanced Patterns",
+            "pages": [
+              "guides/hooks-in-depth",
+              "guides/signals-reactivity",
+              "guides/scripts",
+              "guides/tweening"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Nodes",
+            "pages": [
+              "api/nodes/transform",
+              "api/nodes/sprite",
+              "api/nodes/text",
+              "api/nodes/collider",
+              "api/nodes/rigid-body",
+              "api/nodes/camera",
+              "api/nodes/animation-player",
+              "api/nodes/audio-player",
+              "api/nodes/clickable",
+              "api/nodes/timer",
+              "api/nodes/geometry",
+              "api/nodes/ray-cast"
+            ]
+          },
+          {
+            "group": "Hooks",
+            "pages": [
+              "api/hooks/core-hooks",
+              "api/hooks/derived-hooks"
+            ]
+          },
+          {
+            "group": "Engine",
+            "pages": [
+              "api/engine/game",
+              "api/engine/input",
+              "api/engine/physics-system",
+              "api/engine/assets",
+              "api/engine/math"
+            ]
+          },
+          {
+            "group": "JSX Components",
+            "pages": [
+              "api/jsx/game-scene",
+              "api/jsx/list-fragment"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Advanced",
+        "groups": [
+          {
+            "group": "Internals",
+            "pages": [
+              "advanced/architecture",
+              "advanced/jsx-runtime",
+              "advanced/rendering-pipeline",
+              "advanced/reactivity-internals",
+              "advanced/event-system"
+            ]
+          },
+          {
+            "group": "Systems",
+            "pages": [
+              "advanced/collision-pipeline",
+              "advanced/lifecycle",
+              "advanced/performance"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "JSX-based scene graph compiled directly into engine nodes — no React, no Virtual DOM",
+    "Fine-grained reactivity via useSignal and useComputed with automatic dependency tracking",
+    "Auto-computed JSX props: pass signals or functions as attributes for live canvas updates",
+    "Built-in collision system with rectangle, circle, and capsule shapes plus spatial hash broadphase",
+    "Physics simulation with gravity, rigid bodies, forces, impulses, and collision response",
+    "Camera system with zoom, smoothing, screen shake, and coordinate conversion",
+    "Sprite sheet animation with AnimationPlayer and reactive currentAnim switching",
+    "Tweening engine with 12 easing functions and sequence/parallel composition",
+    "Asset pipeline with batch loading, progress tracking, and deduplication",
+    "Audio playback via AudioPlayer node with loop, volume, and playback rate control",
+    "Input system with pointer tracking, keyboard actions, and axis helpers",
+    "Sprite filters: brightness, grayscale, modulate, contrast, opacity, hue rotation",
+    "FraxelScript API for separating game logic from rendering",
+    "Context API for cross-component value sharing without prop drilling",
+    "TypeScript-first with strict type safety throughout"
+  ],
+  "publicApiSurface": [
+    "createGame(jsx, root) — bootstrap and control the game",
+    "<Game width height defaultScene> — root JSX component",
+    "<Scene name component> — scene definition component",
+    "<transform> — spatial container node",
+    "<sprite textureId ...filters> — texture rendering node",
+    "<collider shape group collidesWith> — collision detection node",
+    "<rigid-body mass friction bounce isStatic> — physics simulation node",
+    "<camera current zoom smoothing offset limit> — viewport control node",
+    "<animation-player animations currentAnim> — sprite animation node",
+    "<audio-player soundId loop volume> — audio playback node",
+    "<clickable size onClick onMouseEnter> — pointer interaction node",
+    "<timer duration autoPlay> — countdown node",
+    "<text text style> — canvas text rendering node",
+    "<geometry shape fillColor strokeColor> — primitive shape rendering node",
+    "<ray-cast direction collidesWith> — ray projection node",
+    "<List array itemKey> — reactive list rendering component",
+    "useSignal(initial) — reactive state hook",
+    "useComputed(fn) — derived signal hook",
+    "useEffect(fn) — batched reactive side-effect hook",
+    "useNode(PrimaryNode) — typed node reference hook",
+    "useEvent(ref, event, callback) — type-safe event subscription hook",
+    "useMount(fn) — mount/unmount lifecycle hook",
+    "useSpawn(containerRef) — dynamic child spawning hook",
+    "useGame() — game control access hook",
+    "useAction(action) — reactive input action hook",
+    "useActionAxis(neg, pos) — reactive axis input hook",
+    "useTrigger(trigger, callback) — pub/sub cross-component hook",
+    "createContext(default) / useContext(ctx) — context API",
+    "useClickable() — derived hook for Clickable node",
+    "useTimer() — derived hook for Timer node",
+    "useRayCast() — derived hook for RayCast node",
+    "useCollider() — derived hook for Collider node",
+    "useAnimation() — derived hook for AnimationPlayer node",
+    "useAudio() — derived hook for AudioPlayer node",
+    "useRigidBody() — derived hook for RigidBody node",
+    "useCondition(ref, onEvent, offEvent) — reactive boolean toggle hook",
+    "useMatch(signal, record) — signal switch-expression hook",
+    "useWhen(signal, truthy, falsy) — signal ternary hook",
+    "Input.createAction({ key }) — bind keyboard action",
+    "Input.isActionPressed / justActionPressed / justActionUnpressed",
+    "Input.pointerPosition / isPointerPressed",
+    "Input.getKeyAxis(positiveKey, negativeKey)",
+    "loadTexture(url) — load image asset",
+    "loadSound(url) — load audio asset",
+    "loadBatch(loaders, options) — parallel batch loader with progress",
+    "loadBatchAsset(type, urls) — typed batch loader",
+    "unloadTexture(id) / unloadSound(id) — free asset memory",
+    "PhysicsSystem.gravity — configure global gravity",
+    "tween(options) — interpolate a numeric property",
+    "tweenValue(options) — interpolate a free value",
+    "sequence(tweens) / parallel(tweens) — tween composition",
+    "animationFromSheet(sprite, texture, options) — create animation from sprite sheet",
+    "keyframesFromSheet / kfFromProp / multiKF — low-level animation keyframe builders",
+    "shapes.rectangle / shapes.circle / shapes.capsule — collision shape factory",
+    "Vector2 / vector2(x, y) — 2D math class",
+    "bounds(x, y, w, h) — axis-aligned bounding box",
+    "FraxelScript<NodeType> — base class for node-attached game logic scripts",
+    "getAudioContext() — access the WebAudio context"
+  ]
+}

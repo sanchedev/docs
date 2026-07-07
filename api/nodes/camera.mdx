@@ -1,0 +1,156 @@
+---
+title: "<camera> — Viewport controller node"
+sidebarTitle: "<camera>"
+description: "Control what part of the world is visible. Supports zoom, smooth position easing, screen-space offset, world bounds limits, screen shake, and coordinate conversion."
+---
+
+Use `<camera>` to control the game viewport. Mark it as `current` to make it the active camera — only one camera is active at a time. Place it as a child of a moving node (e.g. a player's `<rigid-body>`) and set `smoothing` to ease the view into position for a cinematic feel. Use `limit` to prevent the camera from scrolling outside the level bounds.
+
+```tsx
+import { useNode } from 'fraxel/hooks'
+import { PrimaryNode, bounds } from 'fraxel'
+
+function GameScene() {
+  const camera = useNode(PrimaryNode.Camera)
+
+  return (
+    <transform>
+      <rigid-body ref={playerBody} position={[100, 200]}>
+        {/* Camera follows the player */}
+        <camera
+          ref={camera}
+          current
+          smoothing={6}
+          offset={[0, -30]}
+          limit={bounds(0, 0, 1600, 480)}
+        />
+        <sprite textureId={PLAYER_TEX} />
+        <collider shape={shapes.rectangle(16, 24)} group={['player']} collidesWith={['ground']} />
+      </rigid-body>
+    </transform>
+  )
+}
+```
+
+## Props
+
+<ParamField path="current" type="boolean">
+  Marks this camera as the active viewport controller. At most one camera should
+  be `current` at a time — activating a second one deactivates the previous.
+  Defaults to `false`.
+</ParamField>
+
+<ParamField path="position" type="VectorLike | SignalGetter<VectorLike>">
+  World-space position of the camera. When the camera is a child of another
+  node, its `globalPosition` is the sum of this and all ancestor positions.
+  Defaults to `[0, 0]`.
+</ParamField>
+
+<ParamField path="zoom" type="Reactive<VectorLike>">
+  Viewport scale. `1` = normal, `2` = zoomed in (world appears twice as large),
+  `0.5` = zoomed out. Accepts a scalar number, `[x, y]` tuple for non-uniform
+  zoom, or a `SignalGetter`. Defaults to `1`.
+
+  ```tsx
+  <camera current zoom={2} />
+  <camera current zoom={() => zoomLevel()} />
+  ```
+</ParamField>
+
+<ParamField path="smoothing" type="Reactive<number>">
+  Easing strength for the view position. `0` = instant snap (default). Higher
+  values produce smoother, laggy follow. Uses exponential decay:
+  `factor = 1 − e^(−smoothing × delta)`. Values of `5`–`10` feel cinematic.
+</ParamField>
+
+<ParamField path="offset" type="Reactive<VectorLike>">
+  Screen-space offset added to the view **without** changing the camera's world
+  position. Useful for showing more of the level above the player. Defaults to
+  `[0, 0]`.
+</ParamField>
+
+<ParamField path="limit" type="Bounds | null">
+  World-space bounding box the camera view cannot leave. Constructed with
+  `bounds(left, top, right, bottom)`. Limits are enforced on the smoothed view
+  position, accounting for zoom. Pass `null` to remove limits (default).
+
+  ```tsx
+  import { bounds } from 'fraxel'
+  <camera current limit={bounds(0, 0, 3200, 960)} />
+  ```
+</ParamField>
+
+<ParamField path="ref" type="NodeReference<PrimaryNode.Camera>">
+  Attach a node reference to call methods at runtime.
+</ParamField>
+
+## Methods
+
+| Method | Signature | Description |
+|---|---|---|
+| `shake` | `({ duration: number, strength: number }) => void` | Trigger a screen shake. `duration` is in seconds; `strength` is the max pixel offset. Decays linearly to zero. |
+| `screenToWorld` | `(screenPos: Vector2) => Vector2` | Convert a screen-space position (e.g. pointer coordinates) to world space. Accounts for zoom, offset, and the smoothed view position. |
+| `worldToScreen` | `(worldPos: Vector2) => Vector2` | Convert a world-space position to screen space. Useful for placing UI elements above world objects. |
+| `makeCurrent` | `() => void` | Programmatically activate this camera without needing the `current` prop. |
+
+## Events
+
+| Event name | Callback | Description |
+|---|---|---|
+| `started` | `() => void` | Fires once after initialization. |
+| `updated` | `(delta: number) => void` | Fires every frame (smoothing and shake are processed here). |
+| `destroyed` | `() => void` | Fires on removal. |
+
+<CodeGroup>
+
+```tsx Screen shake on hit
+import { useNode, useEvent } from 'fraxel/hooks'
+import { PrimaryNode } from 'fraxel'
+
+function Arena() {
+  const camera = useNode(PrimaryNode.Camera)
+  const col = useNode(PrimaryNode.Collider)
+
+  useEvent(col, 'colliderEntered', () => {
+    camera.node.shake({ duration: 0.3, strength: 8 })
+  })
+
+  return (
+    <transform>
+      <camera ref={camera} current smoothing={4} />
+      <collider ref={col} shape={shapes.circle(24)} group={['player']} collidesWith={['hit']} />
+    </transform>
+  )
+}
+```
+
+```tsx Convert pointer to world position
+import { Camera } from 'fraxel'
+
+function onPointerDown(screenPos: Vector2) {
+  const cam = Camera.getCurrent()
+  if (!cam) return
+  const worldPos = cam.screenToWorld(screenPos)
+  spawnEffect(worldPos)
+}
+```
+
+</CodeGroup>
+
+<Note>
+  Only one camera is active at a time. If you `destroy()` the current camera,
+  `Camera.getCurrent()` returns `null` and the viewport stops updating until
+  another camera becomes current.
+</Note>
+
+<Tip>
+  Pair `smoothing` with `offset` to create a "look-ahead" camera — offset in
+  the direction of player movement so they always see more of what's ahead. A
+  reactive `offset` driven by `velocity.x` works well here.
+</Tip>
+
+## Related
+
+- [Camera guide](/guides/camera) — full documentation including the viewport transform pipeline
+- [`<transform>`](/api/nodes/transform) — parent node to attach the camera to a moving object
+- [`<rigid-body>`](/api/nodes/rigid-body) — common parent for a player-following camera

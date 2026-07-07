@@ -1,0 +1,159 @@
+---
+title: "Fraxel Performance Guide"
+sidebarTitle: "Performance"
+description: "Why Fraxel is fast by default, Canvas 2D tips, spatial hash tuning, signal batching, asset caching, DPR handling, memory management, and profiling tools."
+---
+
+Fraxel is designed to be fast without requiring special opt-ins. The absence of a virtual DOM, the direct Canvas 2D rendering model, and fine-grained reactivity mean that the common-case performance profile is already quite good. This page explains the performance characteristics of each subsystem and gives concrete guidance for squeezing out more when you need it.
+
+## Why Fraxel Is Fast by Default
+
+### No Virtual DOM
+
+React and similar frameworks maintain a virtual tree and diff it every render cycle. Fraxel has no equivalent. JSX is evaluated once at scene load time; after that, the node tree is a static graph of object instances. Updates flow through signals directly to the affected prop setter — a single property write, not a component re-render.
+
+### Fine-Grained Reactivity
+
+When a signal changes, only the subscribers of **that exact signal** are notified. If you have 500 sprite nodes and one of them changes its `textureId`, only the one subscription fires — the other 499 are unaffected. There is no dependency on tree size.
+
+### Direct Canvas 2D
+
+Each node writes directly to the `CanvasRenderingContext2D`. There is no intermediate retained display list, no GPU texture atlas management, and no layer compositing overhead. The draw cost is proportional to what you draw, nothing more.
+
+## Canvas 2D Optimization Tips
+
+### Minimize `ctx.save()` / `ctx.restore()`
+
+Fraxel only calls `ctx.save()` / `ctx.restore()` twice per frame: once to bracket the camera transform, and once inside `Sprite.draw()` to isolate filter state. Custom draw logic in scripts or overridden `draw()` methods should follow the same discipline — avoid save/restore when you can instead reset modified state manually.
+
+### Batch Similar Draws
+
+The Canvas 2D API has per-call overhead for state changes. If you render many sprites with the same texture, group them as siblings (so they draw consecutively in tree order) rather than interleaving them with other node types. This reduces filter string recalculation and `drawImage` setup cost.
+
+### Avoid Large Transparent Areas
+
+`ctx.clearRect` clears the entire canvas every frame regardless of how much of it is actually occupied. On very large canvases, this can be a measurable cost. Consider whether your game resolution can be smaller (with CSS scaling), rather than rendering at full physical resolution.
+
+### `imageSmoothingEnabled = false`
+
+Fraxel sets this automatically. If you ever create a secondary canvas for off-screen rendering, remember to set `ctx.imageSmoothingEnabled = false` on that context too, or pixel-art sprites will appear blurry when drawn onto it.
+
+## Spatial Hash Tuning
+
+The default cell size is `64` px. The optimal cell size depends on the average size of your colliders:
+
+| Average collider size | Recommended cell size |
+|---|---|
+| Tiny (< 16 px) | 32 |
+| Small (16–48 px) | 64 (default) |
+| Medium (48–128 px) | 128 |
+| Large (> 128 px) | 256 |
+
+A cell size much smaller than your colliders causes each collider to occupy many cells, increasing both insertion and query cost. A cell size much larger than your colliders puts many colliders in the same cell, defeating the purpose of broadphase filtering.
+
+To change the cell size, the `CollisionSystem` is currently hard-coded to `new SpatialHash(64)`. If you need a different value, you will need to modify the engine source or open an issue requesting a configuration option.
+
+<Tip>
+Enable `testOptions.showColliders` in development to visualize the actual collider shapes and sizes, which helps calibrate the right cell size.
+</Tip>
+
+## Signal Batching
+
+Multiple synchronous signal writes within one game loop tick will batch their downstream `useEffect` callbacks via `queueMicrotask`. The effect runs exactly once at the end of the microtask queue, after all synchronous code in the current task settles.
+
+```ts
+// Both changes are visible to the effect in one re-run:
+setPositionX(100)
+setPositionY(200)
+// useEffect that reads both runs once, seeing x=100, y=200
+```
+
+However, **reactive node prop updates are not batched**. `subReactive` wires signal changes directly to `node.prop = value`. If both `posX` and `posY` signals drive separate Vector2 component props, each write fires a setter synchronously. Since `draw()` runs after `update()` in the same frame, both values are settled by draw time regardless.
+
+## Asset Deduplication
+
+`loadTexture(url)` and `loadSound(url)` cache their results by URL. Calling `loadTexture('/assets/player.png')` twice returns the same `symbol` (and same `ImageBitmap` internally) — no duplicate network request or GPU upload.
+
+```ts
+// Both return the same symbol
+const t1 = await loadTexture('/assets/player.png')
+const t2 = await loadTexture('/assets/player.png')
+t1 === t2  // true
+```
+
+Use `loadBatch` to preload multiple assets in parallel before a scene starts, avoiding per-asset `await` waterfalls:
+
+```ts
+const [playerTex, enemyTex, bgMusic] = await loadBatch([
+  loadTexture('/assets/player.png'),
+  loadTexture('/assets/enemy.png'),
+  loadSound('/audio/bg.ogg'),
+])
+```
+
+## Memory Management
+
+### Signal Cleanup
+
+`useSignal` registers a `clearSubs()` call on node destroy, preventing subscriber callbacks from leaking. For module-level or globally shared signals, call `signal.clearSubs()` manually when the consumers are done.
+
+### Node Cleanup
+
+`node.destroy()` removes the node from its parent, emits `destroyed`, calls `cleanEvents()` (which clears all event listener arrays), and recurses into children. After this call the node object still exists in memory, but all references from the engine (parent list, event listeners, system registries) are released.
+
+Collider nodes call `CollisionSystem.unregister(this)` in their destroy path. RigidBody nodes call `PhysicsSystem.unregister(this)`. These are handled automatically — you do not need to manage system registration manually.
+
+### Texture and Sound Unloading
+
+For long-running games that load many scenes, unload assets from completed scenes:
+
+```ts
+unloadTexture(textureSymbol)
+unloadSound(soundSymbol)
+```
+
+This removes the cached entry and releases the underlying `ImageBitmap` (which can be GC'd once all `Sprite` nodes referencing it are destroyed).
+
+## DPR and Resolution
+
+`Game.setup({ width, height })` defines the game-space coordinate system. All node positions, sizes, and collision shapes use these units. The DPR handling in `getDPRFromCtx` scales the canvas backing store to physical pixels and applies a corresponding context scale, so game-space coordinates remain stable across screen densities.
+
+On a 4K monitor with `devicePixelRatio = 2`, a `160 × 90` game canvas uses a `320 × 180` backing store. The context is pre-scaled by `2`, so drawing at `(80, 45)` in game space hits the physical centre of the canvas. This comes at a cost: more physical pixels to fill each frame. If performance on high-DPI displays is a concern, you can lock the DPR by calling `getDPRFromCtx` with a fixed scale instead of `window.devicePixelRatio`.
+
+## Profiling with Debug Overlays
+
+`Game.setup({ testOptions: { showColliders: true, showRayCasts: true, showClickables: true } })` enables visual overlays without changing any game logic:
+
+| Option | Overlay |
+|---|---|
+| `showColliders` | Draws each collider shape in a bright color |
+| `showRayCasts` | Draws each ray with a marker at the hit point |
+| `showClickables` | Draws each clickable region's bounds |
+
+These overlays are rendered after the scene tree's draw phase, so they are always visible regardless of z-ordering.
+
+For CPU profiling, browser DevTools performance panels give the best per-frame breakdown. Look for:
+
+- `Game.loop` total duration (target < 16.6 ms for 60 fps).
+- `CollisionSystem.update` cost relative to collider count.
+- Long microtask queues that delay `useEffect` re-runs.
+
+## Recommended Patterns
+
+<Steps>
+  <Step title="Preload all assets before scene start">
+    Use `loadBatch` in your scene factory before constructing any nodes. Texture and sound loading is asynchronous; if nodes start before their textures are loaded, sprites will appear blank for the first few frames.
+  </Step>
+  <Step title="Avoid creating nodes in the hot path">
+    Constructing a node calls the class constructor, resolves reactive props, and registers with systems. Do this during scene setup or in response to infrequent game events (e.g., player shoots a bullet), not inside `updated` callbacks that run 60 times per second.
+  </Step>
+  <Step title="Use deltaIncrease for time scaling, not manual multiplication">
+    Setting `deltaIncrease={0.5}` on a subtree is cheaper than manually halving delta in every `updated` callback — the engine multiplies delta once per node in the tree walk.
+  </Step>
+  <Step title="Tune zIndex sparingly">
+    Every `zIndex` change triggers a sort of the parent's `_children` array. For static scenes this is a one-time cost, but frequently changing `zIndex` on many nodes each frame will cause repeated sorting. Prefer setting `zIndex` once at construction.
+  </Step>
+  <Step title="Destroy nodes you no longer need">
+    Destroyed nodes are removed from the tree, unregistered from collision and physics systems, and their events are cleared. Keeping invisible nodes alive wastes update, collision, and draw budget even if they produce no visible output.
+  </Step>
+</Steps>

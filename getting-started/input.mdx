@@ -1,0 +1,205 @@
+---
+title: "Handling Input in Fraxel — Keyboard & Pointer"
+sidebarTitle: "Input"
+description: "Learn how to handle keyboard and pointer input in Fraxel using the Input singleton, createAction, useAction, useActionAxis, and pointer events."
+---
+
+Every game needs to respond to player input. Fraxel provides a single static `Input` class that handles keyboard events, pointer events, and the concept of **actions** — named, semantic bindings that decouple game logic from raw key codes. You query input state directly rather than wiring up DOM event listeners yourself.
+
+`Input` is initialized automatically when you call `createGame`. You never instantiate it — all methods are static.
+
+## Actions — semantic input bindings
+
+Rather than checking `if (Input.isKeyPressed('ArrowLeft'))` scattered through your code, Fraxel encourages you to define **actions** once and reference them by name everywhere else. This makes it trivial to rebind controls later.
+
+Define your actions in a dedicated file so they are created exactly once at module load time:
+
+```ts src/input.ts
+import { Input } from 'fraxel'
+
+export const MoveLeft  = Input.createAction({ key: 'ArrowLeft' })
+export const MoveRight = Input.createAction({ key: 'ArrowRight' })
+export const Jump      = Input.createAction({ key: ' ' })
+export const Shoot     = Input.createAction({ key: 'f' })
+export const Dash      = Input.createAction({ key: 'ShiftLeft', shift: true })
+```
+
+`Input.createAction` returns a `symbol` that uniquely identifies the action. If you try to bind the same key combo twice, it throws a `DuplicateKeyError`.
+
+<Note>
+  Key strings follow the browser's `KeyboardEvent.key` naming convention: `'ArrowLeft'`, `'ArrowRight'`, `'ArrowUp'`, `'ArrowDown'`, `' '` (space), `'f'`, `'Escape'`, etc. The comparison is case-insensitive internally.
+</Note>
+
+## `useAction` — reactive input in components
+
+`useAction(action)` returns a reactive object with three signal getters: `pressed`, `justPressed`, and `justUnpressed`. Use it inside components to read input state reactively.
+
+```tsx src/components/Player.tsx
+import { useAction, useEvent, useNode } from 'fraxel/hooks'
+import { PrimaryNode } from 'fraxel'
+import { MoveLeft, MoveRight, Jump } from '../input'
+
+export function Player() {
+  const body = useNode(PrimaryNode.RigidBody)
+  const jump = useAction(Jump)
+
+  useEvent(body, 'updated', () => {
+    // justPressed() is true only on the first frame the key is held
+    if (jump.justPressed()) {
+      body.node.physicsBody.applyImpulse([0, -400])
+    }
+  })
+
+  return (
+    <rigid-body ref={body} position={[96, 60]} mass={1} useGravity>
+      <sprite textureId={PLAYER_TEX} />
+      <collider shape={shapes.capsule(24, 8)} group={['player']} collidesWith={['ground']} />
+    </rigid-body>
+  )
+}
+```
+
+| Getter | Returns `true` when |
+|---|---|
+| `pressed()` | The key is currently held down |
+| `justPressed()` | The key was pressed this frame (not held from last frame) |
+| `justUnpressed()` | The key was released this frame |
+
+## `useActionAxis` — directional input
+
+`useActionAxis(negative, positive)` combines two opposing actions into a single reactive axis value: `-1` (negative action), `0` (neither or both), or `1` (positive action). This is the idiomatic way to express horizontal or vertical movement.
+
+```tsx src/components/Player.tsx
+import { useActionAxis, useEvent, useNode } from 'fraxel/hooks'
+import { PrimaryNode } from 'fraxel'
+import { MoveLeft, MoveRight } from '../input'
+
+export function Player() {
+  const body = useNode(PrimaryNode.RigidBody)
+  const horizontal = useActionAxis(MoveLeft, MoveRight)
+
+  useEvent(body, 'updated', () => {
+    // horizontal() is -1 (left), 0 (still), or 1 (right)
+    body.node.velocity.x = horizontal() * 120
+  })
+
+  return <rigid-body ref={body} position={[96, 60]} mass={1} useGravity />
+}
+```
+
+## Querying actions imperatively
+
+You can also query action state directly without hooks, which is useful in one-off callbacks or utility functions outside components.
+
+```ts
+import { Input } from 'fraxel'
+import { Jump, Shoot } from './input'
+
+// In a game loop callback:
+if (Input.isActionPressed(Jump)) {
+  // held
+}
+if (Input.justActionPressed(Shoot)) {
+  // just fired this frame
+}
+if (Input.justActionUnpressed(Shoot)) {
+  // just released this frame
+}
+```
+
+## Low-level key queries
+
+When you need to check a key that is not bound to an action — for example, in debugging tools or editor code — use the raw key methods.
+
+```ts
+import { Input } from 'fraxel'
+
+// Is the key currently held?
+Input.isKeyPressed('ArrowLeft')
+Input.isKeyPressed('a', false, false, false)  // ctrl, shift, alt all false
+
+// Was the key pressed this frame?
+Input.isJustKeyPressed('ArrowUp')
+
+// Was the key released this frame?
+Input.isJustKeyUnpressed('ArrowUp')
+
+// Returns -1, 0, or 1 based on two opposing keys
+const axis = Input.getKeyAxis('ArrowRight', 'ArrowLeft')
+```
+
+<Warning>
+  Prefer `Input.createAction` over raw key queries in production game code. Raw queries scatter key strings throughout your codebase and make rebinding controls difficult.
+</Warning>
+
+## Pointer position and events
+
+`Input.pointerPosition` returns the current pointer position in **game coordinates** — already scaled to your game's logical resolution regardless of how the canvas is sized in CSS.
+
+```ts
+import { Input } from 'fraxel'
+
+// Read position (game coords, not screen coords)
+console.log(Input.pointerPosition.x, Input.pointerPosition.y)
+
+// Is the pointer button currently held?
+console.log(Input.isPointerPressed)
+```
+
+For click and movement events, subscribe to the static event objects:
+
+```ts
+import { Input } from 'fraxel'
+
+Input.pointerPressed.on((position) => {
+  console.log('Pointer pressed at:', position.x, position.y)
+})
+
+Input.pointerUnpressed.on((position) => {
+  console.log('Pointer released at:', position.x, position.y)
+})
+
+Input.pointerMoved.on((position) => {
+  console.log('Pointer moved to:', position.x, position.y)
+})
+```
+
+For most in-game interactions — clicking characters, buttons, and objects — prefer the `<clickable>` node, which handles hit-area detection for you. Direct pointer events are most useful for things like drawing, custom drag logic, or an on-screen joystick.
+
+## Complete movement example
+
+```tsx src/components/Player.tsx
+import { useActionAxis, useAction, useEvent, useNode } from 'fraxel/hooks'
+import { PrimaryNode, shapes } from 'fraxel'
+import { MoveLeft, MoveRight, Jump } from '../input'
+import { PLAYER_TEX } from '../assets'
+
+export function Player() {
+  const body  = useNode(PrimaryNode.RigidBody)
+  const horiz = useActionAxis(MoveLeft, MoveRight)
+  const jump  = useAction(Jump)
+
+  useEvent(body, 'updated', () => {
+    body.node.velocity.x = horiz() * 100
+
+    if (jump.justPressed()) {
+      body.node.physicsBody.applyImpulse([0, -350])
+    }
+  })
+
+  return (
+    <rigid-body ref={body} position={[96, 60]} mass={1} bounce={0} useGravity>
+      <sprite textureId={PLAYER_TEX} />
+      <collider
+        shape={shapes.capsule(28, 10)}
+        group={['player']}
+        collidesWith={['ground', 'enemy']}
+      />
+    </rigid-body>
+  )
+}
+```
+
+## Cleanup
+
+`Input.destroy()` removes all event listeners and clears all registered actions. It is called automatically when `game.destroy()` is invoked, so you typically do not need to call it manually.

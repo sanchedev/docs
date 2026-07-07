@@ -1,0 +1,253 @@
+---
+title: "Build Your First Fraxel Game — Step-by-Step"
+sidebarTitle: "First Game"
+description: "Build a working Fraxel game from scratch: load a texture, create a scene, add reactive state, and handle input in the game loop."
+---
+
+The best way to understand how Fraxel works is to build something real. This guide walks you through creating a playable scene from scratch — a sprite you can click to reduce its health, with a visual response that updates reactively. By the end you will have used the core building blocks: asset loading, the game bootstrap, JSX scenes, signals, and the game loop event.
+
+## Prerequisites
+
+Make sure you have [installed Fraxel and configured TypeScript](/getting-started/installation) before continuing.
+
+## Step 1 — Load your textures
+
+Fraxel uses symbols to reference loaded assets. Call `loadTexture` with a URL and it returns a `symbol` you pass to `<sprite textureId={...}>`. Asset loading is asynchronous, so use top-level `await` at the top of your entry file.
+
+```tsx src/main.tsx
+import { loadTexture } from 'fraxel/assets'
+
+const BG = await loadTexture('/assets/background.png')
+const PLAYER = await loadTexture('/assets/player.png')
+```
+
+<Tip>
+  During development you can use any PNG. Create a simple 32×32 pixel sprite in your image editor and place it at `public/assets/player.png`.
+</Tip>
+
+## Step 2 — Define a scene component
+
+A scene in Fraxel is a plain function that returns JSX. The function is called once when the scene loads, and the returned node tree becomes the live game world. Here the scene renders a background sprite and a player sprite positioned at `[80, 50]`.
+
+```tsx src/main.tsx
+import { loadTexture } from 'fraxel/assets'
+
+const BG = await loadTexture('/assets/background.png')
+const PLAYER = await loadTexture('/assets/player.png')
+
+function GameScene() {
+  return (
+    <transform>
+      <sprite textureId={BG} />
+      <sprite textureId={PLAYER} position={[80, 50]} />
+    </transform>
+  )
+}
+```
+
+`<transform>` is a positional container — it groups child nodes and gives them a shared origin. Every scene needs a single root node, and `<transform>` is the most common choice.
+
+## Step 3 — Bootstrap the game
+
+`createGame` takes a `<Game>` JSX element and a DOM container, wires up the canvas, and returns a set of control methods. Call `game.play()` to start the `requestAnimationFrame` loop.
+
+```tsx src/main.tsx
+import { createGame, Game, Scene } from 'fraxel/jsx'
+import { loadTexture } from 'fraxel/assets'
+
+const BG = await loadTexture('/assets/background.png')
+const PLAYER = await loadTexture('/assets/player.png')
+
+function GameScene() {
+  return (
+    <transform>
+      <sprite textureId={BG} />
+      <sprite textureId={PLAYER} position={[80, 50]} />
+    </transform>
+  )
+}
+
+const game = createGame(
+  <Game width={192} height={112} defaultScene="main">
+    <Scene name="main" component={GameScene} />
+  </Game>,
+  document.querySelector('#root')!,
+)
+
+game.play()
+```
+
+Here is what each piece does:
+
+- **`<Game width height defaultScene>`** — declares the canvas resolution and which scene to load first.
+- **`<Scene name component>`** — registers a named scene backed by a component function.
+- **`createGame(jsx, root)`** — processes the JSX configuration, creates the canvas inside `#root`, and returns game controls.
+- **`game.play()`** — starts the render loop.
+
+## Step 4 — Add reactive state
+
+Right now the player sprite renders but nothing happens. Add a health signal and use it as an auto-computed prop to make the sprite visually react to damage.
+
+```tsx src/main.tsx
+import { createGame, Game, Scene } from 'fraxel/jsx'
+import { loadTexture } from 'fraxel/assets'
+import { useSignal } from 'fraxel/hooks'
+
+const BG = await loadTexture('/assets/background.png')
+const PLAYER = await loadTexture('/assets/player.png')
+
+function Player() {
+  const [health, setHealth] = useSignal(100)
+
+  return (
+    <sprite
+      textureId={PLAYER}
+      position={[80, 50]}
+      grayscale={() => (health() <= 0 ? 1 : 0)}
+      brightness={() => 0.5 + health() / 200}
+    >
+      <clickable size={[32, 32]} onClick={() => setHealth(Math.max(0, health() - 10))} />
+    </sprite>
+  )
+}
+
+function GameScene() {
+  return (
+    <transform>
+      <sprite textureId={BG} />
+      <Player />
+    </transform>
+  )
+}
+
+const game = createGame(
+  <Game width={192} height={112} defaultScene="main">
+    <Scene name="main" component={GameScene} />
+  </Game>,
+  document.querySelector('#root')!,
+)
+
+game.play()
+```
+
+`useSignal(100)` returns a getter function `health` and a setter `setHealth`. When you pass `() => health() <= 0 ? 1 : 0` as the `grayscale` prop, Fraxel treats the arrow function as a computed expression. It runs the function once to collect dependencies, then re-evaluates it automatically whenever `health` changes. The sprite turns gray at zero health with no additional wiring.
+
+Clicking the sprite calls `setHealth` with a reduced value, which triggers the computed props to update, which redraws the sprite in the next frame.
+
+## Step 5 — React to the game loop
+
+Many game behaviors — movement, timers, AI — need to run every frame. The `updated` event on any node fires each frame with the elapsed time in seconds (`delta`). Use `useNode` to get a typed reference and `useEvent` to subscribe.
+
+```tsx src/main.tsx
+import { useSignal, useNode, useEvent } from 'fraxel/hooks'
+import { PrimaryNode } from 'fraxel'
+
+function Player() {
+  const sprite = useNode(PrimaryNode.Sprite)
+  const [health, setHealth] = useSignal(100)
+
+  // Move the player right at 30 pixels per second
+  useEvent(sprite, 'updated', (delta) => {
+    sprite.node.position.x += delta * 30
+  })
+
+  return (
+    <sprite
+      ref={sprite}
+      textureId={PLAYER}
+      position={[0, 50]}
+      grayscale={() => (health() <= 0 ? 1 : 0)}
+      brightness={() => 0.5 + health() / 200}
+    >
+      <clickable size={[32, 32]} onClick={() => setHealth(Math.max(0, health() - 10))} />
+    </sprite>
+  )
+}
+```
+
+- **`useNode(PrimaryNode.Sprite)`** — creates a typed node reference (`NodeReference<Sprite>`). Pass it to `ref` on the JSX element to bind it.
+- **`useEvent(sprite, 'updated', callback)`** — subscribes to the node's `updated` event, which fires every frame with `delta` (time since last frame in seconds). The subscription is automatically cleaned up when the node is destroyed.
+- **`sprite.node`** — the underlying engine node, available after the node has started.
+
+## Complete example
+
+<Steps>
+  <Step title="Create your asset files">
+    Place `background.png` and `player.png` in `public/assets/`.
+  </Step>
+  <Step title="Write main.tsx">
+    Copy the final code below into `src/main.tsx`.
+  </Step>
+  <Step title="Run your bundler">
+    Start your dev server (`vite`, `esbuild`, etc.) and open the browser.
+  </Step>
+  <Step title="Click the sprite">
+    Each click reduces health by 10. At 0 the sprite turns gray.
+  </Step>
+</Steps>
+
+```tsx src/main.tsx
+import { createGame, Game, Scene } from 'fraxel/jsx'
+import { loadTexture } from 'fraxel/assets'
+import { useSignal, useNode, useEvent } from 'fraxel/hooks'
+import { PrimaryNode } from 'fraxel'
+
+const BG = await loadTexture('/assets/background.png')
+const PLAYER = await loadTexture('/assets/player.png')
+
+function Player() {
+  const sprite = useNode(PrimaryNode.Sprite)
+  const [health, setHealth] = useSignal(100)
+
+  useEvent(sprite, 'updated', (delta) => {
+    sprite.node.position.x = (sprite.node.position.x + delta * 30) % 192
+  })
+
+  return (
+    <sprite
+      ref={sprite}
+      textureId={PLAYER}
+      position={[0, 50]}
+      grayscale={() => (health() <= 0 ? 1 : 0)}
+      brightness={() => 0.5 + health() / 200}
+    >
+      <clickable size={[32, 32]} onClick={() => setHealth(Math.max(0, health() - 10))} />
+    </sprite>
+  )
+}
+
+function GameScene() {
+  return (
+    <transform>
+      <sprite textureId={BG} />
+      <Player />
+    </transform>
+  )
+}
+
+const game = createGame(
+  <Game width={192} height={112} defaultScene="main">
+    <Scene name="main" component={GameScene} />
+  </Game>,
+  document.querySelector('#root')!,
+)
+
+game.play()
+```
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Nodes" icon="shapes" href="/getting-started/nodes">
+    Explore every node type and the properties each one accepts.
+  </Card>
+  <Card title="Signals" icon="bolt" href="/getting-started/signals">
+    Go deeper with reactive state, computed values, and effects.
+  </Card>
+  <Card title="Input" icon="keyboard" href="/getting-started/input">
+    Add keyboard controls and semantic input actions.
+  </Card>
+  <Card title="Collision" icon="circle-dot" href="/getting-started/collision">
+    Detect overlaps and build a basic hit detection system.
+  </Card>
+</CardGroup>

@@ -1,0 +1,179 @@
+---
+title: "Sprites: Displaying Textures in Fraxel"
+sidebarTitle: "Sprites"
+description: "Learn how to load textures and display them as sprites in Fraxel using JSX. Covers textureId, sourceSize, displaySize, flipping, and visual filters."
+---
+
+Every visible game object in Fraxel starts with a texture on the canvas. The `<sprite>` node is your primary tool for displaying images — from a simple background to a sliced frame on a sprite sheet. Before anything appears on screen, you need to load a texture file and hand its symbol ID to the sprite.
+
+## Loading a Texture
+
+Use `loadTexture()` from `fraxel/assets` to fetch an image and register it with the engine. It returns a `symbol` that acts as a stable, deduplicated handle. Calling `loadTexture` with the same URL twice returns the same symbol.
+
+```ts assets.ts
+import { loadTexture } from 'fraxel/assets'
+
+export const PLAYER = await loadTexture('/assets/player.png')
+export const BACKGROUND = await loadTexture('/assets/background.png')
+```
+
+<Note>
+  Load textures at the module's top level (outside components) so they're ready before your game renders. For large batches, use [`loadBatch`](/guides/asset-pipeline) with a progress callback.
+</Note>
+
+## Your First Sprite
+
+Pass the symbol to `textureId` and the engine takes care of the rest:
+
+```tsx Player.tsx
+import { PLAYER } from './assets'
+
+function Player() {
+  return <sprite textureId={PLAYER} />
+}
+```
+
+The sprite renders centered at the node's `position`. By default it uses the full texture size.
+
+## Positioning with `<transform>`
+
+A `<sprite>` node carries its own `position` prop, but the idiomatic way to position game objects is to wrap them in a `<transform>` container. This lets you move both the sprite and its siblings (colliders, children) together:
+
+```tsx Player.tsx
+import { PLAYER } from './assets'
+
+function Player() {
+  return (
+    <transform position={[100, 200]}>
+      <sprite textureId={PLAYER} />
+    </transform>
+  )
+}
+```
+
+## Sprite Sheet Slicing
+
+When your texture is a sprite sheet — multiple frames packed into one image — you tell the sprite which region to display using `margin` (the top-left offset in pixels) and `sourceSize` (the width and height of a single frame). `displaySize` lets you scale the frame up for rendering without changing the source crop.
+
+```tsx Player.tsx
+import { WALK_SHEET } from './assets'
+
+function Player() {
+  return (
+    <sprite
+      textureId={WALK_SHEET}
+      margin={[0, 0]}       // top-left of first frame
+      sourceSize={[32, 32]} // each frame is 32×32 px
+      displaySize={[64, 64]} // render at 2× scale
+    />
+  )
+}
+```
+
+For animated sheets, `margin` is updated each frame by `<animation-player>`. See [Animation](/guides/animation) for the full workflow.
+
+## All Sprite Props
+
+<ParamField path="textureId" type="Reactive<symbol>">
+  The texture symbol returned by `loadTexture()`. Can be a `SignalGetter` for dynamic texture swapping.
+</ParamField>
+
+<ParamField path="margin" type="Reactive<VectorLike>" default="[0, 0]">
+  Pixel offset into the texture. Used by the animation system to select sprite sheet frames.
+</ParamField>
+
+<ParamField path="sourceSize" type="Reactive<VectorLike>">
+  Width and height of the region to sample from the texture. Defaults to the full texture size.
+</ParamField>
+
+<ParamField path="displaySize" type="Reactive<VectorLike>">
+  Rendered size on the canvas. Defaults to `sourceSize`. Use this to scale a sprite without modifying the crop.
+</ParamField>
+
+<ParamField path="flipX" type="Reactive<boolean>" default="false">
+  Mirrors the sprite horizontally. Useful for characters facing left or right.
+</ParamField>
+
+<ParamField path="flipY" type="Reactive<boolean>" default="false">
+  Mirrors the sprite vertically.
+</ParamField>
+
+<ParamField path="opacity" type="Reactive<number>" default="1">
+  Overall transparency. `0` is fully transparent, `1` is fully opaque.
+</ParamField>
+
+### Filter Props
+
+Sprites support a rich set of CSS-like visual filters. All filter props accept a static number, a `Color` tuple, or a reactive `SignalGetter` for live updates. See [Filters](/guides/filters) for patterns like damage flashes and death effects.
+
+| Prop | Range | Description |
+|------|-------|-------------|
+| `brightness` | `0–2+` | `0` = black, `1` = normal, `2` = white |
+| `grayscale` | `0–1` | `0` = full color, `1` = fully gray |
+| `modulate` | `Color` | RGBA tint multiplied over the sprite |
+| `contrast` | `0–2+` | `0` = flat gray, `1` = normal |
+| `saturate` | `0–2+` | `0` = desaturated, `1` = normal |
+| `hueRotate` | degrees | Rotates all hue values |
+| `invert` | `0–1` | `0` = normal, `1` = fully inverted |
+
+## Reactive Props
+
+Any prop that accepts `Reactive<T>` can receive a `SignalGetter<T>` — a zero-argument function that returns the current value. The engine re-reads it every frame:
+
+```tsx Player.tsx
+import { useSignal } from 'fraxel/hooks'
+import { PLAYER, PLAYER_HIT } from './assets'
+
+function Player() {
+  const [isHit, setIsHit] = useSignal(false)
+
+  // textureId swaps instantly when isHit changes
+  const tex = () => (isHit() ? PLAYER_HIT : PLAYER)
+
+  return <sprite textureId={tex} displaySize={[64, 64]} />
+}
+```
+
+## Complete Example: Textured Player
+
+Here's a complete player component with a sprite sheet slice, 2× display scale, and a reactive hit-flash effect:
+
+```tsx Player.tsx
+import { useSignal, useMount, useNode } from 'fraxel/hooks'
+import { PrimaryNode } from 'fraxel'
+import { loadTexture } from 'fraxel/assets'
+import { tween } from 'fraxel/animation'
+
+const PLAYER_SHEET = await loadTexture('/assets/player-sheet.png')
+
+function Player() {
+  const sprite = useNode(PrimaryNode.Sprite)
+  const [brightness, setBrightness] = useSignal(1)
+
+  const flashHit = () => {
+    tween({
+      target: sprite.node,
+      prop: 'brightness',
+      from: 2,
+      to: 1,
+      duration: 0.15,
+    })
+  }
+
+  return (
+    <transform position={[100, 200]}>
+      <sprite
+        ref={sprite}
+        textureId={PLAYER_SHEET}
+        sourceSize={[32, 32]}
+        displaySize={[64, 64]}
+        brightness={() => brightness()}
+      />
+    </transform>
+  )
+}
+```
+
+<Tip>
+  For animated sprites, hand the `<sprite>` ref to `animationFromSheet` and wrap it in an `<animation-player>`. See [Animation](/guides/animation).
+</Tip>

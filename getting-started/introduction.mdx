@@ -1,0 +1,78 @@
+---
+title: "Introduction to Fraxel — JSX 2D Game Engine"
+sidebarTitle: "Introduction"
+description: "Fraxel is a JSX-powered 2D game engine for the browser. Build games with fine-grained reactivity, native canvas rendering, and zero React overhead."
+---
+
+Fraxel is a 2D game engine that lets you write game scenes using JSX — the same familiar syntax used in React — while running entirely on the HTML5 Canvas with no DOM diffing, no virtual DOM, and no React dependency. You get the ergonomics of declarative UI development applied directly to game objects: sprites, colliders, physics bodies, and cameras are all written as JSX elements and composed into scenes using components and hooks.
+
+## What makes Fraxel different
+
+Most web game engines give you either a low-level imperative API (create a sprite, set its position, update it every frame) or a full framework with heavy runtime overhead. Fraxel takes a third path: it borrows the **component model and reactivity primitives** from modern frontend development and maps them onto a native canvas renderer.
+
+The result is a game engine that feels familiar to JavaScript developers but produces efficient, frame-rate-stable output. There is no React. There is no DOM. Your `<sprite>` element maps directly to an engine node that is drawn to a `<canvas>` element each frame.
+
+### Key differentiators
+
+**Fine-grained reactivity** — Fraxel's `useSignal` creates isolated reactive state. When a signal changes, only the properties that depend on it are updated. There is no component tree re-render, no virtual DOM diff, and no wasted work. This makes it practical to run reactive state at 60 FPS without performance budgeting.
+
+**Auto-computed props** — Pass a signal getter or an inline arrow function as a JSX attribute and Fraxel automatically tracks the dependency. The engine recomputes that prop's value whenever the underlying signals change, with no extra wiring required.
+
+**Native canvas rendering** — Every node (`<sprite>`, `<text>`, `<geometry>`, etc.) draws directly to a Canvas 2D context. There is no intermediate HTML layer. This keeps rendering predictable and fast, especially for large numbers of game objects.
+
+**TypeScript-first** — The engine is built from the ground up with strict TypeScript and `verbatimModuleSyntax`. All JSX elements, hooks, events, and node types are fully typed.
+
+**Zero React** — The `jsxImportSource: fraxel` option in your `tsconfig.json` routes JSX through Fraxel's own runtime instead of React's. The syntax is identical; the execution model is completely different.
+
+## When to use Fraxel
+
+Fraxel is a good fit when you want to:
+
+- Build 2D browser games with a component-driven workflow
+- Use TypeScript and JSX without pulling in React or a DOM-based UI framework
+- Leverage fine-grained reactivity for game state (health bars, cooldowns, UI overlays)
+- Ship to the web with minimal bundle overhead
+
+Fraxel is **not** designed for 3D games (use Three.js or Babylon.js for that), server-side rendering, or building traditional web UIs. It is purpose-built for 2D canvas games.
+
+## A taste of the API
+
+The following component renders a sprite with reactive health state. When `health` changes, the `grayscale` and `brightness` props update automatically — no manual re-render needed.
+
+```tsx main.tsx
+import { useSignal } from 'fraxel/hooks'
+import { PLAYER_TEX } from './assets'
+
+export function Player() {
+  const [health, setHealth] = useSignal(100)
+
+  return (
+    <sprite
+      textureId={PLAYER_TEX}
+      grayscale={() => (health() <= 0 ? 1 : 0)}
+      brightness={() => 0.5 + health() / 200}
+    >
+      <clickable size={[32, 32]} onClick={() => setHealth(health() - 10)} />
+    </sprite>
+  )
+}
+```
+
+Reactive state, computed properties, pointer events, and sprite filters — in 15 lines.
+
+## Where to go next
+
+<CardGroup cols={2}>
+  <Card title="Installation" icon="download" href="/getting-started/installation">
+    Install Fraxel, configure TypeScript, and set up your HTML entry point.
+  </Card>
+  <Card title="Your First Game" icon="gamepad" href="/getting-started/first-game">
+    Build a working game scene step by step from scratch.
+  </Card>
+  <Card title="Nodes" icon="shapes" href="/getting-started/nodes">
+    Learn about sprites, colliders, cameras, and every other node type.
+  </Card>
+  <Card title="Signals" icon="bolt" href="/getting-started/signals">
+    Master fine-grained reactivity with useSignal, useComputed, and useEffect.
+  </Card>
+</CardGroup>

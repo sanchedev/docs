@@ -1,0 +1,151 @@
+---
+title: "Fraxel Project Structure & Import Paths"
+sidebarTitle: "Project Structure"
+description: "Recommended directory layout, import path overview, and conventions for organizing scenes, components, and assets in a Fraxel game."
+---
+
+Fraxel imposes no mandatory project structure — it is a library, not a framework with a CLI scaffold. That said, games grow complex quickly, and a consistent layout makes it easier to find code, swap assets, and onboard collaborators. This page describes a recommended structure and explains how the engine's import paths map to different concerns.
+
+## Recommended layout
+
+```
+my-game/
+├── public/
+│   └── assets/
+│       ├── sprites/
+│       │   ├── player.png
+│       │   └── enemy.png
+│       ├── sounds/
+│       │   ├── shoot.mp3
+│       │   └── music.mp3
+│       └── tilemaps/
+├── src/
+│   ├── main.tsx          # Entry point — createGame, loadTexture calls
+│   ├── assets.ts         # All loadTexture / loadSound calls, exported as symbols
+│   ├── scenes/
+│   │   ├── main.tsx      # Main game scene
+│   │   ├── menu.tsx      # Title screen scene
+│   │   └── gameover.tsx
+│   ├── components/
+│   │   ├── Player.tsx
+│   │   ├── Enemy.tsx
+│   │   └── HUD.tsx
+│   └── input.ts          # Input.createAction calls
+├── index.html
+└── tsconfig.json
+```
+
+### Why this layout works
+
+**`src/assets.ts`** — Centralizing all `loadTexture` and `loadSound` calls in one file means the rest of your code imports typed symbol constants (`import { PLAYER_TEX } from '../assets'`) rather than hard-coding URL strings. You only have one place to update when an asset path changes.
+
+**`src/scenes/`** — Each scene is its own file. Scene component functions can be large, and keeping them isolated prevents `main.tsx` from becoming a thousand-line file.
+
+**`src/components/`** — Reusable game entities (Player, Enemy, HUD elements) live here. A component is just a function that returns JSX, so there is no special distinction between a "scene" and a "component" beyond convention.
+
+**`src/input.ts`** — `Input.createAction` throws a `DuplicateKeyError` if the same key combo is registered twice. Defining all actions in a single module and importing the symbols ensures they are created exactly once.
+
+## Asset file
+
+```ts src/assets.ts
+import { loadTexture, loadSound, loadBatch } from 'fraxel/assets'
+
+// Load all assets upfront so scenes can import the symbols directly
+export const PLAYER_TEX = await loadTexture('/assets/sprites/player.png')
+export const ENEMY_TEX  = await loadTexture('/assets/sprites/enemy.png')
+export const SHOOT_SFX  = await loadSound('/assets/sounds/shoot.mp3')
+export const BG_MUSIC   = await loadSound('/assets/sounds/music.mp3')
+```
+
+Because `assets.ts` uses top-level `await`, you must import it at the top of `main.tsx` before calling `createGame`. This guarantees all textures are decoded and cached before the first scene tries to render them.
+
+For large games, consider using `loadBatch` to load groups of assets with a progress callback:
+
+```ts src/assets.ts
+import { loadBatch } from 'fraxel/assets'
+
+const { PLAYER_TEX, ENEMY_TEX } = await loadBatch({
+  PLAYER_TEX: { type: 'texture', url: '/assets/sprites/player.png' },
+  ENEMY_TEX:  { type: 'texture', url: '/assets/sprites/enemy.png' },
+})
+
+export { PLAYER_TEX, ENEMY_TEX }
+```
+
+## Input file
+
+```ts src/input.ts
+import { Input } from 'fraxel'
+
+export const MoveLeft  = Input.createAction({ key: 'ArrowLeft' })
+export const MoveRight = Input.createAction({ key: 'ArrowRight' })
+export const Jump      = Input.createAction({ key: ' ' })
+export const Shoot     = Input.createAction({ key: 'f' })
+```
+
+Import these symbols wherever you need them. Because `Input.createAction` is called at module load time, the actions are always registered before any component runs.
+
+## Import path overview
+
+Fraxel splits its public API across several sub-path exports. The separation is deliberate — it allows bundlers to tree-shake unused parts of the engine.
+
+| Path | Description |
+|---|---|
+| `fraxel` | Nodes (`PrimaryNode`), math (`Vector2`, `vector2`), collision (`shapes`, `Narrowphase`), `Input`, `Signal`, `PhysicsSystem` |
+| `fraxel/hooks` | All hooks: `useSignal`, `useEffect`, `useComputed`, `useNode`, `useEvent`, `useMount`, `useSpawn`, `useAction`, `useActionAxis`, `useTrigger`, `createContext`, `useContext`, and all derived hooks |
+| `fraxel/jsx` | JSX components: `Game`, `Scene`, `List`, `Fragment`; bootstrap function: `createGame` |
+| `fraxel/assets` | `loadTexture`, `loadSound`, `loadBatch` |
+| `fraxel/animation` | `tween`, easing functions (`easeOutQuad`, `easeInBounce`, …), `animationFromSheet` |
+| `fraxel/audio` | `getAudioContext` — manual access to the Web Audio `AudioContext` |
+
+## How scenes and components relate
+
+In Fraxel there is no technical difference between a scene and a component. Both are functions that return JSX. The distinction is organizational:
+
+- A **scene** is registered with `<Scene name component>` inside `<Game>`. The engine instantiates it when `changeScene` is called. It typically returns a root `<transform>` containing the entire game world.
+- A **component** is a function you define and call from inside a scene (or another component). It encapsulates a reusable piece of the node tree — a player, an enemy, a HUD element.
+
+```tsx src/scenes/main.tsx
+import { Player } from '../components/Player'
+import { HUD } from '../components/HUD'
+import { BG_TEX } from '../assets'
+
+export function MainScene() {
+  return (
+    <transform>
+      <sprite textureId={BG_TEX} />
+      <Player />
+      <HUD />
+    </transform>
+  )
+}
+```
+
+## Entry point
+
+Your `main.tsx` should do three things and nothing else:
+
+1. Import `assets.ts` to trigger asset loading.
+2. Import scene components.
+3. Call `createGame` and `game.play()`.
+
+```tsx src/main.tsx
+import './assets'        // Side-effect: loads all textures and sounds
+import { MainScene }  from './scenes/main'
+import { MenuScene }  from './scenes/menu'
+import { createGame, Game, Scene } from 'fraxel/jsx'
+
+const game = createGame(
+  <Game width={320} height={180} defaultScene="menu">
+    <Scene name="menu"  component={MenuScene} />
+    <Scene name="main"  component={MainScene} />
+  </Game>,
+  document.querySelector('#root')!,
+)
+
+game.play()
+```
+
+<Note>
+  Scenes can also be lazy-loaded by passing an async import as the `component` prop: `component={() => import('./scenes/main')}`. Fraxel resolves the default export automatically. This keeps the initial bundle small for games with many scenes.
+</Note>
