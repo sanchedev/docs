@@ -1,0 +1,90 @@
+---
+title: "Lifecycle Hooks API Reference — Fraxel Game Engine"
+sidebarTitle: "Lifecycle"
+description: "Reference for Fraxel's lifecycle hooks: useEffect and useMount for side effects and cleanup."
+---
+
+Lifecycle hooks manage side effects, cleanup, and node lifecycle events.
+
+---
+
+## useEffect
+
+Runs a side-effect function when the node starts and again whenever any signal it reads changes. Multiple synchronous signal changes are batched — the effect runs once per microtask, not once per change.
+
+```ts
+useEffect(fn: () => void | (() => void)): void
+```
+
+<ParamField path="fn" type="() => void | (() => void)" required>
+  The effect function. If it returns a function, that cleanup function runs before the next execution and when the node is destroyed.
+</ParamField>
+
+```tsx
+import { useSignal, useEffect } from 'fraxel/hooks'
+
+function Tracker() {
+  const [x, setX] = useSignal(0)
+  const [y, setY] = useSignal(0)
+
+  useEffect(() => {
+    console.log(`Position: ${x()}, ${y()}`)
+
+    // Optional cleanup
+    return () => {
+      console.log('Effect cleaned up')
+    }
+  })
+
+  return <transform />
+}
+```
+
+**Batching behaviour:** If `x`, `y`, and `z` all change in the same synchronous block, the effect runs exactly once before the next frame:
+
+```tsx
+setX(1)
+setY(2)
+setZ(3)
+// Effect runs once, not three times
+```
+
+Re-executions are deferred via `queueMicrotask` and always run before the next animation frame.
+
+---
+
+## useMount
+
+Runs a function exactly once when the node starts. If the function returns a cleanup function, that cleanup runs when the node is destroyed. Unlike `useEffect`, `useMount` does not re-run when signals change.
+
+```ts
+useMount(fn: () => void | (() => void)): void
+```
+
+<ParamField path="fn" type="() => void | (() => void)" required>
+  Function to run on mount. Return a cleanup function to run on destroy.
+</ParamField>
+
+```tsx
+import { useMount } from 'fraxel/hooks'
+
+function BackgroundMusic() {
+  const audio = new AudioContext()
+
+  useMount(() => {
+    console.log('Scene loaded — starting music')
+
+    return () => {
+      console.log('Scene destroyed — stopping music')
+      audio.close()
+    }
+  })
+
+  return <transform />
+}
+```
+
+## Related
+
+- [State Hooks](/api/hooks/state) — `useSignal`, `useComputed`
+- [Node Hooks](/api/hooks/node) — `useSprite`, `useCollider`, `useRigidBody` and more

@@ -145,6 +145,60 @@ const [JUMP, SHOOT, HIT] = await loadBatchAsset('sound', [
 
 ---
 
+## getTexture
+
+Retrieves a previously loaded `Texture` by its symbol ID.
+
+```ts
+getTexture(id: symbol): Texture
+```
+
+<ParamField path="id" type="symbol" required>
+  The `symbol` returned by `loadTexture`.
+</ParamField>
+
+**Returns** `Texture` — an object with `image: HTMLImageElement`, `width: number`, `height: number`, and a `draw(options)` method.
+
+---
+
+## getSound
+
+Retrieves the decoded `AudioBuffer` for a previously loaded sound by its symbol ID.
+
+```ts
+getSound(id: symbol): AudioBuffer
+```
+
+<ParamField path="id" type="symbol" required>
+  The `symbol` returned by `loadSound`.
+</ParamField>
+
+**Returns** `AudioBuffer` — the decoded audio data ready for playback.
+
+---
+
+## Texture
+
+The `Texture` class wraps a loaded image and provides metadata for rendering.
+
+```ts
+class Texture {
+  image: HTMLImageElement
+  width: number
+  height: number
+
+  draw(options: TextureDrawOptions): void
+}
+```
+
+| Property | Type | Description |
+|---|---|---|
+| `image` | `HTMLImageElement` | The underlying loaded image element. |
+| `width` | `number` | Texture width in pixels. |
+| `height` | `number` | Texture height in pixels. |
+
+---
+
 ## unloadTexture
 
 Frees the GPU and memory resources associated with a texture ID.

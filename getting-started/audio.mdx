@@ -26,22 +26,21 @@ export const HIT_SFX    = await loadSound('/assets/sounds/hit.mp3')
 Place an `<audio-player>` node anywhere in your scene tree to enable sound playback for that component. Pass it the symbol from `loadSound` as the `soundId` prop.
 
 ```tsx src/components/Gun.tsx
-import { useNode, useEvent } from 'fraxel/hooks'
-import { PrimaryNode } from 'fraxel'
+import { useAudio, useClickable, useTrigger } from 'fraxel/hooks'
 import { SHOOT_SFX, GUN_TEX } from '../assets'
 
 export function Gun() {
-  const audio    = useNode(PrimaryNode.AudioPlayer)
-  const clickable = useNode(PrimaryNode.Clickable)
+  const audio = useAudio()
+  const btn = useClickable()
 
-  useEvent(clickable, 'clicked', () => {
-    audio.node.play()
+  useTrigger(btn.clicked, () => {
+    audio.play()
   })
 
   return (
     <sprite textureId={GUN_TEX}>
       <audio-player ref={audio} soundId={SHOOT_SFX} volume={0.8} />
-      <clickable ref={clickable} size={[24, 12]} />
+      <clickable ref={btn} size={[24, 12]} />
     </sprite>
   )
 }
@@ -79,15 +78,14 @@ Call these on `audio.node` inside event handlers or `useMount`:
 For looping background music that plays as soon as the scene starts, use `useMount` to trigger playback after the node has entered the scene.
 
 ```tsx src/components/BackgroundMusic.tsx
-import { useNode, useMount } from 'fraxel/hooks'
-import { PrimaryNode } from 'fraxel'
+import { useAudio, useMount } from 'fraxel/hooks'
 import { BG_MUSIC } from '../assets'
 
 export function BackgroundMusic() {
-  const audio = useNode(PrimaryNode.AudioPlayer)
+  const audio = useAudio()
 
   useMount(() => {
-    audio.node.play()
+    audio.play()
   })
 
   return <audio-player ref={audio} soundId={BG_MUSIC} loop volume={0.35} />
@@ -101,14 +99,13 @@ Browsers block audio from playing before the user has interacted with the page. 
 To handle this, resume the context inside a user gesture callback (a click, tap, or keypress):
 
 ```tsx src/components/StartScreen.tsx
-import { useNode, useEvent } from 'fraxel/hooks'
-import { PrimaryNode } from 'fraxel'
+import { useClickable, useTrigger } from 'fraxel/hooks'
 import { getAudioContext } from 'fraxel/audio'
 
 export function StartScreen() {
-  const btn = useNode(PrimaryNode.Clickable)
+  const btn = useClickable()
 
-  useEvent(btn, 'clicked', async () => {
+  useTrigger(btn.clicked, async () => {
     const ctx = getAudioContext()
     if (ctx.state === 'suspended') {
       await ctx.resume()
@@ -119,7 +116,7 @@ export function StartScreen() {
 
   return (
     <sprite textureId={START_SCREEN_TEX}>
-      <clickable ref={btn} size={[192, 112]} />
+      <clickable ref={btn.ref} size={[192, 112]} />
     </sprite>
   )
 }
@@ -131,21 +128,23 @@ export function StartScreen() {
 
 ## Reactive playback with `useAudio`
 
-The `useAudio` derived hook gives you reactive `playing` state and control methods without wiring `useNode` and `useEvent` yourself.
+The `useAudio` derived hook gives you reactive `playing` state and control methods without manual wiring.
 
 ```tsx
-import { useAudio } from 'fraxel/hooks'
+import { useAudio, useClickable, useTrigger } from 'fraxel/hooks'
 
 function ToggleMusic() {
-  const { ref, playing, play, pause } = useAudio()
+  const audio = useAudio()
+  const btn = useClickable()
+
+  useTrigger(btn.clicked, () => {
+    audio.playing() ? audio.pause() : audio.play()
+  })
 
   return (
     <sprite textureId={BTN_TEX}>
-      <clickable
-        size={[32, 32]}
-        onClick={() => (playing() ? pause() : play())}
-      />
-      <audio-player ref={ref} soundId={BG_MUSIC} loop volume={0.4} />
+      <clickable ref={btn} size={[32, 32]} />
+      <audio-player ref={audio} soundId={BG_MUSIC} loop volume={0.4} />
     </sprite>
   )
 }
@@ -177,8 +176,7 @@ Batch loading is especially useful on the loading screen — you can display a p
 
 ```tsx src/main.tsx
 import { createGame, Game, Scene } from 'fraxel/jsx'
-import { PrimaryNode } from 'fraxel'
-import { useNode, useMount } from 'fraxel/hooks'
+import { useAudio, useMount } from 'fraxel/hooks'
 import { loadBatch } from 'fraxel/assets'
 import { getAudioContext } from 'fraxel/audio'
 
@@ -189,12 +187,12 @@ const { SHOOT_SFX, BG_MUSIC } = await loadBatch({
 })
 
 function MainScene() {
-  const music = useNode(PrimaryNode.AudioPlayer)
+  const music = useAudio()
 
   useMount(() => {
     const ctx = getAudioContext()
     if (ctx.state === 'suspended') ctx.resume()
-    music.node.play()
+    music.play()
   })
 
   return (

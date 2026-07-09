@@ -77,6 +77,12 @@ function HealthBar({ current, max }: { current: number; max: number }) {
   Draw order relative to siblings. Defaults to `0`.
 </ParamField>
 
+<ParamField path="gameMode" type="GameMode">
+  Controls how this node behaves when the game is paused. Defaults to
+  `GameMode.INHERIT`. Use `GameMode.ALWAYS` for nodes that should keep updating
+  while paused.
+</ParamField>
+
 <ParamField path="ref" type="NodeReference<PrimaryNode.Geometry>">
   Attach a node reference to access the instance or read the computed `size`.
 </ParamField>
@@ -94,7 +100,9 @@ function HealthBar({ current, max }: { current: number; max: number }) {
 |---|---|---|
 | `started` | `() => void` | Fires once after `start()`. |
 | `updated` | `(delta: number) => void` | Fires every frame. |
+| `drawed` | `(delta: number) => void` | Fires every frame when the node is being drawn. |
 | `destroyed` | `() => void` | Fires on removal. |
+| `zIndexChanged` | `(zIndex: number) => void` | Fires when the node's `zIndex` value changes. |
 
 <CodeGroup>
 

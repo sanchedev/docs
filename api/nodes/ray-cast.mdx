@@ -7,17 +7,16 @@ description: "Project a ray from the node's world position to detect the first m
 Use `<ray-cast>` to detect colliders along a straight line from the node's world position. Define a `direction` vector (in pixels) and a list of groups to check against. The ray queries collision groups directly — not the spatial hash — so it sees every registered collider in the target groups regardless of distance. Subscribe to `colliderEntered` and `colliderExited` to react when the first hit changes, or poll `getCollider()` each frame.
 
 ```tsx
-import { useNode, useEvent } from 'fraxel/hooks'
-import { PrimaryNode } from 'fraxel'
+import { useRayCast, useTrigger } from 'fraxel/hooks'
 
 function LineOfSight() {
-  const ray = useNode(PrimaryNode.RayCast)
+  const ray = useRayCast()
 
-  useEvent(ray, 'colliderEntered', (col) => {
+  useTrigger(ray.colliderEntered, (col) => {
     console.log('Enemy spotted at', col.globalPosition)
   })
 
-  useEvent(ray, 'colliderExited', () => {
+  useTrigger(ray.colliderExited, () => {
     console.log('Lost sight')
   })
 
@@ -62,6 +61,12 @@ function LineOfSight() {
   `[0, 0]`. Set this to offset the origin (e.g. to the gun barrel tip).
 </ParamField>
 
+<ParamField path="gameMode" type="GameMode">
+  Controls how this node behaves when the game is paused. Defaults to
+  `GameMode.INHERIT`. Use `GameMode.ALWAYS` for nodes that should keep updating
+  while paused.
+</ParamField>
+
 <ParamField path="ref" type="NodeReference<PrimaryNode.RayCast>">
   Attach a node reference to call `getCollider()` or subscribe to events.
 </ParamField>
@@ -89,21 +94,23 @@ function LineOfSight() {
 | `colliderExited` | `(collider: Collider) => void` | Fires when the previously detected collider is no longer in the ray's path. The same event fires on the exiting collider as well. |
 | `started` | `() => void` | Fires once after `start()`. |
 | `updated` | `(delta: number) => void` | Fires every frame. |
+| `drawed` | `(delta: number) => void` | Fires every frame when the node is being drawn. |
 | `destroyed` | `() => void` | Fires on removal. |
+| `zIndexChanged` | `(zIndex: number) => void` | Fires when the node's `zIndex` value changes. |
 
 <CodeGroup>
 
 ```tsx Ground detection for a platformer
-import { useNode, useEvent, useSignal } from 'fraxel/hooks'
-import { PrimaryNode, shapes } from 'fraxel'
+import { useRigidBody, useRayCast, useTrigger, useSignal } from 'fraxel/hooks'
+import { shapes } from 'fraxel'
 
 function Player() {
-  const body = useNode(PrimaryNode.RigidBody)
-  const groundRay = useNode(PrimaryNode.RayCast)
+  const body = useRigidBody()
+  const groundRay = useRayCast()
   const [isGrounded, setGrounded] = useSignal(false)
 
-  useEvent(groundRay, 'colliderEntered', () => setGrounded(true))
-  useEvent(groundRay, 'colliderExited',  () => setGrounded(false))
+  useTrigger(groundRay.colliderEntered, () => setGrounded(true))
+  useTrigger(groundRay.colliderExited,  () => setGrounded(false))
 
   return (
     <rigid-body ref={body} mass={1} position={[100, 50]}>
@@ -126,14 +133,13 @@ function Player() {
 ```
 
 ```tsx Rotating laser sight
-import { useNode, useEvent, useSignal } from 'fraxel/hooks'
-import { PrimaryNode } from 'fraxel'
+import { useRayCast, useTrigger, useSignal } from 'fraxel/hooks'
 
 function Turret() {
-  const ray = useNode(PrimaryNode.RayCast)
+  const ray = useRayCast()
   const [angle, setAngle] = useSignal(0)
 
-  useEvent(ray, 'updated', (delta) => {
+  useTrigger(ray.updated, (delta) => {
     setAngle(a => a + delta * 90) // rotate 90°/s
   })
 

@@ -51,14 +51,21 @@ function FallingRock() {
   ```
 </ParamField>
 
-<ParamField path="isStatic" type="boolean">
+<ParamField path="isStatic" type="Reactive<boolean>">
   When `true`, the body never moves regardless of forces. Other bodies still
   resolve collisions against it. Defaults to `false`. Equivalent to `mass={0}`.
+  Accepts a reactive `SignalGetter<boolean>`.
 </ParamField>
 
 <ParamField path="useGravity" type="boolean">
   When `false`, `PhysicsSystem.gravity` is not applied to this body. Useful for
   top-down games or floating objects. Defaults to `true`.
+</ParamField>
+
+<ParamField path="gameMode" type="GameMode">
+  Controls how this node behaves when the game is paused. Defaults to
+  `GameMode.INHERIT`. Use `GameMode.ALWAYS` for nodes that should keep updating
+  while paused.
 </ParamField>
 
 <ParamField path="ref" type="NodeReference<PrimaryNode.RigidBody>">
@@ -70,6 +77,11 @@ function FallingRock() {
 | Property | Type | Description |
 |---|---|---|
 | `velocity` | `Vector2` | Current velocity in pixels per second. Readable and writable. |
+| `mass` | `number` | Body mass. Readable and writable at runtime. |
+| `friction` | `number` | Friction coefficient. Readable and writable at runtime. |
+| `bounce` | `number` | Restitution (bounciness). Readable and writable at runtime. |
+| `isStatic` | `boolean` | Whether the body is static. Readable and writable at runtime. |
+| `useGravity` | `boolean` | Whether gravity is applied. Readable and writable at runtime. |
 | `isGrounded` | `boolean` (read-only) | `true` when the body is resting on a surface below it. Updated automatically each frame. |
 
 ## Methods
@@ -87,31 +99,33 @@ function FallingRock() {
 |---|---|---|
 | `started` | `() => void` | Fires once after `start()`. |
 | `updated` | `(delta: number) => void` | Fires every frame — use this to apply per-frame forces. |
+| `drawed` | `(delta: number) => void` | Fires every frame when the node is being drawn. |
 | `destroyed` | `() => void` | Fires on removal. |
+| `zIndexChanged` | `(zIndex: number) => void` | Fires when the node's `zIndex` value changes. |
 
 <CodeGroup>
 
 ```tsx Platformer player with jump
-import { useNode, useEvent } from 'fraxel/hooks'
-import { PrimaryNode, shapes, vector2, Input } from 'fraxel'
+import { useRigidBody, useTrigger } from 'fraxel/hooks'
+import { shapes, vector2, Input } from 'fraxel'
 
 function Player() {
-  const body = useNode(PrimaryNode.RigidBody)
+  const body = useRigidBody()
 
-  useEvent(body, 'updated', (_delta) => {
+  useTrigger(body.updated, (_delta) => {
     // Horizontal movement
     if (Input.isKeyDown('ArrowRight')) {
-      body.node.velocity.x = 160
+      body.velocity.x = 160
     } else if (Input.isKeyDown('ArrowLeft')) {
-      body.node.velocity.x = -160
+      body.velocity.x = -160
     } else {
-      body.node.velocity.x *= 0.8
+      body.velocity.x *= 0.8
     }
   })
 
   const jump = () => {
-    if (body.node.isGrounded) {
-      body.node.applyImpulse(vector2(0, -480))
+    if (body.isGrounded) {
+      body.applyImpulse(vector2(0, -480))
     }
   }
 
@@ -155,11 +169,10 @@ function Platform() {
 
 <Tip>
   Use `useRigidBody()` from `fraxel/hooks` for a declarative API that exposes
-  reactive `velocity`, `isGrounded`, `applyImpulse`, and a pre-wired `ref` —
-  no need to call `useNode` manually.
+  reactive `velocity`, `isGrounded`, `applyImpulse`, and more via a single ref.
 
   ```tsx
-  const { ref, isGrounded, applyImpulse } = useRigidBody()
+  const body = useRigidBody()
   ```
 </Tip>
 

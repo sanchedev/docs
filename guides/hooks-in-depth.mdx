@@ -1,7 +1,7 @@
 ---
 title: "Fraxel Hooks In Depth: Complete Reactive API Guide"
 sidebarTitle: "Hooks"
-description: "Master Fraxel's hooks: useNode, useEvent, useMount, useChild, useRef, useGame, useTrigger, createContext, and all derived hooks with examples."
+description: "Master Fraxel's hooks: useSprite, useTrigger, useMount, useRef, useScene, createContext, and all derived hooks with examples."
 ---
 
 Hooks are Fraxel's primary tool for connecting JSX components to the engine's event system, reactive state, and node hierarchy. If you've used React hooks before, the mental model is familiar — functions that register behavior during a component's setup phase. In Fraxel, hooks run when the component function executes (before the JSX is returned) and are automatically cleaned up when the node is destroyed.
@@ -13,7 +13,7 @@ Call hooks at the **top level of a component function**, never inside a callback
 ```tsx
 // ✅ Correct — called at component scope
 function Player() {
-  const sprite = useNode(PrimaryNode.Sprite)
+  const sprite = useSprite()
   const [health, setHealth] = useSignal(100)
   useEffect(() => { /* ... */ })
   return <sprite ref={sprite} textureId={PLAYER} />
@@ -22,25 +22,25 @@ function Player() {
 // ❌ Wrong — called inside a callback
 function Player() {
   const handleClick = () => {
-    const sprite = useNode(PrimaryNode.Sprite) // ERROR: wrong scope
+    const sprite = useSprite() // ERROR: wrong scope
   }
   return <sprite textureId={PLAYER} />
 }
 ```
 
-## `useNode` + `useEvent`
+## `useSprite` + `useTrigger`
 
-These two hooks form the foundation of node interaction. `useNode` creates a typed reference that you attach to a JSX element with `ref={}`. `useEvent` subscribes to an event on that reference:
+These two hooks form the foundation of node interaction. `useSprite` creates a typed reference that you attach to a JSX element with `ref={}`. `useTrigger` subscribes to an event on that reference:
 
 ```tsx Enemy.tsx
-import { useNode, useEvent } from 'fraxel/hooks'
-import { PrimaryNode, shapes } from 'fraxel'
+import { useCollider, useRigidBody, useTrigger } from 'fraxel/hooks'
+import { shapes } from 'fraxel'
 
 function Enemy() {
-  const collider = useNode(PrimaryNode.Collider)
-  const body = useNode(PrimaryNode.RigidBody)
+  const collider = useCollider()
+  const body = useRigidBody()
 
-  useEvent(collider, 'colliderEntered', (other) => {
+  useTrigger(collider.colliderEntered, (other) => {
     if (other.node.name === 'bullet') {
       body.node.destroy()
     }
@@ -60,19 +60,18 @@ function Enemy() {
 }
 ```
 
-`useEvent` subscriptions are automatically removed when the node is destroyed.
+`useTrigger` subscriptions are automatically removed when the node is destroyed.
 
 ## `useMount`
 
 Run code once when the node starts, with optional cleanup on destroy:
 
 ```tsx FadeIn.tsx
-import { useMount, useNode } from 'fraxel/hooks'
-import { PrimaryNode } from 'fraxel'
+import { useMount, useSprite } from 'fraxel/hooks'
 import { tween } from 'fraxel/animation'
 
 function FadeIn() {
-  const sprite = useNode(PrimaryNode.Sprite)
+  const sprite = useSprite()
 
   useMount(() => {
     tween({ target: sprite.node, prop: 'opacity', from: 0, to: 1, duration: 0.5 })
@@ -89,17 +88,17 @@ function FadeIn() {
 
 The cleanup function is optional. Use it to cancel intervals, clear external state, or stop tweens.
 
-## `useChild`
+## `ref.node.child`
 
 Access a specific child node anywhere in the subtree by providing a path string (dot-separated node names) and the expected type:
 
 ```tsx
-import { useChild } from 'fraxel/hooks'
-import { PrimaryNode } from 'fraxel'
+import { useSprite, useMount } from 'fraxel/hooks'
 
 function Player() {
   // Access the sprite named 'body' that's a child of 'visual'
-  const bodySprite = useChild('visual.body', PrimaryNode.Sprite)
+  const visual = useSprite()
+  const bodySprite = useComputed(() => visual.node.child('body', PrimaryNode.Sprite))
 
   useMount(() => {
     bodySprite.node.brightness = 1.5
@@ -107,7 +106,7 @@ function Player() {
 
   return (
     <transform>
-      <transform name="visual">
+      <transform name="visual" ref={visual}>
         <sprite name="body" textureId={PLAYER} />
       </transform>
     </transform>
@@ -137,25 +136,30 @@ function Player() {
 }
 ```
 
-## `useGame`
+## `useScene`
 
-Access the top-level `Game` instance from any component:
+Access the top-level scene controls from any component:
 
 ```tsx
-import { useGame } from 'fraxel/hooks'
+import { useScene, useClickable, useTrigger } from 'fraxel/hooks'
 
 function GameOverScreen() {
-  const game = useGame()
+  const scene = useScene()
+  const btn = useClickable()
+
+  useTrigger(btn.clicked, () => {
+    scene.change('level1')
+  })
 
   return (
     <sprite textureId={RETRY_BTN}>
-      <clickable size={[120, 40]} onClick={() => game.changeScene('level1')} />
+      <clickable ref={btn} size={[120, 40]} />
     </sprite>
   )
 }
 ```
 
-See [Scenes](/guides/scenes) for all the game control methods.
+See [Scenes](/guides/scenes) for all the scene control methods.
 
 ## `useTrigger` — Cross-Component Pub/Sub
 
@@ -298,15 +302,15 @@ import { useTimer } from 'fraxel/hooks'
 import { shapes } from 'fraxel'
 
 function Cooldown() {
-  const { ref, time, progress, play, stop } = useTimer()
+  const timer = useTimer()
 
   const barColor = useComputed(() =>
-    progress() >= 1 ? ([0.2, 0.9, 0.2, 1] as const) : ([0.9, 0.4, 0.1, 1] as const)
+    timer.progress() >= 1 ? ([0.2, 0.9, 0.2, 1] as const) : ([0.9, 0.4, 0.1, 1] as const)
   )
 
   return (
     <transform>
-      <timer ref={ref} duration={3} />
+      <timer ref={timer} duration={3} />
       <geometry
         shape={() => shapes.rectangle(progress() * 80, 8)}
         fillColor={barColor}
@@ -321,15 +325,22 @@ function Cooldown() {
 Returns a node ref and a reactive `hovered` boolean:
 
 ```tsx Button.tsx
-import { useClickable, useComputed } from 'fraxel/hooks'
+import { useClickable, useTrigger, useComputed } from 'fraxel/hooks'
 
 function Button({ onClick }: { onClick: () => void }) {
-  const { ref, hovered } = useClickable()
+  const btn = useClickable()
+  const [hovered, setHovered] = useSignal(false)
+
+  useTrigger(btn.mouseEntered, () => setHovered(true))
+  useTrigger(btn.mouseExited, () => setHovered(false))
+
   const scale = useComputed(() => (hovered() ? 1.05 : 1.0))
 
+  useTrigger(btn.clicked, onClick)
+
   return (
-    <sprite ref={ref} textureId={BTN} displaySize={() => [64 * scale(), 24 * scale()]}>
-      <clickable size={[64, 24]} onClick={onClick} />
+    <sprite textureId={BTN} displaySize={() => [64 * scale(), 24 * scale()]}>
+      <clickable ref={btn} size={[64, 24]} />
     </sprite>
   )
 }

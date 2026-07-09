@@ -1,75 +1,29 @@
 ---
 title: "Build Your First Fraxel Game — Complete Tutorial"
 sidebarTitle: "First Game"
-description: "Build a working Fraxel game from scratch: load textures, define a scene, add reactive health state, and wire up per-frame movement with useEvent."
+description: "Build a platformer from scratch with physics, input, and camera follow. Learn JSX scenes, rigid-body nodes, and reactive hooks in under 100 lines."
 ---
 
-The best way to understand how Fraxel works is to build something real. This guide walks you through creating a playable scene from scratch — a sprite you can click to reduce its health, with a visual response that updates reactively. By the end you will have used the core building blocks: asset loading, the game bootstrap, JSX scenes, signals, and the game loop event.
+The best way to understand how Fraxel works is to build something real. This guide walks you through creating a playable platformer — a character that runs, jumps, and lands on platforms with real physics. By the end you will have used the core building blocks: JSX scenes, rigid-body physics, input actions, and camera follow.
 
 ## Prerequisites
 
 Make sure you have [installed Fraxel and configured TypeScript](/getting-started/installation) before continuing.
 
-## Step 1 — Load your textures
+## Step 1 — Bootstrap the game
 
-Fraxel uses symbols to reference loaded assets. Call `loadTexture` with a URL and it returns a `symbol` you pass to `<sprite textureId={...}>`. Asset loading is asynchronous, so use top-level `await` at the top of your entry file.
-
-```tsx src/main.tsx
-import { loadTexture } from 'fraxel/assets'
-
-const BG = await loadTexture('/assets/background.png')
-const PLAYER = await loadTexture('/assets/player.png')
-```
-
-<Tip>
-  During development you can use any PNG. Create a simple 32×32 pixel sprite in your image editor and place it at `public/assets/player.png`.
-</Tip>
-
-## Step 2 — Define a scene component
-
-A scene in Fraxel is a plain function that returns JSX. The function is called once when the scene loads, and the returned node tree becomes the live game world. Here the scene renders a background sprite and a player sprite positioned at `[80, 50]`.
-
-```tsx src/main.tsx
-import { loadTexture } from 'fraxel/assets'
-
-const BG = await loadTexture('/assets/background.png')
-const PLAYER = await loadTexture('/assets/player.png')
-
-function GameScene() {
-  return (
-    <transform>
-      <sprite textureId={BG} />
-      <sprite textureId={PLAYER} position={[80, 50]} />
-    </transform>
-  )
-}
-```
-
-`<transform>` is a positional container — it groups child nodes and gives them a shared origin. Every scene needs a single root node, and `<transform>` is the most common choice.
-
-## Step 3 — Bootstrap the game
-
-`createGame` takes a `<Game>` JSX element and a DOM container, wires up the canvas, and returns a set of control methods. Call `game.play()` to start the `requestAnimationFrame` loop.
+Create `src/main.tsx` with the minimal game setup. `createGame` takes a `<Game>` JSX element and a DOM container, wires up the canvas, and returns game controls.
 
 ```tsx src/main.tsx
 import { createGame, Game, Scene } from 'fraxel/jsx'
-import { loadTexture } from 'fraxel/assets'
 
-const BG = await loadTexture('/assets/background.png')
-const PLAYER = await loadTexture('/assets/player.png')
-
-function GameScene() {
-  return (
-    <transform>
-      <sprite textureId={BG} />
-      <sprite textureId={PLAYER} position={[80, 50]} />
-    </transform>
-  )
+function Main() {
+  return <transform />
 }
 
 const game = createGame(
-  <Game width={192} height={112} defaultScene="main">
-    <Scene name="main" component={GameScene} />
+  <Game width={480} height={320} defaultScene="main">
+    <Scene name="main" component={Main} />
   </Game>,
   document.querySelector('#root')!,
 )
@@ -77,52 +31,95 @@ const game = createGame(
 game.play()
 ```
 
-Here is what each piece does:
-
 - **`<Game width height defaultScene>`** — declares the canvas resolution and which scene to load first.
 - **`<Scene name component>`** — registers a named scene backed by a component function.
-- **`createGame(jsx, root)`** — processes the JSX configuration, creates the canvas inside `#root`, and returns game controls.
+- **`createGame(jsx, root)`** — processes the JSX, creates the canvas inside `#root`, and returns game controls.
 - **`game.play()`** — starts the render loop.
 
-## Step 4 — Add reactive state
+## Step 2 — Add platforms
 
-Right now the player sprite renders but nothing happens. Add a health signal and use it as an auto-computed prop to make the sprite visually react to damage.
+Static platforms are rigid bodies with `isStatic`. They don't move but still participate in collisions — other bodies bounce off them.
 
 ```tsx src/main.tsx
 import { createGame, Game, Scene } from 'fraxel/jsx'
-import { loadTexture } from 'fraxel/assets'
-import { useSignal } from 'fraxel/hooks'
+import { shapes } from 'fraxel'
 
-const BG = await loadTexture('/assets/background.png')
-const PLAYER = await loadTexture('/assets/player.png')
-
-function Player() {
-  const [health, setHealth] = useSignal(100)
-
+function Platform({ position, width }: { position: [number, number]; width: number }) {
   return (
-    <sprite
-      textureId={PLAYER}
-      position={[80, 50]}
-      grayscale={() => (health() <= 0 ? 1 : 0)}
-      brightness={() => 0.5 + health() / 200}
-    >
-      <clickable size={[32, 32]} onClick={() => setHealth(Math.max(0, health() - 10))} />
-    </sprite>
+    <rigid-body isStatic position={position}>
+      <geometry shape={shapes.rectangle(width, 16)} fillColor={[0.2, 0.3, 1, 1]} />
+      <collider shape={shapes.rectangle(width, 16)} group={['ground']} collidesWith={['player']} />
+    </rigid-body>
   )
 }
 
-function GameScene() {
+function Main() {
   return (
     <transform>
-      <sprite textureId={BG} />
+      <Platform position={[0, 300]} width={480} />
+      <Platform position={[80, 220]} width={100} />
+      <Platform position={[280, 160]} width={120} />
+      <Platform position={[140, 100]} width={100} />
+    </transform>
+  )
+}
+
+const game = createGame(
+  <Game width={480} height={320} defaultScene="main">
+    <Scene name="main" component={Main} />
+  </Game>,
+  document.querySelector('#root')!,
+)
+
+game.play()
+```
+
+`<geometry>` renders a colored shape without needing textures. The `fillColor` is `[r, g, b, a]` with values from `0` to `1`.
+
+## Step 3 — Add a player with physics
+
+A `<rigid-body>` node adds gravity, velocity, and collision response. It **must** contain a `<collider>` child that defines the physical shape.
+
+```tsx src/main.tsx
+import { createGame, Game, Scene } from 'fraxel/jsx'
+import { shapes } from 'fraxel'
+import { useRigidBody } from 'fraxel/hooks'
+
+function Platform({ position, width }: { position: [number, number]; width: number }) {
+  return (
+    <rigid-body isStatic position={position}>
+      <geometry shape={shapes.rectangle(width, 16)} fillColor={[0.2, 0.3, 1, 1]} />
+      <collider shape={shapes.rectangle(width, 16)} group={['ground']} collidesWith={['player']} />
+    </rigid-body>
+  )
+}
+
+function Player() {
+  const body = useRigidBody()
+
+  return (
+    <rigid-body ref={body} position={[220, 0]} mass={2}>
+      <geometry shape={shapes.capsule(12, 8)} fillColor={[1, 0.1, 0.4, 1]} />
+      <collider shape={shapes.capsule(12, 8)} group={['player']} collidesWith={['ground']} />
+    </rigid-body>
+  )
+}
+
+function Main() {
+  return (
+    <transform>
+      <Platform position={[0, 300]} width={480} />
+      <Platform position={[80, 220]} width={100} />
+      <Platform position={[280, 160]} width={120} />
+      <Platform position={[140, 100]} width={100} />
       <Player />
     </transform>
   )
 }
 
 const game = createGame(
-  <Game width={192} height={112} defaultScene="main">
-    <Scene name="main" component={GameScene} />
+  <Game width={480} height={320} defaultScene="main">
+    <Scene name="main" component={Main} />
   </Game>,
   document.querySelector('#root')!,
 )
@@ -130,104 +127,227 @@ const game = createGame(
 game.play()
 ```
 
-`useSignal(100)` returns a getter function `health` and a setter `setHealth`. When you pass `() => health() <= 0 ? 1 : 0` as the `grayscale` prop, Fraxel treats the arrow function as a computed expression. It runs the function once to collect dependencies, then re-evaluates it automatically whenever `health` changes. The sprite turns gray at zero health with no additional wiring.
+The player spawns at `[220, 0]` and immediately falls under gravity. When it hits a platform, the physics system resolves the collision — no manual collision detection needed.
 
-Clicking the sprite calls `setHealth` with a reduced value, which triggers the computed props to update, which redraws the sprite in the next frame.
+## Step 4 — Add input handling
 
-## Step 5 — React to the game loop
-
-Many game behaviors — movement, timers, AI — need to run every frame. The `updated` event on any node fires each frame with the elapsed time in seconds (`delta`). Use `useNode` to get a typed reference and `useEvent` to subscribe.
+Fraxel's input system maps keys to semantic actions. `useAction` gives you reactive pressed/justPressed state, and `useActionAxis` returns `-1`, `0`, or `1` based on two opposing keys.
 
 ```tsx src/main.tsx
-import { useSignal, useNode, useEvent } from 'fraxel/hooks'
-import { PrimaryNode } from 'fraxel'
+import { createGame, Game, Scene } from 'fraxel/jsx'
+import { Input, shapes } from 'fraxel'
+import { useRigidBody, useAction, useActionAxis, useEffect, useUpdate } from 'fraxel/hooks'
+
+const Left = Input.createAction({ key: 'a' })
+const Right = Input.createAction({ key: 'd' })
+const Jump = Input.createAction({ key: ' ' })
+
+function Platform({ position, width }: { position: [number, number]; width: number }) {
+  return (
+    <rigid-body isStatic position={position}>
+      <geometry shape={shapes.rectangle(width, 16)} fillColor={[0.2, 0.3, 1, 1]} />
+      <collider shape={shapes.rectangle(width, 16)} group={['ground']} collidesWith={['player']} />
+    </rigid-body>
+  )
+}
 
 function Player() {
-  const sprite = useNode(PrimaryNode.Sprite)
-  const [health, setHealth] = useSignal(100)
+  const body = useRigidBody()
+  const direction = useActionAxis(Left, Right)
+  const jump = useAction(Jump)
 
-  // Move the player right at 30 pixels per second
-  useEvent(sprite, 'updated', (delta) => {
-    sprite.node.position.x += delta * 30
+  useEffect(() => {
+    if (jump.justPressed() && body.isGrounded()) {
+      body.applyImpulse([0, -400])
+    }
+  })
+
+  useUpdate(() => {
+    body.setVelocity([direction() * 240, body.velocity().y])
   })
 
   return (
-    <sprite
-      ref={sprite}
-      textureId={PLAYER}
-      position={[0, 50]}
-      grayscale={() => (health() <= 0 ? 1 : 0)}
-      brightness={() => 0.5 + health() / 200}
-    >
-      <clickable size={[32, 32]} onClick={() => setHealth(Math.max(0, health() - 10))} />
-    </sprite>
+    <rigid-body ref={body} position={[220, 0]} mass={2}>
+      <geometry shape={shapes.capsule(12, 8)} fillColor={[1, 0.1, 0.4, 1]} />
+      <collider shape={shapes.capsule(12, 8)} group={['player']} collidesWith={['ground']} />
+    </rigid-body>
   )
 }
+
+function Main() {
+  return (
+    <transform>
+      <Platform position={[0, 300]} width={480} />
+      <Platform position={[80, 220]} width={100} />
+      <Platform position={[280, 160]} width={120} />
+      <Platform position={[140, 100]} width={100} />
+      <Player />
+    </transform>
+  )
+}
+
+const game = createGame(
+  <Game width={480} height={320} defaultScene="main">
+    <Scene name="main" component={Main} />
+  </Game>,
+  document.querySelector('#root')!,
+)
+
+game.play()
 ```
 
-- **`useNode(PrimaryNode.Sprite)`** — creates a typed node reference (`NodeReference<Sprite>`). Pass it to `ref` on the JSX element to bind it.
-- **`useEvent(sprite, 'updated', callback)`** — subscribes to the node's `updated` event, which fires every frame with `delta` (time since last frame in seconds). The subscription is automatically cleaned up when the node is destroyed.
-- **`sprite.node`** — the underlying engine node, available after the node has started.
+Here's what's happening:
+
+- **`Input.createAction({ key: 'a' })`** — creates a reusable action symbol bound to a key.
+- **`useActionAxis(Left, Right)`** — returns `-1` when moving left, `1` when right, `0` when neither.
+- **`useAction(Jump)`** — gives you `justPressed()` which is `true` only on the first frame the key is held.
+- **`body.isGrounded()`** — reactive `true` when the body rests on a surface.
+- **`body.applyImpulse([0, -400])`** — instant upward velocity for jumping.
+- **`body.setVelocity([x, y])`** — overrides velocity each frame for horizontal movement.
+
+## Step 5 — Add camera follow
+
+The `<camera>` node follows a target and applies viewport transforms. Attach it to the player so the view tracks their movement.
+
+```tsx src/main.tsx
+import { createGame, Game, Scene } from 'fraxel/jsx'
+import { Input, shapes } from 'fraxel'
+import { useRigidBody, useAction, useActionAxis, useEffect, useUpdate } from 'fraxel/hooks'
+
+const Left = Input.createAction({ key: 'a' })
+const Right = Input.createAction({ key: 'd' })
+const Jump = Input.createAction({ key: ' ' })
+
+function Platform({ position, width }: { position: [number, number]; width: number }) {
+  return (
+    <rigid-body isStatic position={position}>
+      <geometry shape={shapes.rectangle(width, 16)} fillColor={[0.2, 0.3, 1, 1]} />
+      <collider shape={shapes.rectangle(width, 16)} group={['ground']} collidesWith={['player']} />
+    </rigid-body>
+  )
+}
+
+function Player() {
+  const body = useRigidBody()
+  const direction = useActionAxis(Left, Right)
+  const jump = useAction(Jump)
+
+  useEffect(() => {
+    if (jump.justPressed() && body.isGrounded()) {
+      body.applyImpulse([0, -400])
+    }
+  })
+
+  useUpdate(() => {
+    body.setVelocity([direction() * 240, body.velocity().y])
+  })
+
+  return (
+    <rigid-body ref={body} position={[220, 0]} mass={2}>
+      <camera current smoothing={5} offset={[0, -30]} />
+      <geometry shape={shapes.capsule(12, 8)} fillColor={[1, 0.1, 0.4, 1]} />
+      <collider shape={shapes.capsule(12, 8)} group={['player']} collidesWith={['ground']} />
+    </rigid-body>
+  )
+}
+
+function Main() {
+  return (
+    <transform>
+      <Platform position={[0, 300]} width={480} />
+      <Platform position={[80, 220]} width={100} />
+      <Platform position={[280, 160]} width={120} />
+      <Platform position={[140, 100]} width={100} />
+      <Player />
+    </transform>
+  )
+}
+
+const game = createGame(
+  <Game width={480} height={320} defaultScene="main">
+    <Scene name="main" component={Main} />
+  </Game>,
+  document.querySelector('#root')!,
+)
+
+game.play()
+```
+
+- **`<camera current>`** — makes this the active camera that controls the viewport.
+- **`smoothing={5}`** — camera interpolation speed (higher = snappier follow).
+- **`offset={[0, -30]}`** — camera offset so the player isn't centered at the bottom.
 
 ## Complete example
 
 <Steps>
-  <Step title="Create your asset files">
-    Place `background.png` and `player.png` in `public/assets/`.
-  </Step>
-  <Step title="Write main.tsx">
+  <Step title="Create the file">
     Copy the final code below into `src/main.tsx`.
   </Step>
   <Step title="Run your bundler">
     Start your dev server (`vite`, `esbuild`, etc.) and open the browser.
   </Step>
-  <Step title="Click the sprite">
-    Each click reduces health by 10. At 0 the sprite turns gray.
+  <Step title="Play the game">
+    Use **A/D** to move left and right. Press **Space** to jump. The camera follows the player.
   </Step>
 </Steps>
 
 ```tsx src/main.tsx
 import { createGame, Game, Scene } from 'fraxel/jsx'
-import { loadTexture } from 'fraxel/assets'
-import { useSignal, useNode, useEvent } from 'fraxel/hooks'
-import { PrimaryNode } from 'fraxel'
+import { Input, shapes } from 'fraxel'
+import { useRigidBody, useAction, useActionAxis, useEffect, useUpdate } from 'fraxel/hooks'
 
-const BG = await loadTexture('/assets/background.png')
-const PLAYER = await loadTexture('/assets/player.png')
+const Left = Input.createAction({ key: 'a' })
+const Right = Input.createAction({ key: 'd' })
+const Jump = Input.createAction({ key: ' ' })
 
-function Player() {
-  const sprite = useNode(PrimaryNode.Sprite)
-  const [health, setHealth] = useSignal(100)
-
-  useEvent(sprite, 'updated', (delta) => {
-    sprite.node.position.x = (sprite.node.position.x + delta * 30) % 192
-  })
-
+function Platform({ position, width }: { position: [number, number]; width: number }) {
   return (
-    <sprite
-      ref={sprite}
-      textureId={PLAYER}
-      position={[0, 50]}
-      grayscale={() => (health() <= 0 ? 1 : 0)}
-      brightness={() => 0.5 + health() / 200}
-    >
-      <clickable size={[32, 32]} onClick={() => setHealth(Math.max(0, health() - 10))} />
-    </sprite>
+    <rigid-body isStatic position={position}>
+      <geometry shape={shapes.rectangle(width, 16)} fillColor={[0.2, 0.3, 1, 1]} />
+      <collider shape={shapes.rectangle(width, 16)} group={['ground']} collidesWith={['player']} />
+    </rigid-body>
   )
 }
 
-function GameScene() {
+function Player() {
+  const body = useRigidBody()
+  const direction = useActionAxis(Left, Right)
+  const jump = useAction(Jump)
+
+  useEffect(() => {
+    if (jump.justPressed() && body.isGrounded()) {
+      body.applyImpulse([0, -400])
+    }
+  })
+
+  useUpdate(() => {
+    body.setVelocity([direction() * 240, body.velocity().y])
+  })
+
+  return (
+    <rigid-body ref={body} position={[220, 0]} mass={2}>
+      <camera current smoothing={5} offset={[0, -30]} />
+      <geometry shape={shapes.capsule(12, 8)} fillColor={[1, 0.1, 0.4, 1]} />
+      <collider shape={shapes.capsule(12, 8)} group={['player']} collidesWith={['ground']} />
+    </rigid-body>
+  )
+}
+
+function Main() {
   return (
     <transform>
-      <sprite textureId={BG} />
+      <Platform position={[0, 300]} width={480} />
+      <Platform position={[80, 220]} width={100} />
+      <Platform position={[280, 160]} width={120} />
+      <Platform position={[140, 100]} width={100} />
       <Player />
     </transform>
   )
 }
 
 const game = createGame(
-  <Game width={192} height={112} defaultScene="main">
-    <Scene name="main" component={GameScene} />
+  <Game width={480} height={320} defaultScene="main">
+    <Scene name="main" component={Main} />
   </Game>,
   document.querySelector('#root')!,
 )
@@ -235,19 +355,29 @@ const game = createGame(
 game.play()
 ```
 
+## What you learned
+
+In under 80 lines you built a platformer with:
+
+- **Physics** — gravity, collision response, and jumping via `applyImpulse`
+- **Input** — semantic actions with `Input.createAction` and reactive state with `useAction`
+- **Platforms** — static rigid bodies that the player lands on
+- **Camera** — smooth follow attached to the player
+- **Geometry** — colored shapes rendered without textures
+
 ## Next steps
 
 <CardGroup cols={2}>
-  <Card title="Nodes" icon="shapes" href="/getting-started/nodes">
-    Explore every node type and the properties each one accepts.
-  </Card>
-  <Card title="Signals" icon="bolt" href="/getting-started/signals">
-    Go deeper with reactive state, computed values, and effects.
+  <Card title="Physics" icon="circle-dot" href="/guides/physics">
+    Go deeper with forces, bounce, friction, and multiple colliders.
   </Card>
   <Card title="Input" icon="keyboard" href="/getting-started/input">
-    Add keyboard controls and semantic input actions.
+    Add more actions and pointer input.
   </Card>
-  <Card title="Collision" icon="circle-dot" href="/getting-started/collision">
-    Detect overlaps and build a basic hit detection system.
+  <Card title="Signals" icon="bolt" href="/getting-started/signals">
+    Add reactive state like health, score, and cooldowns.
+  </Card>
+  <Card title="Spawning" icon="plus" href="/guides/spawning">
+    Dynamically create enemies and projectiles at runtime.
   </Card>
 </CardGroup>

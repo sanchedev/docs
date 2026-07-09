@@ -1,6 +1,6 @@
 ---
 title: "FraxelScript: Separating Game Logic from Rendering"
-sidebarTitle: "Scripts"
+sidebarTitle: "FraxelScript"
 description: "Separate game logic from JSX in Fraxel using FraxelScript. Learn setup(), connect(), this.me, and how to call script methods from other components."
 ---
 
@@ -11,11 +11,11 @@ As your game grows, mixing rendering and logic inside the same JSX component bec
 Scripts solve two problems:
 
 1. **Separation of concerns** — keep rendering (JSX) and behavior (scripts) in separate files.
-2. **Cross-component access** — other components can call methods on a script via `useScript`, enabling clean communication without prop drilling or global state.
+2. **Cross-component access** — other components can call methods on a script via `node.script()`, enabling clean communication without prop drilling or global state.
 
 ## Creating a Script
 
-Extend `FraxelScript<NodeType>` where `NodeType` is the `PrimaryNode` enum value for the node you'll attach to. Override `setup()` to register event listeners:
+Extend `FraxelScript<NodeType>` where `NodeType` is the node type you'll attach to. Override `setup()` to register event listeners:
 
 ```ts PlayerScript.ts
 import { FraxelScript } from 'fraxel/scripts'
@@ -130,20 +130,18 @@ Available events depend on the node type. Common ones include `started`, `destro
 
 There are two ways to call methods on a script from another component.
 
-**`useScript(ref)`** — call it at the top level of a component (like all hooks) with a `NodeReference` you already hold. It returns a `SignalGetter` that resolves once the node is ready:
+**`node.script(ScriptClass)`** — access the script attached to a node via the `ref.script()` method. The script is available once the node has started:
 
 ```tsx HUD.tsx
-import { useNode, useScript } from 'fraxel/hooks'
-import { PrimaryNode } from 'fraxel'
+import { useTransform } from 'fraxel/hooks'
 
-function HUD({ playerRef }: { playerRef: NodeReference<PrimaryNode.Transform> }) {
-  // useScript must be called at the top level, not inside a callback
-  const playerScript = useScript<PlayerScript>(playerRef)
+function HUD({ playerRef }: { playerRef: NodeReference }) {
+  const player = useTransform()
 
   return (
-    <transform>
+    <transform ref={player.ref}>
       <text
-        text={() => `HP: ${playerScript()?.health ?? 100}`}
+        text={() => `HP: ${playerRef.script(PlayerScript)?.health ?? 100}`}
         style={{ fontSize: 14, foregroundColor: '#fff' }}
       />
     </transform>
@@ -154,14 +152,14 @@ function HUD({ playerRef }: { playerRef: NodeReference<PrimaryNode.Transform> })
 **`getParentScript(node, ScriptClass)`** — use this inside event callbacks when you encounter a node dynamically and want to retrieve its parent's script. It walks up `node.parent.script` and returns it only if it matches the given class:
 
 ```tsx Projectile.tsx
-import { useNode, useEvent } from 'fraxel/hooks'
-import { PrimaryNode, shapes, getParentScript } from 'fraxel'
+import { useCollider, useTrigger } from 'fraxel/hooks'
+import { shapes, getParentScript } from 'fraxel'
 import { EnemyScript } from './EnemyScript'
 
 function Projectile() {
-  const collider = useNode(PrimaryNode.Collider)
+  const collider = useCollider()
 
-  useEvent(collider, 'colliderEntered', (other) => {
+  useTrigger(collider.colliderEntered, (other) => {
     // getParentScript is a plain function, safe to call in callbacks
     const script = getParentScript(other.node, EnemyScript)
     script?.applyDamage(30)
@@ -171,7 +169,7 @@ function Projectile() {
     <rigid-body useGravity={false}>
       <sprite textureId={BULLET} sourceSize={[8, 4]} />
       <collider
-        ref={collider}
+        ref={collider.ref}
         shape={shapes.circle(4)}
         group={['bullet']}
         collidesWith={['enemy']}
@@ -266,6 +264,6 @@ function Enemy({ position }: { position: [number, number] }) {
 |----------|---------------------|
 | Simple state (score, health) | `useSignal` in a component |
 | Complex behavior (AI, state machines) | `FraxelScript` class |
-| Cross-component method calls | `FraxelScript` + `useScript` |
+| Cross-component method calls | `FraxelScript` + `node.script()` |
 | Event-driven cleanup logic | `useMount` return function |
 | Shared global state | `Signal` class at module scope |

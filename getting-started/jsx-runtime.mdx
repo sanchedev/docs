@@ -121,21 +121,20 @@ const [brightness, setBrightness] = useSignal(1)
 
 ## The `ref` prop
 
-Use the `ref` prop to bind a JSX element to a `NodeReference` created by `useNode`. This gives you imperative access to the underlying engine node inside event handlers.
+Use the `ref` prop to bind a JSX element to a `NodeReference` created by a node-specific hook (like `useSprite`, `useTransform`). This gives you imperative access to the underlying engine node inside event handlers.
 
 ```tsx
-import { useNode, useEvent } from 'fraxel/hooks'
-import { PrimaryNode } from 'fraxel'
+import { useSprite, useTrigger } from 'fraxel/hooks'
 
 function Player() {
-  const sprite = useNode(PrimaryNode.Sprite)
+  const sprite = useSprite()
 
-  useEvent(sprite, 'updated', (delta) => {
+  useTrigger(sprite.updated, (delta) => {
     // sprite.node is the live Sprite engine node
     sprite.node.position.x += delta * 60
   })
 
-  return <sprite ref={sprite} textureId={PLAYER_TEX} />
+  return <sprite ref={sprite.ref} textureId={PLAYER_TEX} />
 }
 ```
 

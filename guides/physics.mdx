@@ -89,7 +89,7 @@ function Player() {
   })
 
   return (
-    <rigid-body ref={body.ref} position={[100, 200]}>
+    <rigid-body ref={body} position={[100, 200]}>
       <sprite textureId={PLAYER} sourceSize={[32, 48]} displaySize={[64, 96]} />
       <collider shape={shapes.rectangle(32, 48)} group={['player']} collidesWith={['ground']} />
     </rigid-body>
@@ -97,14 +97,14 @@ function Player() {
 }
 ```
 
-```tsx useNode (lower level)
-import { useNode, useEvent } from 'fraxel/hooks'
-import { PrimaryNode, vector2 } from 'fraxel'
+```tsx useRigidBody with useTrigger (lower level)
+import { useRigidBody, useTrigger } from 'fraxel/hooks'
+import { vector2 } from 'fraxel'
 
 function Rocket() {
-  const body = useNode(PrimaryNode.RigidBody)
+  const body = useRigidBody()
 
-  useEvent(body, 'updated', (delta) => {
+  useTrigger(body.updated, (delta) => {
     // Continuous upward thrust
     body.node.applyForce(vector2(0, -300))
   })
@@ -133,14 +133,14 @@ function Rocket() {
 import { useRigidBody } from 'fraxel/hooks'
 
 function Player() {
-  const { ref, velocity, isGrounded, applyImpulse, setVelocity } = useRigidBody()
+  const body = useRigidBody()
 
   // Move horizontally at a fixed speed
   useEffect(() => {
-    setVelocity([120, velocity().y])
+    body.setVelocity([120, body.velocity().y])
   })
 
-  return <rigid-body ref={ref}>{/* ... */}</rigid-body>
+  return <rigid-body ref={body}>{/* ... */}</rigid-body>
 }
 ```
 

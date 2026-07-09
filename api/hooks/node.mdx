@@ -1,0 +1,384 @@
+---
+title: "Node Hooks API Reference — Fraxel Game Engine"
+sidebarTitle: "Node"
+description: "Reference for Fraxel's node-specific hooks: useSprite, useCollider, useRigidBody, and more for typed node references."
+---
+
+Node hooks create typed references to specific node types. Each hook returns a `NodeReference` that becomes populated once the component mounts. Pass the reference to a node's `ref` prop to capture the live instance.
+
+---
+
+## Base NodeReference
+
+All node-specific hooks return a type-specific reference that extends the base `NodeReference<T>`. The base provides:
+
+| Property | Type | Description |
+|---|---|---|
+| `node` | `T` | The live node instance. Throws `NodeNotInitializedError` if accessed before mount. |
+| `signal` | `SignalGetter<T \| null>` | Reactive getter for the node instance. Returns `null` before mount and after destroy. |
+| `started` | `Trigger<[]>` | Fires when the node starts. |
+| `updated` | `Trigger<[delta: number]>` | Fires every frame with the delta time. |
+| `drawed` | `Trigger<[delta: number]>` | Fires every frame when the node is drawn. |
+| `destroyed` | `Trigger<[]>` | Fires when the node is destroyed. |
+| `script` | `<K>(scriptClass: K, noTrack?: boolean): InstanceType<K> \| undefined` | Access the attached `FraxelScript` instance by passing the script class constructor. |
+| `spawn` | `(jsx: Fraxel.Node) => void` | Dynamically append a child node. |
+
+---
+
+## useTransform
+
+Returns a reference to a `Transform` node — the spatial container used to group and position child nodes.
+
+```ts
+useTransform(): TransformReference
+```
+
+```tsx
+import { useTransform } from 'fraxel/hooks'
+
+function Player() {
+  const container = useTransform()
+
+  useEffect(() => {
+    console.log('Player position:', container.node.position)
+  })
+
+  return (
+    <transform ref={container} position={[100, 200]}>
+      <sprite textureId={PLAYER} />
+    </transform>
+  )
+}
+```
+
+---
+
+## useSprite
+
+Returns a reference to a `Sprite` node — used to render textures.
+
+```ts
+useSprite(): SpriteReference
+```
+
+```tsx
+import { useSprite } from 'fraxel/hooks'
+
+function Avatar() {
+  const sprite = useSprite()
+
+  useEffect(() => {
+    sprite.node.visible = true
+  })
+
+  return <sprite ref={sprite} textureId={PLAYER} />
+}
+```
+
+---
+
+## useText
+
+Returns a reference to a `Text` node — renders styled canvas text.
+
+```ts
+useText(): TextReference
+```
+
+```tsx
+import { useText } from 'fraxel/hooks'
+
+function ScoreLabel() {
+  const text = useText()
+
+  useEffect(() => {
+    text.node.text = 'Score: 0'
+  })
+
+  return (
+    <text
+      ref={text}
+      text={() => `Score: ${score()}`}
+      style={{ fontSize: 24, foregroundColor: '#fff' }}
+    />
+  )
+}
+```
+
+---
+
+## useGeometry
+
+Returns a reference to a `Geometry` node — renders primitive shapes (rectangles, circles, capsules).
+
+```ts
+useGeometry(): GeometryReference
+```
+
+```tsx
+import { useGeometry } from 'fraxel/hooks'
+
+function HealthBar() {
+  const bar = useGeometry()
+  const [health] = useSignal(100)
+
+  return (
+    <geometry
+      ref={bar}
+      shape={shapes.rectangle(200, 20)}
+      fillColor={() => [1 - health() / 100, health() / 100, 0, 1]}
+    />
+  )
+}
+```
+
+---
+
+## useCollider
+
+Returns a reference to a `Collider` node — used for collision detection.
+
+```ts
+useCollider(): ColliderReference
+```
+
+```tsx
+import { useCollider, useEffect } from 'fraxel/hooks'
+import { shapes } from 'fraxel'
+
+function Enemy() {
+  const collider = useCollider()
+
+  useEffect(() => {
+    console.log('Enemy collider mounted')
+  })
+
+  return (
+    <collider
+      ref={collider}
+      shape={shapes.circle(8)}
+      group={['enemy']}
+      collidesWith={['projectile']}
+    />
+  )
+}
+```
+
+---
+
+## useRigidBody
+
+Returns a reference to a `RigidBody` node — applies physics simulation.
+
+```ts
+useRigidBody(): RigidBodyReference
+```
+
+```tsx
+import { useRigidBody, useAction, useEffect } from 'fraxel/hooks'
+import { Input } from 'fraxel'
+
+const Jump = Input.createAction({ key: ' ' })
+
+function Player() {
+  const body = useRigidBody()
+  const { justPressed } = useAction(Jump)
+
+  useEffect(() => {
+    if (justPressed()) {
+      body.node.applyImpulse([0, -400])
+    }
+  })
+
+  return <rigid-body ref={body} />
+}
+```
+
+---
+
+## useCamera
+
+Returns a reference to a `Camera` node — controls the viewport.
+
+```ts
+useCamera(): CameraReference
+```
+
+```tsx
+import { useCamera } from 'fraxel/hooks'
+
+function FollowCamera() {
+  const camera = useCamera()
+
+  useEffect(() => {
+    camera.node.follow(playerRef)
+  })
+
+  return <camera ref={camera} />
+}
+```
+
+---
+
+## useClickable
+
+Returns a reference to a `Clickable` node — handles pointer interactions.
+
+```ts
+useClickable(): ClickableReference
+```
+
+```tsx
+import { useClickable, useTrigger, useEffect } from 'fraxel/hooks'
+
+function Button() {
+  const clickable = useClickable()
+
+  useTrigger(clickable.clicked, () => {
+    console.log('clicked')
+  })
+
+  useEffect(() => {
+    console.log('Button is interactive')
+  })
+
+  return (
+    <clickable ref={clickable} size={[120, 40]} />
+  )
+}
+```
+
+---
+
+## useRayCast
+
+Returns a reference to a `RayCast` node — projects a ray for line-of-sight or hit detection.
+
+```ts
+useRayCast(): RayCastReference
+```
+
+```tsx
+import { useRayCast } from 'fraxel/hooks'
+
+function VisionRay() {
+  const ray = useRayCast()
+
+  useEffect(() => {
+    const hit = ray.node.cast()
+    if (hit) console.log('Hit:', hit.node)
+  })
+
+  return <ray-cast ref={ray} direction={[1, 0]} maxDistance={200} />
+}
+```
+
+---
+
+## useAnimation
+
+Returns a reference to an `AnimationPlayer` node — plays sprite animations.
+
+```ts
+useAnimation(): AnimationReference
+```
+
+```tsx
+import { useAnimation } from 'fraxel/hooks'
+
+function WalkCycle() {
+  const anim = useAnimation()
+
+  useEffect(() => {
+    anim.node.play('walk')
+  })
+
+  return <animation-player ref={anim} animations={walkAnimations} />
+}
+```
+
+---
+
+## useAudio
+
+Returns a reference to an `AudioPlayer` node — plays audio clips.
+
+```ts
+useAudio(): AudioReference
+```
+
+```tsx
+import { useAudio, useEffect } from 'fraxel/hooks'
+
+function SoundEffect() {
+  const audio = useAudio()
+
+  useEffect(() => {
+    audio.play()
+  })
+
+  return <audio-player ref={audio} src={EXPLOSION_SOUND} />
+}
+```
+
+---
+
+## useTimer
+
+Returns a reference to a `Timer` node — countdown or interval timer.
+
+```ts
+useTimer(): TimerReference
+```
+
+```tsx
+import { useTimer, useEffect } from 'fraxel/hooks'
+
+function Cooldown() {
+  const timer = useTimer()
+
+  useEffect(() => {
+    timer.node.start(3)
+    timer.node.finished.on(() => {
+      console.log('Cooldown complete')
+    })
+  })
+
+  return <timer ref={timer} />
+}
+```
+
+---
+
+## useGroup
+
+Returns a reference to a `Group` node — a logical grouping container (no rendering).
+
+```ts
+useGroup(): GroupReference
+```
+
+```tsx
+import { useGroup } from 'fraxel/hooks'
+
+function EnemySpawner() {
+  const group = useGroup()
+
+  useEffect(() => {
+    console.log('Spawner group ready')
+  })
+
+  return (
+    <group ref={group}>
+      <Enemy position={[0, 0]} />
+      <Enemy position={[100, 0]} />
+    </group>
+  )
+}
+```
+
+## Related
+
+- [FraxelScript](/api/concepts/fraxel-script) — Learn more about scripts
+- [Event System](/api/concepts/event-system) — Understanding events
+- [State Hooks](/api/hooks/state) — `useSignal`, `useComputed`

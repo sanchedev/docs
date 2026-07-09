@@ -14,25 +14,24 @@ A component is just a TypeScript function. Define it, use it in JSX like a built
 
 ```tsx src/components/Coin.tsx
 import { loadTexture } from 'fraxel/assets'
-import { useSignal, useNode, useEvent } from 'fraxel/hooks'
-import { PrimaryNode, shapes } from 'fraxel'
+import { useSignal, useSprite, useClickable, useTrigger } from 'fraxel/hooks'
 
 const COIN_TEX = await loadTexture('/assets/coin.png')
 
 export function Coin() {
-  const sprite = useNode(PrimaryNode.Sprite)
-  const clickable = useNode(PrimaryNode.Clickable)
+  const sprite = useSprite()
+  const clickable = useClickable()
   const [collected, setCollected] = useSignal(false)
 
-  useEvent(clickable, 'clicked', () => setCollected(true))
+  useTrigger(clickable.clicked, () => setCollected(true))
 
   return (
     <sprite
-      ref={sprite}
+      ref={sprite.ref}
       textureId={COIN_TEX}
       opacity={() => (collected() ? 0 : 1)}
     >
-      <clickable ref={clickable} size={[16, 16]} disabled={() => collected()} />
+      <clickable ref={clickable.ref} size={[16, 16]} disabled={() => collected()} />
     </sprite>
   )
 }
@@ -125,21 +124,21 @@ Hooks must be called at the **top level of the component function** — not insi
 ```tsx
 // ✅ Correct — hooks at the top level
 function Player() {
-  const sprite = useNode(PrimaryNode.Sprite)
+  const sprite = useSprite()
   const [hp, setHp] = useSignal(100)
   const [alive, setAlive] = useSignal(true)
 
-  useEvent(sprite, 'updated', (delta) => {
+  useTrigger(sprite.updated, (delta) => {
     // Game logic here
   })
 
-  return <sprite ref={sprite} textureId={PLAYER_TEX} />
+  return <sprite ref={sprite.ref} textureId={PLAYER_TEX} />
 }
 
 // ❌ Wrong — hook inside a conditional
 function Player() {
   if (someCondition) {
-    const sprite = useNode(PrimaryNode.Sprite) // Do not do this
+    const sprite = useSprite() // Do not do this
   }
   // ...
 }
@@ -228,31 +227,30 @@ export function HUD() {
 
 ## Spawning components dynamically
 
-Use `useSpawn` to add nodes to the scene at runtime — for example, when spawning bullets or enemies.
+Use `container.node.spawn()` to add nodes to the scene at runtime — for example, when spawning bullets or enemies.
 
 ```tsx
-import { useNode, useSpawn, useEvent } from 'fraxel/hooks'
-import { PrimaryNode, Input } from 'fraxel'
+import { useTransform, useTrigger } from 'fraxel/hooks'
+import { Input } from 'fraxel'
 import { Shoot } from '../input'
 
 function BulletSpawner() {
-  const container = useNode(PrimaryNode.Transform)
-  const spawn = useSpawn(container)
+  const container = useTransform()
 
-  useEvent(container, 'updated', () => {
+  useTrigger(container.updated, () => {
     if (Input.justActionPressed(Shoot)) {
-      spawn(<Bullet position={container.node.globalPosition} />)
+      container.node.spawn(<Bullet position={container.node.globalPosition} />)
     }
   })
 
-  return <transform ref={container} />
+  return <transform ref={container.ref} />
 }
 ```
 
-`spawn` returns a function. Every call to it creates a new node subtree and inserts it as a child of `container`.
+`container.node.spawn()` creates a new node subtree and inserts it as a child of the container.
 
 <Note>
-  `useSpawn` does not re-render the component. It imperatively inserts nodes. Spawned nodes are managed by the engine's scene tree — they will be destroyed when their parent is destroyed or when they call their own destroy logic.
+  `spawn()` does not re-render the component. It imperatively inserts nodes. Spawned nodes are managed by the engine's scene tree — they will be destroyed when their parent is destroyed or when they call their own destroy logic.
 </Note>
 
 ## Class components (advanced)
@@ -276,5 +274,5 @@ class Rock extends Transform {
 ```
 
 <Note>
-  Because class components must extend a built-in node, they cannot call hooks. Use function components with `useNode` and `useEvent` when you need reactive state or lifecycle subscriptions.
+  Because class components must extend a built-in node, they cannot call hooks. Use function components with node-specific hooks (like `useSprite`, `useTransform`) and `useTrigger` when you need reactive state or lifecycle subscriptions.
 </Note>

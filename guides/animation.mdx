@@ -23,22 +23,21 @@ First, load your sprite sheet texture. Then use `animationFromSheet` to build a 
 ```tsx Player.tsx
 import { loadTexture } from 'fraxel/assets'
 import { animationFromSheet } from 'fraxel/animation'
-import { useNode } from 'fraxel/hooks'
-import { PrimaryNode } from 'fraxel'
+import { useSprite } from 'fraxel/hooks'
 
 const IDLE_SHEET = await loadTexture('/assets/player-idle.png') // 4 columns × 1 row
 const WALK_SHEET = await loadTexture('/assets/player-walk.png') // 4 columns × 2 rows
 
 function Player() {
-  const sprite = useNode(PrimaryNode.Sprite)
+  const sprite = useSprite()
 
-  const idleAnim = animationFromSheet(sprite, IDLE_SHEET, {
+  const idleAnim = animationFromSheet(sprite.ref, IDLE_SHEET, {
     columns: 4,
     duration: 0.8,
     loop: true,
   })
 
-  const walkAnim = animationFromSheet(sprite, WALK_SHEET, {
+  const walkAnim = animationFromSheet(sprite.ref, WALK_SHEET, {
     columns: 4,
     rows: 2,
     range: [0, 7],
@@ -111,10 +110,10 @@ function Player() {
 Pass a `SignalGetter<string>` as `currentAnim` and the player will switch automatically whenever your signal changes. Combine with `useComputed` to derive the animation name from game state:
 
 ```tsx Player.tsx
-import { useSignal, useComputed } from 'fraxel/hooks'
+import { useSignal, useComputed, useSprite } from 'fraxel/hooks'
 
 function Player() {
-  const sprite = useNode(PrimaryNode.Sprite)
+  const sprite = useSprite()
   const [isWalking, setIsWalking] = useSignal(false)
 
   const currentAnim = useComputed(() => (isWalking() ? 'walk' : 'idle'))
@@ -134,10 +133,10 @@ function Player() {
 For multi-state characters, `useMatch` reads like a switch expression:
 
 ```tsx Player.tsx
-import { useMatch, useSignal } from 'fraxel/hooks'
+import { useMatch, useSignal, useSprite } from 'fraxel/hooks'
 
 function Player() {
-  const sprite = useNode(PrimaryNode.Sprite)
+  const sprite = useSprite()
   const [state, setState] = useSignal<'idle' | 'walk' | 'jump'>('idle')
 
   const currentAnim = useMatch(state, {
@@ -163,16 +162,16 @@ function Player() {
 `useAnimation` wraps `AnimationPlayer` with reactive state and control methods:
 
 ```tsx Player.tsx
-import { useAnimation } from 'fraxel/hooks'
+import { useAnimation, useSprite } from 'fraxel/hooks'
 
 function Enemy() {
-  const sprite = useNode(PrimaryNode.Sprite)
-  const { ref, animName, frameIndex, ended, play, stop, setNext } = useAnimation()
+  const sprite = useSprite()
+  const anim = useAnimation()
 
   // Chain a death animation after attack finishes
   useEffect(() => {
-    if (ended() && animName() === 'attack') {
-      play('death')
+    if (anim.ended() && anim.animName() === 'attack') {
+      anim.play('death')
     }
   })
 
@@ -180,7 +179,7 @@ function Enemy() {
     <transform>
       <sprite ref={sprite} sourceSize={[32, 32]} displaySize={[64, 64]} />
       <animation-player
-        ref={ref}
+        ref={anim}
         animations={() => ({ idle: idleAnim, attack: attackAnim, death: deathAnim })}
         currentAnim="idle"
       />
@@ -226,11 +225,11 @@ const walk = { keyframes: walkFrames, fps: 10, loop: true }
 Not everything needs frame-by-frame artwork. Use `tween()` for smooth property animations — fading, scaling, bouncing. See [Tweening](/guides/tweening) for the full API.
 
 ```tsx CoinPop.tsx
-import { useMount, useNode } from 'fraxel/hooks'
+import { useMount, useSprite } from 'fraxel/hooks'
 import { tween, easeOutBounce } from 'fraxel/animation'
 
 function CoinPop() {
-  const sprite = useNode(PrimaryNode.Sprite)
+  const sprite = useSprite()
 
   useMount(() => {
     tween({

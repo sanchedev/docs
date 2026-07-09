@@ -87,7 +87,7 @@ useEffect(() => {
 
 ## Hook Context: Rules of Hooks
 
-Hooks (`useSignal`, `useMount`, `useEffect`, `useEvent`, `useNode`, `useChild`, `useTrigger`, etc.) are only valid **during the synchronous execution of a component function**. The hook context is a stack (`currentContext: HookContext[]`) managed by `startHooks` / `finishHooks` in `context.ts`.
+Hooks (`useSignal`, `useMount`, `useEffect`, `useTrigger`, `useSprite`, etc.) are only valid **during the synchronous execution of a component function**. The hook context is a stack (`currentContext: HookContext[]`) managed by `startHooks` / `finishHooks` in `context.ts`.
 
 `startHooks()` pushes a new context object onto the stack. `finishHooks(nodes)` pops it and runs all accumulated effects against the resolved node array.
 
@@ -112,12 +112,12 @@ function Player() {
 
 Nested component calls each get their own hook context because `renderFuncComponent` calls `startHooks()` before invoking the component function. Effects are accumulated per component and bound to the nodes that component returns.
 
-## `useNode` and `useChild`: Accessing Nodes After Render
+## `useSprite` and `ref.node.child`: Accessing Nodes After Render
 
-`useNode(type)` returns a `NodeReference<T>` — an object with a `.node` property. The reference is populated by the JSX `ref` prop during scene construction. You access the node in lifecycle callbacks, not during render:
+`useSprite()` returns a `NodeReference<PrimaryNode.Sprite>` — an object with a `.ref` property. The reference is populated by the JSX `ref` prop during scene construction. You access the node in lifecycle callbacks, not during render:
 
 ```tsx
-const sprite = useNode(PrimaryNode.Sprite)
+const sprite = useSprite()
 
 useMount(() => {
   sprite.node.brightness = 1.5  // ✅ node exists here
@@ -126,7 +126,7 @@ useMount(() => {
 return <sprite ref={sprite} />
 ```
 
-`useChild(['id', 'childId'], type)` resolves a path through the node tree. The resolution happens after render, in a hook effect, so the tree is fully constructed by the time the path is followed.
+`ref.node.child(['id', 'childId'], type)` resolves a path through the node tree. The resolution happens after render, in a hook effect, so the tree is fully constructed by the time the path is followed.
 
 ## Scene Transitions
 

@@ -7,22 +7,22 @@ description: "Play frame-based sprite animations. Define named animations from s
 Use `<animation-player>` to drive frame-based sprite animations. Pass a map of named `Animation` objects via the `animations` prop and specify the initial clip with `currentAnim`. The player advances frames by `fps × delta` each update — no manual frame tracking required. Pair it with `animationFromSheet()` to generate keyframes directly from a sprite-sheet texture.
 
 ```tsx
-import { useNode, useEvent } from 'fraxel/hooks'
-import { PrimaryNode, animationFromSheet } from 'fraxel'
+import { useSprite, useAnimation, useTrigger } from 'fraxel/hooks'
+import { animationFromSheet } from 'fraxel'
 
 const SHEET = await loadTexture('/assets/hero.png')
 
 function Hero() {
-  const sprite = useNode(PrimaryNode.Sprite)
-  const anim = useNode(PrimaryNode.AnimationPlayer)
+  const sprite = useSprite()
+  const anim = useAnimation()
 
   return (
     <sprite ref={sprite} textureId={SHEET} sourceSize={[16, 24]}>
       <animation-player
         ref={anim}
         animations={() => ({
-          idle: animationFromSheet(sprite.node, SHEET, { columns: 4, duration: 1, loop: true }),
-          walk: animationFromSheet(sprite.node, SHEET, { columns: 4, rows: 2, range: [4, 7], duration: 0.5, loop: true }),
+          idle: animationFromSheet(sprite, SHEET, { columns: 4, duration: 1, loop: true }),
+          walk: animationFromSheet(sprite, SHEET, { columns: 4, rows: 2, range: [4, 7], duration: 0.5, loop: true }),
         })}
         currentAnim="idle"
       />
@@ -33,11 +33,11 @@ function Hero() {
 
 ## Props
 
-<ParamField path="animations" type="() => Record<string, Animation>">
-  A **function** that returns a map of animation names to `Animation` objects.
-  It is called once when the node starts (deferred), which ensures that sibling
-  sprite nodes are already initialised. Returning a new object from the function
-  replaces all animations at once.
+<ParamField path="animations" type="Reactive<Record<string, Animation>>">
+  A map of animation names to `Animation` objects. Accepts a plain object or a
+  reactive getter function. When a function is provided, it is called once when
+  the node starts (deferred), which ensures that sibling sprite nodes are
+  already initialised. Returning a new object replaces all animations at once.
 
   ```tsx
   <animation-player
@@ -72,6 +72,12 @@ function Hero() {
     destroyOnEnd
   />
   ```
+</ParamField>
+
+<ParamField path="gameMode" type="GameMode">
+  Controls how this node behaves when the game is paused. Defaults to
+  `GameMode.INHERIT`. Use `GameMode.ALWAYS` for nodes that should keep updating
+  while paused.
 </ParamField>
 
 <ParamField path="ref" type="NodeReference<PrimaryNode.AnimationPlayer>">
@@ -113,16 +119,18 @@ function Hero() {
 | `animationStopped` | `(animName: string) => void` | Fires when `stop()` is called. |
 | `started` | `() => void` | Fires once after the node is initialized. |
 | `updated` | `(delta: number) => void` | Fires every frame during update. |
+| `drawed` | `(delta: number) => void` | Fires every frame when the node is being drawn. |
 | `destroyed` | `() => void` | Fires on removal. |
+| `zIndexChanged` | `(zIndex: number) => void` | Fires when the node's `zIndex` value changes. |
 
 <CodeGroup>
 
 ```tsx Reactive animation switching
-import { useNode, useComputed, useSignal } from 'fraxel/hooks'
-import { PrimaryNode, animationFromSheet } from 'fraxel'
+import { useSprite, useComputed, useSignal } from 'fraxel/hooks'
+import { animationFromSheet } from 'fraxel'
 
 function Character() {
-  const sprite = useNode(PrimaryNode.Sprite)
+  const sprite = useSprite()
   const [isWalking] = useSignal(false)
 
   const animName = useComputed(() => isWalking() ? 'walk' : 'idle')
@@ -131,8 +139,8 @@ function Character() {
     <sprite ref={sprite} textureId={SHEET} sourceSize={[16, 24]}>
       <animation-player
         animations={() => ({
-          idle: animationFromSheet(sprite.node, SHEET, { columns: 4, duration: 1, loop: true }),
-          walk: animationFromSheet(sprite.node, SHEET, { columns: 4, rows: 2, range: [4, 7], duration: 0.5, loop: true }),
+          idle: animationFromSheet(sprite, SHEET, { columns: 4, duration: 1, loop: true }),
+          walk: animationFromSheet(sprite, SHEET, { columns: 4, rows: 2, range: [4, 7], duration: 0.5, loop: true }),
         })}
         currentAnim={animName}
       />
@@ -142,15 +150,15 @@ function Character() {
 ```
 
 ```tsx One-shot attack with transition back to idle
-import { useNode, useEvent } from 'fraxel/hooks'
-import { PrimaryNode, animationFromSheet } from 'fraxel'
+import { useSprite, useAnimation, useTrigger } from 'fraxel/hooks'
+import { animationFromSheet } from 'fraxel'
 
 function SwordSwing() {
-  const sprite = useNode(PrimaryNode.Sprite)
-  const anim = useNode(PrimaryNode.AnimationPlayer)
+  const sprite = useSprite()
+  const anim = useAnimation()
 
-  useEvent(anim, 'animationEnded', () => {
-    anim.node.setNext('idle')
+  useTrigger(anim.animationEnded, () => {
+    anim.setNext('idle')
   })
 
   return (
@@ -158,8 +166,8 @@ function SwordSwing() {
       <animation-player
         ref={anim}
         animations={() => ({
-          idle:   animationFromSheet(sprite.node, SHEET, { columns: 4, duration: 1, loop: true }),
-          attack: animationFromSheet(sprite.node, SHEET, { columns: 6, rows: 2, range: [8, 13], duration: 0.4 }),
+          idle:   animationFromSheet(sprite, SHEET, { columns: 4, duration: 1, loop: true }),
+          attack: animationFromSheet(sprite, SHEET, { columns: 6, rows: 2, range: [8, 13], duration: 0.4 }),
         })}
         currentAnim="idle"
       />

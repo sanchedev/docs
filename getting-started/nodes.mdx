@@ -56,7 +56,7 @@ Access these properties via `nodeRef.node.position` inside event handlers after 
 
 ## Lifecycle events
 
-Every node goes through three lifecycle phases. You subscribe to these phases using `useEvent`.
+Every node goes through three lifecycle phases. You subscribe to these phases using `useTrigger`.
 
 | Event | When it fires | Callback signature |
 |---|---|---|
@@ -65,53 +65,49 @@ Every node goes through three lifecycle phases. You subscribe to these phases us
 | `destroyed` | Once, when the node is removed from the scene | `() => void` |
 
 ```tsx
-import { useNode, useEvent } from 'fraxel/hooks'
-import { PrimaryNode } from 'fraxel'
+import { useTransform, useTrigger } from 'fraxel/hooks'
 
 function MovingPlatform() {
-  const body = useNode(PrimaryNode.Transform)
+  const body = useTransform()
 
-  useEvent(body, 'started', () => {
+  useTrigger(body.started, () => {
     console.log('Platform entered the scene')
   })
 
-  useEvent(body, 'updated', (delta) => {
+  useTrigger(body.updated, (delta) => {
     body.node.position.x += Math.sin(Date.now() / 1000) * delta * 40
   })
 
-  useEvent(body, 'destroyed', () => {
+  useTrigger(body.destroyed, () => {
     console.log('Platform left the scene')
   })
 
-  return <transform ref={body} position={[96, 80]} />
+  return <transform ref={body.ref} position={[96, 80]} />
 }
 ```
 
-## Getting a node reference with `useNode`
+## Getting a node reference with node-specific hooks
 
-`useNode(type)` creates a `NodeReference<T>` — a typed container that Fraxel fills in when the node starts. Pass the reference to the `ref` prop on the corresponding JSX element.
+Node-specific hooks (like `useSprite()`, `useTransform()`, `useCollider()`) create a `NodeReference<T>` — a typed container that Fraxel fills in when the node starts. Pass the reference to the `ref` prop on the corresponding JSX element.
 
 ```tsx
-import { useNode, useEvent } from 'fraxel/hooks'
-import { PrimaryNode } from 'fraxel'
+import { useSprite, useTrigger } from 'fraxel/hooks'
 
 function Player() {
   // Create a typed reference for a Sprite node
-  const sprite = useNode(PrimaryNode.Sprite)
+  const sprite = useSprite()
 
-  useEvent(sprite, 'updated', (delta) => {
+  useTrigger(sprite.updated, (delta) => {
     // sprite.node is available here — the live Sprite instance
     sprite.node.position.x += delta * 60
   })
 
-  return <sprite ref={sprite} textureId={PLAYER_TEX} />
+  return <sprite ref={sprite.ref} textureId={PLAYER_TEX} />
 }
 ```
 
-`PrimaryNode` is an enum that lists every node type: `PrimaryNode.Sprite`, `PrimaryNode.Transform`, `PrimaryNode.Collider`, `PrimaryNode.RigidBody`, etc.
-
 <Warning>
-  Do not access `sprite.node` before the node has started (for example, at the top level of a component function body). It is `undefined` until the `started` event fires. Always access it inside a `useEvent`, `useMount`, or `useEffect` callback.
+  Do not access `sprite.node` before the node has started (for example, at the top level of a component function body). It is `undefined` until the `started` event fires. Always access it inside a `useTrigger`, `useMount`, or `useEffect` callback.
 </Warning>
 
 ## Sprite node
@@ -144,16 +140,15 @@ Key props:
 ## Text node
 
 ```tsx
-import { PrimaryNode } from 'fraxel'
-import { useSignal, useNode } from 'fraxel/hooks'
+import { useText, useSignal } from 'fraxel/hooks'
 
 function ScoreLabel() {
-  const label = useNode(PrimaryNode.Text)
+  const label = useText()
   const [score] = useSignal(0)
 
   return (
     <text
-      ref={label}
+      ref={label.ref}
       position={[8, 16]}
       text={() => `Score: ${score()}`}
       style={{
@@ -174,14 +169,21 @@ The `text` prop accepts a `SignalGetter<string>` or a plain string. Passing a ge
 `<clickable>` adds pointer hit detection to any parent node. It does not render anything — it only listens for pointer events inside the defined area.
 
 ```tsx
-<sprite textureId={BTN_TEX}>
-  <clickable
-    size={[64, 32]}
-    onClick={() => console.log('Button clicked')}
-    onMouseEnter={() => console.log('Hover in')}
-    onMouseExit={() => console.log('Hover out')}
-  />
-</sprite>
+import { useClickable, useTrigger } from 'fraxel/hooks'
+
+function Button() {
+  const btn = useClickable()
+
+  useTrigger(btn.clicked, () => console.log('Button clicked'))
+  useTrigger(btn.mouseEntered, () => console.log('Hover in'))
+  useTrigger(btn.mouseExited, () => console.log('Hover out'))
+
+  return (
+    <sprite textureId={BTN_TEX}>
+      <clickable ref={btn} size={[64, 32]} />
+    </sprite>
+  )
+}
 ```
 
 - `size` is required — there is no default hit area.
@@ -190,21 +192,20 @@ The `text` prop accepts a `SignalGetter<string>` or a plain string. Passing a ge
 ## Timer node
 
 ```tsx
-import { useNode, useEvent } from 'fraxel/hooks'
-import { PrimaryNode } from 'fraxel'
+import { useTimer, useTrigger } from 'fraxel/hooks'
 
 function Countdown() {
-  const timer = useNode(PrimaryNode.Timer)
+  const timer = useTimer()
 
-  useEvent(timer, 'timeout', () => {
+  useTrigger(timer.timeout, () => {
     console.log('3 seconds elapsed')
   })
 
-  useEvent(timer, 'timeChanged', (elapsed) => {
+  useTrigger(timer.timeChanged, (elapsed) => {
     console.log('Elapsed:', elapsed) // current elapsed time in seconds
   })
 
-  return <timer ref={timer} duration={3} autoPlay />
+  return <timer ref={timer.ref} duration={3} autoPlay />
 }
 ```
 

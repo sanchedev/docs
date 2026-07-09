@@ -1,0 +1,163 @@
+---
+title: "Triggers API Reference — Fraxel Game Engine"
+sidebarTitle: "Triggers"
+description: "Reference for Fraxel's Trigger system: pub/sub communication between components without node events."
+---
+
+Triggers provide a typed publish/subscribe pattern for communication between components. Unlike node events, triggers work across the entire component tree without requiring a shared node reference.
+
+---
+
+## createTrigger
+
+Creates a new `Trigger` instance for pub/sub communication.
+
+```ts
+createTrigger<T extends any[]>(): Trigger<T>
+```
+
+<ParamField path="T" type="any[]" required>
+  The argument types for the trigger callbacks.
+</ParamField>
+
+**Returns** `Trigger<T>` — a new trigger instance.
+
+```tsx
+import { createTrigger } from 'fraxel/hooks'
+
+// Declare at module level so it is shared between components
+const onEnemyKilled = createTrigger<[enemyId: number]>()
+const onScoreChanged = createTrigger<[newScore: number]>()
+```
+
+---
+
+## useTrigger
+
+Subscribes to a `Trigger` inside a component with automatic cleanup on node destroy.
+
+```ts
+useTrigger<T extends Trigger<any[]>>(trigger: T, fn: Parameters<T['connect']>[0]): void
+```
+
+<ParamField path="trigger" type="Trigger<T>" required>
+  The trigger created by `createTrigger`.
+</ParamField>
+<ParamField path="fn" type="(...args: T) => void" required>
+  Callback that fires when `trigger.emit(...)` is called.
+</ParamField>
+
+```tsx
+import { createTrigger, useTrigger } from 'fraxel/hooks'
+
+const onEnemyKilled = createTrigger<[enemyId: number]>()
+
+function ScoreManager() {
+  useTrigger(onEnemyKilled, (id) => {
+    console.log('Enemy killed:', id)
+  })
+  return <transform />
+}
+```
+
+---
+
+## Trigger class
+
+The `Trigger` class provides the underlying pub/sub mechanism.
+
+### Methods
+
+| Method | Signature | Description |
+|---|---|---|
+| `connect` | `(cb: Fun<T>) => void` | Manually add a listener. Returns unsubscribe function. |
+| `disconnect` | `(cb: Fun<T>) => void` | Manually remove a listener. |
+| `clear` | `() => void` | Remove all listeners. |
+| `emit` | `(...args: T) => void` | Call all connected listeners with the given arguments. |
+
+```tsx
+import { createTrigger } from 'fraxel/hooks'
+
+const trigger = createTrigger<[number]>()
+
+// Manual subscription (outside of hooks)
+const unsubscribe = trigger.connect((value) => {
+  console.log(value)
+})
+
+trigger.emit(42) // logs: 42
+
+// Clean up
+unsubscribe()
+// or
+trigger.clear()
+```
+
+---
+
+## Complete Example
+
+```tsx
+import { createTrigger, useTrigger, useEffect } from 'fraxel/hooks'
+import { shapes } from 'fraxel'
+
+// Declare triggers at module level
+const onEnemyKilled = createTrigger<[enemyId: number]>()
+const onScoreChanged = createTrigger<[newScore: number]>()
+
+// Parent listens to multiple triggers
+function GameManager() {
+  let score = 0
+
+  useTrigger(onEnemyKilled, (id) => {
+    score += 100
+    onScoreChanged.emit(score)
+  })
+
+  useTrigger(onScoreChanged, (newScore) => {
+    console.log('Score:', newScore)
+  })
+
+  return <transform />
+}
+
+// Child emits
+function Enemy({ id }: { id: number }) {
+  const collider = useCollider()
+
+  useEffect(() => {
+    if (collider.colliding()) {
+      onEnemyKilled.emit(id)
+    }
+  })
+
+  return <collider ref={collider} shape={shapes.circle(8)} group={['enemy']} collidesWith={['bullet']} />
+}
+
+// UI listens
+function ScoreDisplay() {
+  useTrigger(onScoreChanged, (score) => {
+    console.log('Display updated:', score)
+  })
+
+  return <text text={() => 'Score: 0'} />
+}
+```
+
+---
+
+## Triggers vs Events vs Context
+
+| Feature | Triggers | Node Events | Context |
+|---------|----------|-------------|---------|
+| Scope | Global (module-level) | Per-node | Component tree |
+| Reactive | Yes (with `useTrigger`) | Yes (with `useTrigger`) | No |
+| Cross-component | Yes | Requires node reference | Yes |
+| Cleanup | Automatic with `useTrigger` | Automatic with `useTrigger` | None needed |
+| Use case | Game-wide events | Node lifecycle, collisions | Static shared values |
+
+## Related
+
+- [Pub/Sub Hooks](/api/hooks/pub-sub) — `createTrigger`, `useTrigger` hooks
+- [Context API](/api/concepts/context) — Static shared values
+- [Event System](/api/concepts/event-system) — Node-level events

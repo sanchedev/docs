@@ -206,19 +206,19 @@ const Left  = Input.createAction({ key: 'ArrowLeft' })
 const Right = Input.createAction({ key: 'ArrowRight' })
 
 function Player() {
-  const { ref, isGrounded, applyImpulse, setVelocity } = useRigidBody()
+  const body = useRigidBody()
   const { justPressed } = useAction(Jump)
   const axis = useActionAxis(Left, Right)
 
   useEffect(() => {
-    setVelocity([axis() * 140, ref.node.velocity.y])
-    if (justPressed() && isGrounded()) {
-      applyImpulse([0, -340])
+    body.setVelocity([axis() * 140, body.node.velocity.y])
+    if (justPressed() && body.isGrounded()) {
+      body.applyImpulse([0, -340])
     }
   })
 
   return (
-    <rigid-body ref={ref} mass={1} friction={0.05}>
+    <rigid-body ref={body} mass={1} friction={0.05}>
       <sprite textureId={PLAYER} />
       <collider
         shape={shapes.capsule(24, 6)}

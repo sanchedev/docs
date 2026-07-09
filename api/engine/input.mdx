@@ -57,7 +57,25 @@ const Dash      = Input.createAction({ key: 'ShiftLeft', shift: true })
 
 ## Action Query Methods
 
-These methods check per-frame action state. Call them from inside `useEvent(body, 'updated', ...)` or from a `useEffect` that reads a frame-updated signal for correct timing.
+These methods check per-frame action state. Call them from inside `useTrigger(body.updated, ...)` or from a `useEffect` that reads a frame-updated signal for correct timing.
+
+### Input.getAction
+
+Returns the `InputKey` binding configuration for a registered action.
+
+```ts
+Input.getAction(action: symbol): InputKey
+```
+
+**Throws** `ActionNotFoundError` if the action has not been registered with `createAction`.
+
+```ts
+import { Input } from 'fraxel'
+
+const Jump = Input.createAction({ key: ' ' })
+const binding = Input.getAction(Jump)
+console.log(binding.key) // ' '
+```
 
 ### Input.isActionPressed
 
@@ -163,7 +181,7 @@ Use these when you need raw key queries without defining named actions — for e
 ### Input.isKeyPressed
 
 ```ts
-Input.isKeyPressed(key: string, ctrl?: boolean, shift?: boolean, alt?: boolean): boolean
+Input.isKeyPressed(key: string, ctrlKey?: boolean, shiftKey?: boolean, altKey?: boolean): boolean
 ```
 
 Returns `true` for every frame the key (with optional modifiers) is held.
@@ -171,7 +189,7 @@ Returns `true` for every frame the key (with optional modifiers) is held.
 ### Input.isJustKeyPressed
 
 ```ts
-Input.isJustKeyPressed(key: string, ctrl?: boolean, shift?: boolean, alt?: boolean): boolean
+Input.isJustKeyPressed(key: string, ctrlKey?: boolean, shiftKey?: boolean, altKey?: boolean): boolean
 ```
 
 Returns `true` on the first frame the key is pressed.
@@ -179,7 +197,7 @@ Returns `true` on the first frame the key is pressed.
 ### Input.isJustKeyUnpressed
 
 ```ts
-Input.isJustKeyUnpressed(key: string, ctrl?: boolean, shift?: boolean, alt?: boolean): boolean
+Input.isJustKeyUnpressed(key: string, ctrlKey?: boolean, shiftKey?: boolean, altKey?: boolean): boolean
 ```
 
 Returns `true` on the first frame the key is released.

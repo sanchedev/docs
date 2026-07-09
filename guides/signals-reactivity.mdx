@@ -220,18 +220,18 @@ function Player() {
 Toggle between two values based on a boolean signal:
 
 ```tsx
-import { useCondition, useWhen } from 'fraxel/hooks'
+import { useCondition, useWhen, useClickable } from 'fraxel/hooks'
 
 function Button() {
-  const clickable = useNode(PrimaryNode.Clickable)
-  const isHovered = useCondition(clickable, 'mouseEntered', 'mouseExited')
+  const clickable = useClickable()
+  const isHovered = useCondition(clickable.ref, 'mouseEntered', 'mouseExited')
 
   // brightness is 1.2 when hovered, 1.0 otherwise
   const brightness = useWhen(isHovered, 1.2, 1.0)
 
   return (
     <sprite textureId={BTN} brightness={brightness}>
-      <clickable ref={clickable} size={[64, 24]} />
+      <clickable ref={clickable.ref} size={[64, 24]} />
     </sprite>
   )
 }

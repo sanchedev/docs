@@ -61,7 +61,7 @@ When a projectile overlaps an enemy collider, both nodes receive the collision e
 
 ## Responding to collisions
 
-Subscribe to collision events using `useEvent`. The three events are:
+Subscribe to collision events using `useTrigger`. The three events are:
 
 | Event | Fires when |
 |---|---|
@@ -70,15 +70,15 @@ Subscribe to collision events using `useEvent`. The three events are:
 | `colliderExited` | Two colliders stop overlapping |
 
 ```tsx src/components/Projectile.tsx
-import { useNode, useEvent } from 'fraxel/hooks'
-import { PrimaryNode, shapes } from 'fraxel'
+import { useCollider, useTransform, useTrigger } from 'fraxel/hooks'
+import { shapes } from 'fraxel'
 import { BULLET_TEX } from '../assets'
 
 export function Projectile() {
-  const collider = useNode(PrimaryNode.Collider)
-  const body     = useNode(PrimaryNode.Transform)
+  const collider = useCollider()
+  const body = useTransform()
 
-  useEvent(collider, 'colliderEntered', (enemyCollider) => {
+  useTrigger(collider.colliderEntered, (enemyCollider) => {
     // Apply damage to whatever the bullet hit
     enemyCollider.parent?.script?.takeDamage(20)
 
@@ -109,13 +109,13 @@ import { useCollider, useComputed } from 'fraxel/hooks'
 import { shapes } from 'fraxel'
 
 function Player() {
-  const { ref, colliding, other } = useCollider()
-  const flash = useComputed(() => colliding() ? 2.0 : 1.0)
+  const collider = useCollider()
+  const flash = useComputed(() => collider.colliding() ? 2.0 : 1.0)
 
   return (
     <sprite textureId={PLAYER_TEX} brightness={flash}>
       <collider
-        ref={ref}
+        ref={collider}
         shape={shapes.capsule(28, 10)}
         group={['player']}
         collidesWith={['enemy']}
@@ -155,15 +155,14 @@ function Enemy() {
 `<ray-cast>` projects an invisible ray from the node's position in the specified direction and detects colliders that intersect it. Use it for line-of-sight checks, ground detection, or laser beams.
 
 ```tsx
-import { useNode, useEvent, useSignal } from 'fraxel/hooks'
-import { PrimaryNode } from 'fraxel'
+import { useRayCast, useSignal, useTrigger } from 'fraxel/hooks'
 
 function EnemyAI() {
-  const ray = useNode(PrimaryNode.RayCast)
+  const ray = useRayCast()
   const [spotted, setSpotted] = useSignal(false)
 
-  useEvent(ray, 'colliderEntered', () => setSpotted(true))
-  useEvent(ray, 'colliderExited',  () => setSpotted(false))
+  useTrigger(ray.colliderEntered, () => setSpotted(true))
+  useTrigger(ray.colliderExited, () => setSpotted(false))
 
   return (
     <transform>
@@ -188,14 +187,14 @@ Use `useRayCast` for a more ergonomic API with reactive `detected` and `collider
 import { useRayCast } from 'fraxel/hooks'
 
 function GroundDetector() {
-  const { ref, detected } = useRayCast()
+  const ray = useRayCast()
 
   return (
     <transform>
       <sprite textureId={PLAYER_TEX} />
       {/* 20px downward ray to detect the ground */}
       <ray-cast
-        ref={ref}
+        ref={ray}
         direction={[0, 20]}
         collidesWith={['ground']}
       />

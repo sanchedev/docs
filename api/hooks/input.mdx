@@ -1,0 +1,94 @@
+---
+title: "Input Hooks API Reference — Fraxel Game Engine"
+sidebarTitle: "Input"
+description: "Reference for Fraxel's input hooks: useAction and useActionAxis for reactive input handling."
+---
+
+Input hooks provide reactive state for keyboard and pointer input actions.
+
+---
+
+## useAction
+
+Provides reactive frame-by-frame state for a single input action. All three signals update at the start of every frame, so they can be read inside `useEffect`.
+
+```ts
+useAction(action: symbol): {
+  pressed: SignalGetter<boolean>
+  justPressed: SignalGetter<boolean>
+  justUnpressed: SignalGetter<boolean>
+}
+```
+
+<ParamField path="action" type="symbol" required>
+  An action symbol created with `Input.createAction()`.
+</ParamField>
+
+| Property | Type | Description |
+|---|---|---|
+| `pressed` | `SignalGetter<boolean>` | `true` while the action key is held down. |
+| `justPressed` | `SignalGetter<boolean>` | `true` only on the first frame the key is pressed. |
+| `justUnpressed` | `SignalGetter<boolean>` | `true` only on the first frame the key is released. |
+
+```tsx
+import { Input } from 'fraxel'
+import { useAction, useEffect, useRigidBody } from 'fraxel/hooks'
+
+const Jump = Input.createAction({ key: ' ' })
+
+function Player() {
+  const body = useRigidBody()
+  const { justPressed } = useAction(Jump)
+
+  useEffect(() => {
+    if (justPressed()) {
+      body.node.applyImpulse([0, -400])
+    }
+  })
+
+  return <rigid-body ref={body} />
+}
+```
+
+---
+
+## useActionAxis
+
+Returns a reactive axis value derived from two opposing input actions. Updates every frame.
+
+```ts
+useActionAxis(negative: symbol, positive: symbol): SignalGetter<number>
+```
+
+<ParamField path="negative" type="symbol" required>
+  Action that maps to `-1` (e.g. move left).
+</ParamField>
+<ParamField path="positive" type="symbol" required>
+  Action that maps to `+1` (e.g. move right).
+</ParamField>
+
+**Returns** `SignalGetter<number>` — returns `-1`, `0`, or `1`.
+
+```tsx
+import { Input } from 'fraxel'
+import { useActionAxis, useRigidBody } from 'fraxel/hooks'
+
+const MoveLeft  = Input.createAction({ key: 'a' })
+const MoveRight = Input.createAction({ key: 'd' })
+
+function Player() {
+  const body = useRigidBody()
+  const axis = useActionAxis(MoveLeft, MoveRight)
+
+  useEffect(() => {
+    body.node.velocity.x = axis() * 180
+  })
+
+  return <rigid-body ref={body} />
+}
+```
+
+## Related
+
+- [Input guide](/getting-started/input) — Learn more about input handling
+- [Input API](/api/engine/input) — Static `Input` class reference

@@ -91,7 +91,7 @@ The `fraxel` package exposes several sub-path imports, each scoped to a specific
 | Import path | What it provides |
 |---|---|
 | `fraxel` | Core nodes, math utilities (`Vector2`), collision shapes, `Input`, `Signal`, `PhysicsSystem` |
-| `fraxel/hooks` | All hooks: `useSignal`, `useEffect`, `useNode`, `useEvent`, `useSpawn`, `useAction`, and more |
+| `fraxel/hooks` | All hooks: `useSignal`, `useEffect`, `useMount`, `useAction`, `useTrigger`, and all node-specific hooks (`useSprite`, `useTransform`, `useCollider`, etc.) |
 | `fraxel/jsx` | JSX components: `Game`, `Scene`, `List`, `Fragment`; and `createGame` |
 | `fraxel/assets` | `loadTexture`, `loadSound`, `loadBatch` |
 | `fraxel/animation` | `tween`, easing functions, `animationFromSheet` |
@@ -102,8 +102,8 @@ A typical game file imports from two or three of these paths:
 ```tsx main.tsx
 import { createGame, Game, Scene } from 'fraxel/jsx'
 import { loadTexture } from 'fraxel/assets'
-import { useSignal, useEvent, useNode } from 'fraxel/hooks'
-import { PrimaryNode, shapes } from 'fraxel'
+import { useSignal, useSprite, useTrigger } from 'fraxel/hooks'
+import { shapes } from 'fraxel'
 ```
 
 ## Verify your setup

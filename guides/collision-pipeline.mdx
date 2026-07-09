@@ -51,7 +51,7 @@ for x in [minCellX, maxCellX]:
 
 **Query** (finding candidates for a given collider): compute the AABB of the querying collider, convert to cell coordinates, and union the contents of all overlapping cells into a result set. The querying collider itself is removed from the result.
 
-The default cell size is `64`. You should tune this relative to the typical collider size in your game — see [Performance](/advanced/performance) for guidance.
+The default cell size is `64`. You should tune this relative to the typical collider size in your game — see [Performance](/guides/performance) for guidance.
 
 <Note>
 The spatial hash is rebuilt from scratch every frame when `#dirty` is `true`. This is intentional: incremental updates (tracking which cells a collider occupied last frame) are more complex to implement correctly and are rarely faster for games with many moving objects.

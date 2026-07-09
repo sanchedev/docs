@@ -53,7 +53,7 @@ game.play()
 
 ## GameControls
 
-The object returned by `createGame` and `useGame`. Provides the primary API for controlling the running game.
+The object returned by `createGame`. Provides the primary API for controlling the running game.
 
 ```ts
 interface GameControls {
@@ -63,17 +63,19 @@ interface GameControls {
   changeScene(name: string):       Promise<void>
   preloadScene(name: string):      Promise<() => void>
   getSize():                       Vector2
+  paused:                          SignalGetter<boolean>
 }
 ```
 
-| Method | Description |
-|---|---|
-| `play()` | Starts (or resumes) the game loop. Acquires a screen wake-lock if available. |
-| `pause()` | Pauses the game loop. Call `play()` to resume. |
-| `destroy()` | Stops the loop, tears down the current scene, destroys the input system, and releases all resources. |
-| `changeScene(name)` | Destroys the current scene, loads the named scene, and resolves when the transition is complete. |
-| `preloadScene(name)` | Loads a scene in the background without switching to it. Resolves with a function you can call later to perform the instant switch. |
-| `getSize()` | Returns a `Vector2` with the canvas's logical pixel dimensions (as configured in `<Game width height>`). |
+| Property | Type | Description |
+|---|---|---|
+| `paused` | `SignalGetter<boolean>` | Reactive signal that is `true` when the game loop is paused. Read with `game.paused()`. |
+| `play()` | `() => void` | Starts (or resumes) the game loop. Acquires a screen wake-lock if available. |
+| `pause()` | `() => void` | Pauses the game loop. Call `play()` to resume. |
+| `destroy()` | `() => void` | Stops the loop, tears down the current scene, destroys the input system, and releases all resources. |
+| `changeScene(name)` | `(name: string) => Promise<void>` | Destroys the current scene, loads the named scene, and resolves when the transition is complete. |
+| `preloadScene(name)` | `(name: string) => Promise<() => void>` | Loads a scene in the background without switching to it. Resolves with a function you can call later to perform the instant switch. |
+| `getSize()` | `() => Vector2` | Returns a `Vector2` with the canvas's logical pixel dimensions (as configured in `<Game width height>`). |
 
 <CodeGroup>
 ```ts Basic lifecycle
@@ -120,6 +122,9 @@ Game.setup(options: SetupOptions): void
 </ParamField>
 <ParamField path="options.root" type="HTMLElement" required>
   Parent DOM element for the generated canvas.
+</ParamField>
+<ParamField path="options.pauseOnBlur" type="boolean">
+  When `true`, the game pauses on browser blur (tab switch, minimize) and requires a manual `play()` call to resume. Defaults to `false`.
 </ParamField>
 <ParamField path="options.testOptions" type="Partial<TestOptions>">
   Debug overlays. See [`TestOptions`](#testoptions).
@@ -176,29 +181,30 @@ Game.sceneManager: SceneManager
 | `addScene(name, scene)` | Register a named `Scene`. |
 | `setScene(name)` | Switch to the named scene. Returns `Promise<void>`. |
 | `preloadScene(name)` | Load scene assets without switching. Returns `Promise<() => void>`. |
+| `currentScene` | The name of the active scene, or `null`. Read-only. |
 | `currentNode` | The root `Node` of the active scene, or `null`. |
 
 ---
 
-## Game.blured
+## Game.blurred
 
 An `Event` that fires whenever the browser window loses focus (tab switch, minimize, etc.). The game is automatically paused when this fires.
 
 ```ts
-Game.blured: Event<[], 'blur'>
+Game.blurred: Event<[], 'blur'>
 ```
 
 ```ts
 import { Game } from 'fraxel'
 
-Game.blured.on(() => {
+Game.blurred.on(() => {
   console.log('Game paused — tab lost focus')
   showPauseOverlay()
 })
 ```
 
 <Note>
-The game auto-pauses on blur and resumes when the player calls `game.play()` again. You can hook into `Game.blured` to show a pause screen.
+The game auto-pauses on blur and resumes when the player calls `game.play()` again. You can hook into `Game.blurred` to show a pause screen.
 </Note>
 
 ---

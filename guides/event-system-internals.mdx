@@ -1,7 +1,7 @@
 ---
 title: "Fraxel Event System: Lifecycle Events and Cross-Node Signals"
 sidebarTitle: "Event System"
-description: "How Event<T> works, node lifecycle events, the onXxx naming convention, useEvent auto-cleanup, FraxelScript.connect(), and cross-component communication."
+description: "How Event<T> works, node lifecycle events, the onXxx naming convention, Trigger subscriptions, FraxelScript.connect(), and cross-component communication."
 ---
 
 Fraxel uses a lightweight, type-safe event system built on a single `Event<T, K>` class. Every node event — from `started` to `colliderEntered` — is an instance of this class, exposed as a plain public property. Understanding its contract makes it straightforward to subscribe, unsubscribe, and avoid memory leaks.
@@ -82,29 +82,35 @@ for (const event of events) {
 
 This means a `Node` subclass can override `onUpdate(delta: number)` as a method and it will automatically be called every frame without any manual `.on()` call.
 
-## `useEvent`: Auto-Unsubscribe on Destroy
+## Trigger-Based Subscriptions: Auto-Unsubscribe on Destroy
 
-The `useEvent` hook provides a safe way to subscribe to node events from within a component:
+Node references expose lifecycle events as `Trigger` instances. You can subscribe to them directly or use `useTrigger` for automatic cleanup:
 
 ```tsx
-const sprite = useNode(PrimaryNode.Sprite)
+const sprite = useSprite()
 
-useEvent(sprite, 'updated', (delta) => {
+// Direct subscription (manual cleanup via node.destroyed)
+sprite.updated.connect((delta) => {
+  // runs every frame while sprite is alive
+})
+
+// Or using useTrigger (auto-cleanup on destroy)
+useTrigger(sprite.updated, (delta) => {
   // runs every frame while sprite is alive
 })
 
 return <sprite ref={sprite} />
 ```
 
-`useEvent` pushes an effect that calls `event.on(listener)` once the node is available. Crucially, **it does not add a cleanup to `off()` the listener on destroy** — once the node is destroyed, `cleanEvents()` is called which calls `event.clean()` on all four lifecycle events, removing all listeners at once. This is safe because the node and all references to it become unreachable anyway.
+`useTrigger` calls `trigger.connect(fn)` and registers a cleanup via `node.destroyed.on(() => trigger.disconnect(fn))`. This means the consumer's callback is automatically removed when the node is destroyed, preventing stale subscriptions.
 
 <Warning>
-`useEvent` only works during component render. Do not call it inside callbacks, `setTimeout`, or other asynchronous contexts — there will be no active hook context to register the effect.
+`useTrigger` only works during component render. Do not call it inside callbacks, `setTimeout`, or other asynchronous contexts — there will be no active hook context to register the effect.
 </Warning>
 
 ## `FraxelScript.connect()`: Script-Based Subscriptions
 
-`FraxelScript` provides `connect()` as its equivalent of `useEvent` for class-based game logic:
+`FraxelScript` provides `connect()` as its equivalent of `useTrigger` for class-based game logic:
 
 ```ts
 class PlayerScript extends FraxelScript<PrimaryNode.Transform> {
@@ -121,7 +127,7 @@ class PlayerScript extends FraxelScript<PrimaryNode.Transform> {
 
 `connect(ev, func)` accesses `this.me[ev]` (e.g., `this.me.started`) and calls `.on(func)`. The `me` getter returns the node the script is attached to. Since `connect` can only be called after `init()` (which runs during node construction), the node reference is always valid.
 
-## Cross-Component Communication: `Trigger` vs. `useEvent`
+## Cross-Component Communication: `Trigger` vs. Node Events
 
 For communication between two unrelated components that don't share a common ancestor node, Fraxel provides the `Trigger` pub/sub primitive.
 
@@ -133,8 +139,13 @@ const plantedTrigger = createTrigger<[Plant]>()
 
 // Producer component
 function Garden() {
-  const handleClick = () => plantedTrigger.emit(new Plant())
-  return <clickable onClick={handleClick} />
+  const btn = useClickable()
+
+  useTrigger(btn.clicked, () => {
+    plantedTrigger.emit(new Plant())
+  })
+
+  return <clickable ref={btn} size={[64, 64]} />
 }
 
 // Consumer component
@@ -152,7 +163,7 @@ function Counter() {
 
 | Mechanism | Best for |
 |---|---|
-| `useEvent(nodeRef, eventName, cb)` | Reacting to a specific node's lifecycle or built-in events |
+| `useTrigger(ref.eventName, cb)` | Reacting to a specific node's lifecycle or built-in events |
 | JSX `onEventName` prop | One-time static subscription set at scene construction |
 | `createTrigger + useTrigger` | Cross-component signaling where nodes don't share a parent |
 | `Signal` | Sharing reactive state values (not just notifications) between components |

@@ -8,13 +8,12 @@ Use `<sprite>` to display a texture loaded with `loadTexture()`. It supports spr
 
 ```tsx
 import { loadTexture } from 'fraxel/assets'
-import { useNode } from 'fraxel/hooks'
-import { PrimaryNode } from 'fraxel'
+import { useSprite } from 'fraxel/hooks'
 
 const PLAYER_TEX = await loadTexture('/assets/player.png')
 
 function Player() {
-  const sprite = useNode(PrimaryNode.Sprite)
+  const sprite = useSprite()
 
   return (
     <sprite
@@ -122,6 +121,12 @@ pipeline. `modulate` additionally uses `globalCompositeOperation: 'multiply'`.
   Overall transparency. `0` = fully transparent, `1` = fully opaque (default).
 </ParamField>
 
+<ParamField path="gameMode" type="GameMode">
+  Controls how this node behaves when the game is paused. Defaults to
+  `GameMode.INHERIT`. Use `GameMode.ALWAYS` for nodes that should keep updating
+  while paused.
+</ParamField>
+
 ## Computed properties
 
 | Property | Type | Description |
@@ -135,16 +140,17 @@ pipeline. `modulate` additionally uses `globalCompositeOperation: 'multiply'`.
 |---|---|---|
 | `started` | `() => void` | Fires once after `start()`. |
 | `updated` | `(delta: number) => void` | Fires every frame during update. |
+| `drawed` | `(delta: number) => void` | Fires every frame when the node is being drawn. |
 | `destroyed` | `() => void` | Fires on removal from the scene. |
+| `zIndexChanged` | `(zIndex: number) => void` | Fires when the node's `zIndex` value changes. |
 
 <CodeGroup>
 
 ```tsx Reactive filter (damage flash)
-import { useSignal, useNode } from 'fraxel/hooks'
-import { PrimaryNode } from 'fraxel'
+import { useSignal, useSprite } from 'fraxel/hooks'
 
 function Enemy() {
-  const sprite = useNode(PrimaryNode.Sprite)
+  const sprite = useSprite()
   const [flashBrightness, setFlash] = useSignal(1)
 
   const takeDamage = () => {

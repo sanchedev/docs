@@ -244,6 +244,23 @@ type BoundsLike =
   | Bounds
 ```
 
+### isBoundsLike
+
+Type guard that returns `true` if `object` is a valid `BoundsLike`.
+
+```ts
+isBoundsLike(object: unknown): object is BoundsLike
+```
+
+```ts
+import { isBoundsLike } from 'fraxel'
+
+isBoundsLike(new Bounds(0, 0, 800, 600)) // true
+isBoundsLike(10)                          // true
+isBoundsLike([100, 200])                  // true
+isBoundsLike('hello')                     // false
+```
+
 ---
 
 ## Position
@@ -261,17 +278,98 @@ interface Position {
 
 ## Color
 
-A `[r, g, b, a]` tuple where each component is in the `0`–`1` range (not `0`–`255`). Used by node props such as `fillColor`, `borderColor`, and `tint`.
+An RGBA color class with channels in the `0`–`1` range (not `0`–`255`). Used by node props such as `fillColor`, `borderColor`, and `tint`. All values are clamped on construction.
 
 ```ts
-type Color = [r: number, g: number, b: number, a: number]
+class Color {
+  r: number
+  g: number
+  b: number
+  a: number
+
+  static get WHITE(): Color
+  static get BLACK(): Color
+  static get RED(): Color
+  static get GREEN(): Color
+  static get BLUE(): Color
+  static get TRANSPARENT(): Color
+
+  constructor(r: number, g: number, b: number)
+  constructor(r: number, g: number, b: number, a: number)
+  constructor(colorLike: ColorLike)
+
+  clone(): Color
+  equals(colorLike: ColorLike): boolean
+  toCSS(): string
+  toJSON(): { r: number; g: number; b: number; a: number }
+}
+```
+
+### Static constants
+
+| Property | Value |
+|---|---|
+| `Color.WHITE` | `(1, 1, 1, 1)` |
+| `Color.BLACK` | `(0, 0, 0, 1)` |
+| `Color.RED` | `(1, 0, 0, 1)` |
+| `Color.GREEN` | `(0, 1, 0, 1)` |
+| `Color.BLUE` | `(0, 0, 1, 1)` |
+| `Color.TRANSPARENT` | `(1, 1, 1, 0)` |
+
+### Constructor
+
+```ts
+import { Color } from 'fraxel'
+
+const red       = new Color(1, 0, 0)            // RGBA with alpha = 1
+const alpha     = new Color(1, 0, 0, 0.5)        // RGBA
+const fromTuple = new Color([0.5, 0.5, 0.5])     // from ColorLike tuple
+const fromObj   = new Color({ r: 1, g: 0.5, b: 0 }) // from ColorLike object
+```
+
+### Methods
+
+| Method | Returns | Description |
+|---|---|---|
+| `clone()` | `Color` | Returns an independent copy. |
+| `equals(colorLike)` | `boolean` | `true` if all RGBA channels match. |
+| `toCSS()` | `string` | CSS `rgba()` string, e.g. `"rgba(255, 0, 0, 1)"`. |
+| `toJSON()` | `{ r, g, b, a }` | Plain object with channel values. |
+
+---
+
+## color (factory function)
+
+Convenience function equivalent to `new Color(...)`. Accepts every format that the constructor does.
+
+```ts
+color(colorLike: ColorLike): Color
+color(r: number, g: number, b: number): Color
+color(r: number, g: number, b: number, a: number): Color
 ```
 
 ```ts
-const red:         Color = [1,   0,   0,   1]
-const halfOpaque:  Color = [0,   0,   1,   0.5]
-const transparent: Color = [0,   0,   0,   0]
-const white:       Color = [1,   1,   1,   1]
+import { color } from 'fraxel'
+
+const red       = color(1, 0, 0)
+const transparent = color(1, 1, 1, 0)
+const fromArray = color([0.5, 0.5, 0.5])
+const fromObj   = color({ r: 1, g: 0.5, b: 0 })
+```
+
+---
+
+## ColorLike
+
+A union type accepted wherever a `Color` is expected. Use it in your own APIs to accept flexible color input.
+
+```ts
+type ColorLike =
+  | Color
+  | [r: number, g: number, b: number]
+  | [r: number, g: number, b: number, a: number]
+  | { r: number; g: number; b: number }
+  | { r: number; g: number; b: number; a: number }
 ```
 
 ---

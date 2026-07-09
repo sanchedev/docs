@@ -139,19 +139,19 @@ function Player() {
 Here's a complete player component with a sprite sheet slice, 2× display scale, and a hit-flash effect driven by a tween:
 
 ```tsx Player.tsx
-import { useNode, useEvent } from 'fraxel/hooks'
-import { PrimaryNode, shapes } from 'fraxel'
+import { useSprite, useCollider, useTrigger } from 'fraxel/hooks'
+import { shapes } from 'fraxel'
 import { loadTexture } from 'fraxel/assets'
 import { tween } from 'fraxel/animation'
 
 const PLAYER_SHEET = await loadTexture('/assets/player-sheet.png')
 
 function Player() {
-  const sprite = useNode(PrimaryNode.Sprite)
-  const collider = useNode(PrimaryNode.Collider)
+  const sprite = useSprite()
+  const collider = useCollider()
 
   // Flash bright white on hit, then ease back to normal
-  useEvent(collider, 'colliderEntered', () => {
+  useTrigger(collider.colliderEntered, () => {
     tween({
       target: sprite.node,
       prop: 'brightness',

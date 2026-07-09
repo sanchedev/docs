@@ -74,6 +74,9 @@ interface GameOptions {
 <ParamField path="defaultScene" type="string" required>
   Name of the `<Scene>` to load first. Must match the `name` prop of one of the children.
 </ParamField>
+<ParamField path="pauseOnBlur" type="boolean">
+  When `true`, the game pauses on browser blur (tab switch, minimize) and requires a manual `play()` call to resume. Defaults to `false`.
+</ParamField>
 <ParamField path="testOptions" type="Partial<TestOptions>">
   Enable debug overlays during development. See [`TestOptions`](#testoptions).
 </ParamField>
@@ -162,7 +165,7 @@ The `SceneComponent` function must ultimately return (or resolve to a function t
 
 ## GameControls
 
-The object returned by `createGame` and by the `useGame()` hook.
+The object returned by `createGame`.
 
 ```ts
 interface GameControls {
@@ -172,17 +175,19 @@ interface GameControls {
   changeScene(name: string):  Promise<void>
   preloadScene(name: string): Promise<() => void>
   getSize():                  Vector2
+  paused:                     SignalGetter<boolean>
 }
 ```
 
-| Method | Description |
-|---|---|
-| `play()` | Starts or resumes the game loop. Acquires a screen wake lock on supported platforms. |
-| `pause()` | Pauses the game loop. The canvas freezes on the last rendered frame. |
-| `destroy()` | Stops the loop, clears the active scene, destroys input listeners, and resets state. |
-| `changeScene(name)` | Destroys the active scene, loads the named scene, resolves when complete. |
-| `preloadScene(name)` | Loads a scene in the background. Resolves with a function; call it to switch to the scene instantly. |
-| `getSize()` | Returns a `Vector2` equal to `{ x: width, y: height }` as configured in `<Game>`. |
+| Property | Type | Description |
+|---|---|---|
+| `paused` | `SignalGetter<boolean>` | Reactive signal that is `true` when the game loop is paused. Read with `game.paused()`. |
+| `play()` | `() => void` | Starts or resumes the game loop. Acquires a screen wake lock on supported platforms. |
+| `pause()` | `() => void` | Pauses the game loop. The canvas freezes on the last rendered frame. |
+| `destroy()` | `() => void` | Stops the loop, clears the active scene, destroys input listeners, and resets state. |
+| `changeScene(name)` | `(name: string) => Promise<void>` | Destroys the active scene, loads the named scene, resolves when complete. |
+| `preloadScene(name)` | `(name: string) => Promise<() => void>` | Loads a scene in the background. Resolves with a function; call it to switch to the scene instantly. |
+| `getSize()` | `() => Vector2` | Returns a `Vector2` equal to `{ x: width, y: height }` as configured in `<Game>`. |
 
 ```ts
 const game = createGame(<Game ...>, root)

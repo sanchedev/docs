@@ -1,0 +1,165 @@
+---
+title: "Derived Hooks API Reference — Fraxel Game Engine"
+sidebarTitle: "Derived Hooks"
+description: "Reference for Fraxel's derived hooks: useCondition, useMatch, useWhen, and useSize for reactive derived values."
+---
+
+Derived hooks create new reactive values from existing signals, triggers, or game state. They return `SignalGetter` values that automatically update when their dependencies change.
+
+---
+
+## useCondition
+
+Creates a reactive boolean that toggles between `true` and `false` based on two opposing triggers.
+
+```ts
+useCondition(agreeTrigger: Trigger<any>, disagreeTrigger: Trigger<any>, defaultValue?: boolean): SignalGetter<boolean>
+```
+
+<ParamField path="agreeTrigger" type="Trigger<any>" required>
+  The trigger that sets the condition to `true`.
+</ParamField>
+
+<ParamField path="disagreeTrigger" type="Trigger<any>" required>
+  The trigger that sets the condition to `false`.
+</ParamField>
+
+<ParamField path="defaultValue" type="boolean">
+  Initial value of the condition. Defaults to `false`.
+</ParamField>
+
+**Returns** `SignalGetter<boolean>` — reactive boolean reflecting the current state.
+
+```tsx
+import { useCondition, useComputed, useClickable } from 'fraxel/hooks'
+
+const clickable = useClickable()
+const hover = useCondition(clickable.mouseEntered, clickable.mouseExited)
+
+const brightness = useComputed(() => (hover() ? 1.1 : 1))
+
+return <sprite brightness={brightness} />
+```
+
+```tsx
+import { useCondition, useEffect, useRayCast } from 'fraxel/hooks'
+
+const raycast = useRayCast()
+const isZombieDetected = useCondition(raycast.colliderEntered, raycast.colliderExited)
+
+useEffect(() => {
+  anim.node.setNext(isZombieDetected() ? 'shoot' : 'idle')
+})
+```
+
+---
+
+## useWhen
+
+Toggles between two values based on a boolean signal. Similar to a ternary expression but reactive.
+
+```ts
+useWhen<T>(signal: SignalGetterLike<boolean>, whenTrue: Reactive<T>, whenFalse: Reactive<T>): SignalGetter<T>
+```
+
+<ParamField path="signal" type="SignalGetterLike<boolean>" required>
+  The boolean signal that determines which value to return.
+</ParamField>
+
+<ParamField path="whenTrue" type="Reactive<T>" required>
+  Value to return when the signal is `true`.
+</ParamField>
+
+<ParamField path="whenFalse" type="Reactive<T>" required>
+  Value to return when the signal is `false`.
+</ParamField>
+
+**Returns** `SignalGetter<T>` — reactive value reflecting the current choice.
+
+```tsx
+import { useCondition, useWhen, useClickable } from 'fraxel/hooks'
+
+const clickable = useClickable()
+const isHovered = useCondition(clickable.mouseEntered, clickable.mouseExited)
+const brightness = useWhen(isHovered, 1.2, 1.0)
+
+return <sprite brightness={brightness} />
+```
+
+```tsx
+import { useCondition, useWhen, useRayCast } from 'fraxel/hooks'
+
+const raycast = useRayCast()
+const isZombieDetected = useCondition(raycast.colliderEntered, raycast.colliderExited)
+const animName = useWhen(isZombieDetected, 'shoot', 'idle')
+
+return <animation-player currentAnim={animName} />
+```
+
+---
+
+## useMatch
+
+Maps a signal's value to a corresponding value from a record. Similar to a `switch` or `match` expression.
+
+```ts
+useMatch<T extends number | string | symbol, K>(signal: SignalGetterLike<T>, record: Reactive<Record<T, K>>, defaultValue?: Reactive<K>): SignalGetter<K | undefined>
+```
+
+<ParamField path="signal" type="SignalGetterLike<T>" required>
+  The signal that returns the key to match against.
+</ParamField>
+
+<ParamField path="record" type="Reactive<Record<T, K>>" required>
+  A record mapping signal values to computed values.
+</ParamField>
+
+<ParamField path="defaultValue" type="Reactive<K>">
+  Value to return if the signal value is not found in the record.
+</ParamField>
+
+**Returns** `SignalGetter<K | undefined>` — reactive value reflecting the matched result.
+
+```tsx
+import { useSignal, useMatch } from 'fraxel/hooks'
+
+const [state, setState] = useSignal<'idle' | 'walking' | 'jumping'>('idle')
+
+const animation = useMatch(state, {
+  idle: 'idle-anim',
+  walking: 'walk-anim',
+  jumping: 'jump-anim',
+})
+
+return <animation-player currentAnim={animation} />
+```
+
+---
+
+## useSize
+
+Returns the game's canvas dimensions as a `Vector2`. Useful for responsive layout or centering UI elements.
+
+```ts
+useSize(): Vector2
+```
+
+**Returns** `Vector2` — reactive `Vector2` with `x` (width) and `y` (height) of the game canvas.
+
+```tsx
+import { useSize, useEffect } from 'fraxel/hooks'
+
+const size = useSize()
+
+useEffect(() => {
+  console.log(`Game size: ${size.x}x${size.y}`)
+})
+```
+
+---
+
+## Related
+
+- [State Hooks](/api/hooks/state) — `useSignal`, `useComputed`, `useRef`, `useUpdate`
+- [Signals guide](/getting-started/signals) — Learn more about reactive state
+- [Triggers](/api/concepts/triggers) — Pub/sub event system

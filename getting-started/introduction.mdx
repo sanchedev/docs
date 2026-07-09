@@ -40,11 +40,14 @@ Fraxel is **not** designed for 3D games (use Three.js or Babylon.js for that), s
 The following component renders a sprite with reactive health state. When `health` changes, the `grayscale` and `brightness` props update automatically — no manual re-render needed.
 
 ```tsx main.tsx
-import { useSignal } from 'fraxel/hooks'
+import { useSignal, useClickable, useTrigger } from 'fraxel/hooks'
 import { PLAYER_TEX } from './assets'
 
 export function Player() {
   const [health, setHealth] = useSignal(100)
+  const btn = useClickable()
+
+  useTrigger(btn.clicked, () => setHealth(health() - 10))
 
   return (
     <sprite
@@ -52,7 +55,7 @@ export function Player() {
       grayscale={() => (health() <= 0 ? 1 : 0)}
       brightness={() => 0.5 + health() / 200}
     >
-      <clickable size={[32, 32]} onClick={() => setHealth(health() - 10)} />
+      <clickable ref={btn} size={[32, 32]} />
     </sprite>
   )
 }

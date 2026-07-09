@@ -35,16 +35,16 @@ export const Dash      = Input.createAction({ key: 'ShiftLeft', shift: true })
 `useAction(action)` returns a reactive object with three signal getters: `pressed`, `justPressed`, and `justUnpressed`. Use it inside components to read input state reactively.
 
 ```tsx src/components/Player.tsx
-import { useAction, useEvent, useNode } from 'fraxel/hooks'
-import { PrimaryNode, shapes } from 'fraxel'
+import { useAction, useRigidBody, useTrigger } from 'fraxel/hooks'
+import { shapes } from 'fraxel'
 import { MoveLeft, MoveRight, Jump } from '../input'
 import { PLAYER_TEX } from '../assets'
 
 export function Player() {
-  const body = useNode(PrimaryNode.RigidBody)
+  const body = useRigidBody()
   const jump = useAction(Jump)
 
-  useEvent(body, 'updated', () => {
+  useTrigger(body.updated, () => {
     // justPressed() is true only on the first frame the key is held
     if (jump.justPressed()) {
       body.node.physicsBody.applyImpulse([0, -400])
@@ -52,7 +52,7 @@ export function Player() {
   })
 
   return (
-    <rigid-body ref={body} position={[96, 60]} mass={1} useGravity>
+    <rigid-body ref={body.ref} position={[96, 60]} mass={1} useGravity>
       <sprite textureId={PLAYER_TEX} />
       <collider shape={shapes.capsule(24, 8)} group={['player']} collidesWith={['ground']} />
     </rigid-body>
@@ -71,20 +71,19 @@ export function Player() {
 `useActionAxis(negative, positive)` combines two opposing actions into a single reactive axis value: `-1` (negative action), `0` (neither or both), or `1` (positive action). This is the idiomatic way to express horizontal or vertical movement.
 
 ```tsx src/components/Player.tsx
-import { useActionAxis, useEvent, useNode } from 'fraxel/hooks'
-import { PrimaryNode } from 'fraxel'
+import { useActionAxis, useRigidBody, useTrigger } from 'fraxel/hooks'
 import { MoveLeft, MoveRight } from '../input'
 
 export function Player() {
-  const body = useNode(PrimaryNode.RigidBody)
+  const body = useRigidBody()
   const horizontal = useActionAxis(MoveLeft, MoveRight)
 
-  useEvent(body, 'updated', () => {
+  useTrigger(body.updated, () => {
     // horizontal() is -1 (left), 0 (still), or 1 (right)
     body.node.velocity.x = horizontal() * 120
   })
 
-  return <rigid-body ref={body} position={[96, 60]} mass={1} useGravity />
+  return <rigid-body ref={body.ref} position={[96, 60]} mass={1} useGravity />
 }
 ```
 
@@ -170,17 +169,17 @@ For most in-game interactions — clicking characters, buttons, and objects — 
 ## Complete movement example
 
 ```tsx src/components/Player.tsx
-import { useActionAxis, useAction, useEvent, useNode } from 'fraxel/hooks'
-import { PrimaryNode, shapes } from 'fraxel'
+import { useActionAxis, useAction, useRigidBody, useTrigger } from 'fraxel/hooks'
+import { shapes } from 'fraxel'
 import { MoveLeft, MoveRight, Jump } from '../input'
 import { PLAYER_TEX } from '../assets'
 
 export function Player() {
-  const body  = useNode(PrimaryNode.RigidBody)
+  const body  = useRigidBody()
   const horiz = useActionAxis(MoveLeft, MoveRight)
   const jump  = useAction(Jump)
 
-  useEvent(body, 'updated', () => {
+  useTrigger(body.updated, () => {
     body.node.velocity.x = horiz() * 100
 
     if (jump.justPressed()) {
@@ -189,7 +188,7 @@ export function Player() {
   })
 
   return (
-    <rigid-body ref={body} position={[96, 60]} mass={1} bounce={0} useGravity>
+    <rigid-body ref={body.ref} position={[96, 60]} mass={1} bounce={0} useGravity>
       <sprite textureId={PLAYER_TEX} />
       <collider
         shape={shapes.capsule(28, 10)}

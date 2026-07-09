@@ -1,34 +1,33 @@
 ---
 title: "Dynamic Spawning in Fraxel"
 sidebarTitle: "Spawning"
-description: "Dynamically spawn and destroy game objects in Fraxel using useSpawn, useTrigger, and the reactive List component. Build enemies, projectiles, and pickups."
+description: "Dynamically spawn and destroy game objects in Fraxel using container.node.spawn(), useTrigger, and the reactive List component. Build enemies, projectiles, and pickups."
 ---
 
-Not every game object exists from the start. Enemies spawn as you progress, projectiles are created on each shot, pickups appear when a chest opens. Fraxel's `useSpawn` hook lets you add new nodes to the scene at runtime from any JSX component, giving you full control over when objects are created and destroyed.
+Not every game object exists from the start. Enemies spawn as you progress, projectiles are created on each shot, pickups appear when a chest opens. Fraxel's `container.node.spawn()` method lets you add new nodes to the scene at runtime from any JSX component, giving you full control over when objects are created and destroyed.
 
 ## Why Dynamic Spawning
 
 The JSX tree you write in a component is rendered once when the node starts. Spawning is how you add children after that initial render — programmatically, in response to events or signals — without re-rendering the entire tree.
 
-## `useSpawn`
+## `container.node.spawn()`
 
-`useSpawn` takes a `NodeReference` to a container node and returns a `spawn` function. Call `spawn` with any JSX element to add it as a child of that container at runtime:
+The `spawn()` method on a container node takes any JSX element and adds it as a child of that container at runtime:
 
 ```tsx Spawner.tsx
-import { useNode, useSpawn } from 'fraxel/hooks'
-import { PrimaryNode } from 'fraxel'
+import { useTransform, useClickable, useTrigger } from 'fraxel/hooks'
 
 function Spawner() {
-  const container = useNode(PrimaryNode.Transform)
-  const spawn = useSpawn(container)
+  const container = useTransform()
+  const btn = useClickable()
 
-  const spawnEnemy = () => {
-    spawn(<Enemy position={[Math.random() * 400, 0]} />)
-  }
+  useTrigger(btn.clicked, () => {
+    container.node.spawn(<Enemy position={[Math.random() * 400, 0]} />)
+  })
 
   return (
     <transform ref={container}>
-      <clickable size={[64, 32]} onClick={spawnEnemy}>
+      <clickable ref={btn} size={[64, 32]}>
         <sprite textureId={SPAWN_BTN} />
       </clickable>
     </transform>
@@ -47,23 +46,23 @@ The spawned node is rendered and started immediately. It behaves identically to 
 Call `.destroy()` on any node to remove it from the scene and clean up all its listeners:
 
 ```tsx Bullet.tsx
-import { useNode, useEvent } from 'fraxel/hooks'
-import { PrimaryNode, shapes } from 'fraxel'
+import { useRigidBody, useCollider, useTrigger } from 'fraxel/hooks'
+import { shapes } from 'fraxel'
 
 function Bullet({ position }: { position: [number, number] }) {
-  const body = useNode(PrimaryNode.RigidBody)
-  const collider = useNode(PrimaryNode.Collider)
+  const body = useRigidBody()
+  const collider = useCollider()
 
-  useEvent(collider, 'colliderEntered', () => {
+  useTrigger(collider.colliderEntered, () => {
     // Remove this bullet from the scene
     body.node.destroy()
   })
 
   return (
-    <rigid-body ref={body} position={position} useGravity={false}>
+    <rigid-body ref={body.ref} position={position} useGravity={false}>
       <sprite textureId={BULLET} sourceSize={[8, 4]} />
       <collider
-        ref={collider}
+        ref={collider.ref}
         shape={shapes.circle(4)}
         group={['bullet']}
         collidesWith={['enemy', 'wall']}
@@ -104,20 +103,18 @@ function Gun() {
 ```
 
 ```tsx GameScene.tsx
-import { useNode, useSpawn, useTrigger } from 'fraxel/hooks'
-import { PrimaryNode } from 'fraxel'
+import { useTransform, useTrigger } from 'fraxel/hooks'
 import { onFireBullet } from './triggers'
 
 function GameScene() {
-  const container = useNode(PrimaryNode.Transform)
-  const spawn = useSpawn(container)
+  const container = useTransform()
 
   useTrigger(onFireBullet, ({ x, y }) => {
-    spawn(<Bullet position={[x, y]} />)
+    container.node.spawn(<Bullet position={[x, y]} />)
   })
 
   return (
-    <transform ref={container}>
+    <transform ref={container.ref}>
       <Player />
     </transform>
   )
@@ -176,11 +173,11 @@ function EnemyManager() {
 
 ## Complete Shooter Example
 
-Here's a full shooter combining `useSpawn`, `useTrigger`, and bullet destruction:
+Here's a full shooter combining `spawn()`, `useTrigger`, and bullet destruction:
 
 ```tsx ShooterGame.tsx
-import { useNode, useSpawn, useTrigger, useAction, useEffect, useEvent } from 'fraxel/hooks'
-import { PrimaryNode, Input, shapes } from 'fraxel'
+import { useTransform, useRigidBody, useCollider, useTrigger, useAction, useEffect } from 'fraxel/hooks'
+import { Input, shapes } from 'fraxel'
 import { createTrigger } from 'fraxel/hooks'
 import { loadTexture } from 'fraxel/assets'
 
@@ -192,7 +189,7 @@ const fireTrigger = createTrigger<[x: number, y: number]>()
 const Shoot = Input.createAction({ key: ' ' })
 
 function Player() {
-  const body = useNode(PrimaryNode.Transform)
+  const body = useTransform()
   const shoot = useAction(Shoot)
 
   useEffect(() => {
@@ -202,25 +199,25 @@ function Player() {
   })
 
   return (
-    <transform ref={body} position={[100, 200]}>
+    <transform ref={body.ref} position={[100, 200]}>
       <sprite textureId={PLAYER_TEX} sourceSize={[32, 48]} displaySize={[32, 48]} />
     </transform>
   )
 }
 
 function Bullet({ x, y }: { x: number; y: number }) {
-  const body = useNode(PrimaryNode.RigidBody)
-  const collider = useNode(PrimaryNode.Collider)
+  const body = useRigidBody()
+  const collider = useCollider()
 
-  useEvent(collider, 'colliderEntered', () => {
+  useTrigger(collider.colliderEntered, () => {
     body.node.destroy()
   })
 
   return (
-    <rigid-body ref={body} position={[x, y]} useGravity={false}>
+    <rigid-body ref={body.ref} position={[x, y]} useGravity={false}>
       <sprite textureId={BULLET_TEX} sourceSize={[8, 4]} />
       <collider
-        ref={collider}
+        ref={collider.ref}
         shape={shapes.circle(4)}
         group={['bullet']}
         collidesWith={['enemy']}
@@ -230,15 +227,14 @@ function Bullet({ x, y }: { x: number; y: number }) {
 }
 
 function GameScene() {
-  const container = useNode(PrimaryNode.Transform)
-  const spawn = useSpawn(container)
+  const container = useTransform()
 
   useTrigger(fireTrigger, (x, y) => {
-    spawn(<Bullet x={x} y={y} />)
+    container.node.spawn(<Bullet x={x} y={y} />)
   })
 
   return (
-    <transform ref={container}>
+    <transform ref={container.ref}>
       <Player />
       <Enemy position={[350, 200]} />
     </transform>

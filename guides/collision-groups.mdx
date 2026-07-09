@@ -36,29 +36,29 @@ When two colliders match, three events fire on **both** nodes in the pair:
 | `collided` | Every frame while two colliders remain overlapping |
 | `colliderExited` | The first frame two colliders stop overlapping |
 
-Use `useEvent` to subscribe:
+Use `useTrigger` to subscribe:
 
 ```tsx Enemy.tsx
-import { useNode, useEvent } from 'fraxel/hooks'
-import { PrimaryNode, shapes } from 'fraxel'
+import { useCollider, useTrigger } from 'fraxel/hooks'
+import { shapes } from 'fraxel'
 
 function Enemy() {
-  const collider = useNode(PrimaryNode.Collider)
+  const collider = useCollider()
 
-  useEvent(collider, 'colliderEntered', (other) => {
+  useTrigger(collider.colliderEntered, (other) => {
     if (other.node.name === 'bullet') {
       // Access the script on the enemy's parent transform
       collider.node.parent?.script?.applyDamage(20)
     }
   })
 
-  useEvent(collider, 'colliderExited', (other) => {
+  useTrigger(collider.colliderExited, (other) => {
     console.log('No longer touching:', other.node.name)
   })
 
   return (
     <collider
-      ref={collider}
+      ref={collider.ref}
       shape={shapes.rectangle(32, 48)}
       group={['enemy']}
       collidesWith={['bullet', 'player-sword']}
@@ -76,16 +76,16 @@ import { useCollider, useComputed } from 'fraxel/hooks'
 import { shapes } from 'fraxel'
 
 function Player() {
-  const { ref, colliding, other } = useCollider()
+  const collider = useCollider()
 
   // Flash red while touching an enemy
-  const brightness = useComputed(() => (colliding() ? 2.0 : 1.0))
+  const brightness = useComputed(() => (collider.colliding() ? 2.0 : 1.0))
 
   return (
     <transform>
       <sprite textureId={PLAYER} brightness={brightness} />
       <collider
-        ref={ref}
+        ref={collider}
         shape={shapes.rectangle(24, 40)}
         group={['player']}
         collidesWith={['enemy']}
@@ -97,31 +97,30 @@ function Player() {
 
 | Property | Type | Description |
 |----------|------|-------------|
-| `ref` | `NodeReference` | Pass to `<collider ref={ref}>` |
-| `colliding` | `SignalGetter<boolean>` | `true` while overlapping another collider |
-| `other` | `SignalGetter<Collider \| null>` | The other collider in the current pair |
+| `collider` | `useCollider` return | Use `collider.colliding()` for overlap state |
+| `collider.colliding()` | `SignalGetter<boolean>` | `true` while overlapping another collider |
+| `collider.other()` | `SignalGetter<Collider \| null>` | The other collider in the current pair |
 
 ## Ray Casting
 
 A `<ray-cast>` projects an invisible ray from its position in a given direction, and reports any colliders it intersects. This is useful for line-of-sight checks, ground detection, and trigger zones:
 
 ```tsx EnemyDetector.tsx
-import { useNode, useEvent } from 'fraxel/hooks'
-import { PrimaryNode } from 'fraxel'
+import { useRayCast, useTrigger } from 'fraxel/hooks'
 
 function EnemyDetector() {
-  const ray = useNode(PrimaryNode.RayCast)
+  const ray = useRayCast()
 
-  useEvent(ray, 'colliderEntered', (collider) => {
+  useTrigger(ray.colliderEntered, (collider) => {
     console.log('Enemy in sight:', collider.node.name)
   })
 
-  useEvent(ray, 'colliderExited', (collider) => {
+  useTrigger(ray.colliderExited, (collider) => {
     console.log('Enemy left sight:', collider.node.name)
   })
 
   // Shoot 200px to the right, only detect 'enemy' group
-  return <ray-cast ref={ray} direction={[200, 0]} collidesWith={['enemy']} />
+  return <ray-cast ref={ray.ref} direction={[200, 0]} collidesWith={['enemy']} />
 }
 ```
 
@@ -141,14 +140,14 @@ function EnemyDetector() {
 import { useRayCast, useComputed } from 'fraxel/hooks'
 
 function GuardAI() {
-  const { ref, detected, collider } = useRayCast()
+  const ray = useRayCast()
 
   // Show an alert icon when an enemy is in sight
-  const alertVisible = useComputed(() => detected())
+  const alertVisible = useComputed(() => ray.detected())
 
   return (
     <transform>
-      <ray-cast ref={ref} direction={[150, 0]} collidesWith={['player']} />
+      <ray-cast ref={ray} direction={[150, 0]} collidesWith={['player']} />
       {/* Alert sprite appears/disappears reactively */}
       <sprite textureId={ALERT_ICON} opacity={() => (alertVisible() ? 1 : 0)} />
     </transform>
@@ -158,17 +157,17 @@ function GuardAI() {
 
 | Property | Type | Description |
 |----------|------|-------------|
-| `ref` | `NodeReference` | Pass to `<ray-cast ref={ref}>` |
-| `detected` | `SignalGetter<boolean>` | `true` while the ray hits a collider |
-| `collider` | `SignalGetter<Collider \| null>` | The currently detected collider |
+| `ray` | `useRayCast` return | Use `ray.detected()` for hit state |
+| `ray.detected()` | `SignalGetter<boolean>` | `true` while the ray hits a collider |
+| `ray.collider()` | `SignalGetter<Collider \| null>` | The currently detected collider |
 
 ## Example: Bullet Hits Enemy but Not Other Bullets
 
 Here's a complete shooter scenario showing group filtering in action:
 
 ```tsx ShooterExample.tsx
-import { useNode, useEvent, useSpawn } from 'fraxel/hooks'
-import { PrimaryNode, shapes } from 'fraxel'
+import { useCollider, useRigidBody, useTrigger } from 'fraxel/hooks'
+import { shapes } from 'fraxel'
 import { loadTexture } from 'fraxel/assets'
 
 const BULLET_TEX = await loadTexture('/assets/bullet.png')
@@ -176,20 +175,20 @@ const ENEMY_TEX = await loadTexture('/assets/enemy.png')
 
 // Bullet: belongs to 'bullet', only detects 'enemy' — other bullets are invisible
 function Bullet({ position }: { position: [number, number] }) {
-  const collider = useNode(PrimaryNode.Collider)
-  const body = useNode(PrimaryNode.RigidBody)
+  const collider = useCollider()
+  const body = useRigidBody()
 
-  useEvent(collider, 'colliderEntered', (other) => {
+  useTrigger(collider.colliderEntered, (other) => {
     // Hit an enemy — deal damage and self-destruct
     other.node.parent?.script?.applyDamage(25)
     body.node.destroy()
   })
 
   return (
-    <rigid-body ref={body} position={position} useGravity={false}>
+    <rigid-body ref={body.ref} position={position} useGravity={false}>
       <sprite textureId={BULLET_TEX} sourceSize={[8, 4]} />
       <collider
-        ref={collider}
+        ref={collider.ref}
         shape={shapes.rectangle(8, 4)}
         group={['bullet']}
         collidesWith={['enemy']}   // ← bullets never collide with each other
@@ -200,9 +199,9 @@ function Bullet({ position }: { position: [number, number] }) {
 
 // Enemy: belongs to 'enemy', detects 'bullet' and 'player'
 function Enemy({ position }: { position: [number, number] }) {
-  const collider = useNode(PrimaryNode.Collider)
+  const collider = useCollider()
 
-  useEvent(collider, 'colliderEntered', (other) => {
+  useTrigger(collider.colliderEntered, (other) => {
     console.log('Enemy hit by:', other.node.name)
   })
 
@@ -210,7 +209,7 @@ function Enemy({ position }: { position: [number, number] }) {
     <rigid-body position={position} isStatic>
       <sprite textureId={ENEMY_TEX} sourceSize={[32, 48]} />
       <collider
-        ref={collider}
+        ref={collider.ref}
         shape={shapes.rectangle(32, 48)}
         group={['enemy']}
         collidesWith={['bullet', 'player']}

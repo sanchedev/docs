@@ -1,0 +1,77 @@
+---
+title: "<group> — Lightweight node container"
+sidebarTitle: "<group>"
+description: "Organize child nodes without spatial positioning. Use <group> for batch-destroy, applying deltaIncrease, or attaching scripts to a subset of nodes."
+---
+
+Use `<group>` to organize child nodes without adding spatial positioning. Unlike `<transform>`, a `<group>` does not manage position, rotation, or scale — it purely serves as a logical grouping mechanism. Useful for batch-destroying, applying `deltaIncrease` to a subset of nodes, or attaching a script to a collection of nodes.
+
+```tsx
+import { useGroup } from 'fraxel/hooks'
+
+function EnemySpawner() {
+  const enemies = useGroup()
+
+  return (
+    <group ref={enemies}>
+      <Enemy position={[0, 0]} />
+      <Enemy position={[50, 0]} />
+    </group>
+  )
+}
+```
+
+## Props
+
+<ParamField path="id" type="string | symbol">
+  Optional identifier for this node. Use `node.child()` on a reference to
+  look up nested nodes by path.
+</ParamField>
+
+<ParamField path="zIndex" type="number">
+  Drawing order relative to siblings. Higher values render on top. Defaults to
+  `0`.
+</ParamField>
+
+<ParamField path="deltaIncrease" type="number">
+  Time-scale multiplier applied to this node and all its children. `0.5` = half
+  speed, `2` = double speed. Defaults to `1`.
+
+  ```tsx
+  {/* Slow down a subset of nodes */}
+  <group deltaIncrease={0.5}>
+    <SlowEnemy />
+    <SlowProjectile />
+  </group>
+  ```
+</ParamField>
+
+<ParamField path="gameMode" type="GameMode">
+  Controls how this node behaves when the game is paused. Defaults to
+  `GameMode.INHERIT`. Use `GameMode.ALWAYS` for nodes that should keep updating
+  while paused.
+</ParamField>
+
+<ParamField path="script" type="FraxelScript<PrimaryNode.Group>">
+  Optional script instance to attach to this node.
+</ParamField>
+
+<ParamField path="ref" type="NodeReference<PrimaryNode.Group>">
+  Attach a node reference created with `useGroup()` to access the instance
+  imperatively.
+</ParamField>
+
+## Events
+
+| Event name | Callback signature | Description |
+|---|---|---|
+| `started` | `() => void` | Fires once after initialization. |
+| `updated` | `(delta: number) => void` | Fires every frame during update. |
+| `drawed` | `(delta: number) => void` | Fires every frame when the node is being drawn. |
+| `destroyed` | `() => void` | Fires on removal. |
+| `zIndexChanged` | `(zIndex: number) => void` | Fires when the node's `zIndex` value changes. |
+
+## Related
+
+- [Nodes overview](/getting-started/nodes) — full node reference table
+- [`<transform>`](/api/nodes/transform) — for nodes that need spatial positioning

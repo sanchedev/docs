@@ -1,0 +1,114 @@
+---
+title: "Pub/Sub Hooks API Reference — Fraxel Game Engine"
+sidebarTitle: "Pub/Sub"
+description: "Reference for Fraxel's pub/sub hooks: createTrigger and useTrigger for cross-component communication."
+---
+
+Pub/Sub hooks provide a typed publish/subscribe pattern for communication between components without node events.
+
+---
+
+## createTrigger
+
+Creates a new `Trigger` instance for pub/sub communication between components.
+
+```ts
+createTrigger<T extends any[]>(): Trigger<T>
+```
+
+<ParamField path="T" type="any[]" required>
+  The argument types for the trigger callbacks.
+</ParamField>
+
+**Returns** `Trigger<T>` — a new trigger instance.
+
+```tsx
+import { createTrigger } from 'fraxel/hooks'
+
+// Declare at module level so it is shared between components
+const onEnemyKilled = createTrigger<[enemyId: number]>()
+```
+
+---
+
+## useTrigger
+
+Subscribes to a `Trigger` with automatic cleanup on node destroy.
+
+```ts
+useTrigger<T extends Trigger<any[]>>(trigger: T, fn: Parameters<T['connect']>[0]): void
+```
+
+<ParamField path="trigger" type="Trigger<T>" required>
+  The trigger created by `createTrigger`.
+</ParamField>
+<ParamField path="fn" type="(...args: T) => void" required>
+  Callback that fires when `trigger.emit(...)` is called.
+</ParamField>
+
+```tsx
+import { createTrigger, useTrigger } from 'fraxel/hooks'
+
+const onEnemyKilled = createTrigger<[enemyId: number]>()
+
+// Parent listens
+function ScoreManager() {
+  useTrigger(onEnemyKilled, (id) => {
+    console.log('Enemy killed:', id)
+  })
+  return <transform />
+}
+
+// Child emits
+function Enemy({ id }: { id: number }) {
+  const collider = useCollider()
+
+  useEffect(() => {
+    if (collider.colliding()) {
+      onEnemyKilled.emit(id)
+    }
+  })
+
+  return <collider ref={collider} shape={shapes.circle(8)} group={['enemy']} collidesWith={['bullet']} />
+}
+```
+
+---
+
+## Trigger class
+
+The `Trigger` class provides the underlying pub/sub mechanism.
+
+### Methods
+
+| Method | Signature | Description |
+|---|---|---|
+| `connect` | `(cb: Fun<T>) => void` | Manually add a listener. |
+| `disconnect` | `(cb: Fun<T>) => void` | Manually remove a listener. |
+| `clear` | `() => void` | Remove all listeners. |
+| `emit` | `(...args: T) => void` | Call all connected listeners with the given arguments. |
+
+```tsx
+import { createTrigger } from 'fraxel/hooks'
+
+const trigger = createTrigger<[number]>()
+
+// Manual subscription (outside of hooks)
+trigger.connect((value) => {
+  console.log(value)
+})
+
+trigger.emit(42) // logs: 42
+
+// Clean up all listeners
+trigger.clear()
+```
+
+<Tip>
+Use `useTrigger` inside components for automatic cleanup. Use `trigger.connect` only outside of components or when you need manual control over the subscription.
+</Tip>
+
+## Related
+
+- [Context Hooks](/api/hooks/context) — `createContext`, `useContext` for static shared values
+- [Event System](/api/concepts/event-system) — Node-level events

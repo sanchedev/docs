@@ -1,0 +1,172 @@
+---
+title: "State Hooks API Reference — Fraxel Game Engine"
+sidebarTitle: "State"
+description: "Reference for Fraxel's state hooks: useSignal, useComputed, useRef, and useUpdate for reactive state management."
+---
+
+State hooks manage reactive values and derived computations. They are the foundation of Fraxel's fine-grained reactivity system.
+
+---
+
+## useSignal
+
+Creates a reactive signal with an initial value. When the signal's value changes, any `useEffect` or `useComputed` that read from it will automatically re-run.
+
+```ts
+useSignal<T>(initialValue: T): [SignalGetter<T>, SignalSetter<T>]
+```
+
+<ParamField path="initialValue" type="T" required>
+  The initial value of the signal.
+</ParamField>
+
+**Returns** a tuple `[getter, setter]`:
+
+| Item | Type | Description |
+|---|---|---|
+| `getter` | `() => T` | Call to read the current value. Reading inside `useEffect` or `useComputed` establishes a reactive dependency. |
+| `setter` | `(value: T) => void` | Call to update the value and notify subscribers. |
+
+```tsx
+import { useSignal, useEffect } from 'fraxel/hooks'
+
+function HealthBar() {
+  const [health, setHealth] = useSignal(100)
+
+  useEffect(() => {
+    console.log('Health is now:', health())
+  })
+
+  return (
+    <transform>
+      <geometry fillColor={[1 - health() / 100, health() / 100, 0, 1]} />
+    </transform>
+  )
+}
+```
+
+<Note>
+Subscribers are automatically cleaned up when the node is destroyed. You do not need to manually unsubscribe.
+</Note>
+
+---
+
+## useComputed
+
+Creates a derived signal that recomputes automatically whenever any signal it reads changes.
+
+```ts
+useComputed<T>(fn: () => T): SignalGetter<T>
+```
+
+<ParamField path="fn" type="() => T" required>
+  A function that derives a value from one or more signal getters. Re-runs whenever a dependency changes.
+</ParamField>
+
+**Returns** `SignalGetter<T>` — a read-only getter for the derived value.
+
+```tsx
+import { useSignal, useComputed } from 'fraxel/hooks'
+
+function CooldownBar() {
+  const [elapsed, setElapsed] = useSignal(0)
+
+  // Automatically updates when elapsed changes
+  const progress = useComputed(() => elapsed() / 3)
+
+  return (
+    <geometry
+      shape={shapes.rectangle(progress() * 100, 10)}
+      fillColor={[1, 1, 0, 1]}
+    />
+  )
+}
+```
+
+<Tip>
+Use `useComputed` to transform or combine signals without managing intermediate state. It is more efficient than deriving values inside `useEffect`.
+</Tip>
+
+---
+
+## useRef
+
+Creates a mutable reference object that persists across renders but does not trigger reactivity when changed. Analogous to a plain mutable variable scoped to the component.
+
+```ts
+useRef<T>(value: T): Reference<T>
+```
+
+<ParamField path="value" type="T" required>
+  The initial value stored in the reference.
+</ParamField>
+
+**Returns** `Reference<T>` — an object with a single mutable `current` property.
+
+```tsx
+import { useRef, useCollider, useEffect } from 'fraxel/hooks'
+import { shapes } from 'fraxel'
+
+function Projectile() {
+  const bounces = useRef(0)
+
+  const collider = useCollider()
+
+  useEffect(() => {
+    if (collider.colliding()) {
+      bounces.current++
+      if (bounces.current >= 3) {
+        // destroy self
+      }
+    }
+  })
+
+  return (
+    <collider
+      ref={collider}
+      shape={shapes.circle(4)}
+      group={['projectile']}
+      collidesWith={['wall']}
+    />
+  )
+}
+```
+
+---
+
+## useUpdate
+
+Registers a callback that runs every frame with the frame delta. Useful for per-frame logic that does not belong in a node event handler.
+
+```ts
+useUpdate(fn: (delta: number) => void): void
+```
+
+<ParamField path="fn" type="(delta: number) => void" required>
+  A function called every frame. Receives the time delta (in seconds) since the last frame.
+</ParamField>
+
+```tsx
+import { useUpdate, useSignal } from 'fraxel/hooks'
+
+function Rotator() {
+  const angle = useSignal(0)
+  const [, setAngle] = angle
+
+  useUpdate((delta) => {
+    setAngle(angle() + 90 * delta)
+  })
+
+  return <sprite textureId={ARROW} rotation={angle()} />
+}
+```
+
+<Tip>
+Prefer `useSignal` and `useEffect` for reactive state. Use `useUpdate` for imperative per-frame logic such as manual integration or smoothing that does not depend on signals.
+</Tip>
+
+## Related
+
+- [Lifecycle Hooks](/api/hooks/lifecycle) — `useEffect`, `useMount`
+- [Node Hooks](/api/hooks/node) — `useSprite`, `useCollider`, `useRigidBody` and more
+- [Signals guide](/getting-started/signals) — Learn more about reactive state

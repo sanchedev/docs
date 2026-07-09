@@ -137,14 +137,14 @@ useMount(() => {
 ## Complete Preloader Example with Progress Bar
 
 ```tsx LoadingScene.tsx
-import { useSignal, useComputed, useMount, useGame } from 'fraxel/hooks'
+import { useSignal, useComputed, useMount, useScene } from 'fraxel/hooks'
 import { loadBatch, loadTexture, loadSound } from 'fraxel/assets'
 import { shapes } from 'fraxel'
 
 const BAR_MAX_WIDTH = 200
 
 function LoadingScene() {
-  const game = useGame()
+  const scene = useScene()
   const [progress, setProgress] = useSignal(0)
   const [status, setStatus] = useSignal('Loading…')
 
@@ -171,7 +171,7 @@ function LoadingScene() {
 
     // Short delay so the player sees 100%, then go
     await new Promise((r) => setTimeout(r, 300))
-    game.changeScene('level1')
+    scene.changeScene('level1')
   })
 
   return (

@@ -92,7 +92,7 @@ Fraxel splits its public API across several sub-path exports. The separation is 
 | Path | Description |
 |---|---|
 | `fraxel` | Nodes (`PrimaryNode`), math (`Vector2`, `vector2`), collision (`shapes`, `Narrowphase`), `Input`, `Signal`, `PhysicsSystem` |
-| `fraxel/hooks` | All hooks: `useSignal`, `useEffect`, `useComputed`, `useNode`, `useEvent`, `useMount`, `useSpawn`, `useAction`, `useActionAxis`, `useTrigger`, `createContext`, `useContext`, and all derived hooks |
+| `fraxel/hooks` | All hooks: `useSignal`, `useEffect`, `useComputed`, `useMount`, `useAction`, `useActionAxis`, `useTrigger`, `createContext`, `useContext`, and all node-specific hooks (`useSprite`, `useTransform`, `useCollider`, etc.) |
 | `fraxel/jsx` | JSX components: `Game`, `Scene`, `List`, `Fragment`; bootstrap function: `createGame` |
 | `fraxel/assets` | `loadTexture`, `loadSound`, `loadBatch` |
 | `fraxel/animation` | `tween`, easing functions (`easeOutQuad`, `easeInBounce`, …), `animationFromSheet` |

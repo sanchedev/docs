@@ -49,13 +49,13 @@ Inside `packages/fraxel/src`, the top-level folders map directly to engine subsy
 ## Key Subsystems
 
 ### Reactivity
-A fine-grained signal system inspired by SolidJS. Signals hold values; getters track which computation last read them; when a signal changes, only the subscribers of that exact signal are notified. No diffing, no virtual tree. See [Reactivity Internals](/advanced/reactivity-internals) for a deep dive.
+A fine-grained signal system inspired by SolidJS. Signals hold values; getters track which computation last read them; when a signal changes, only the subscribers of that exact signal are notified. No diffing, no virtual tree. See [Reactivity Internals](/guides/reactivity-internals) for a deep dive.
 
 ### Nodes
-Every object in a Fraxel scene is a `Node`. The base `Node` class manages identity (`id`), parent/child relationships, z-ordering, delta scaling (`deltaIncrease`), events (`started`, `updated`, `destroyed`), and the core `start / update / draw / destroy` lifecycle. `Node2D` extends it with a `position` property and a translation-aware `draw()` that shifts the canvas context before rendering children. See [Lifecycle](/advanced/lifecycle) for the full lifecycle contract.
+Every object in a Fraxel scene is a `Node`. The base `Node` class manages identity (`id`), parent/child relationships, z-ordering, delta scaling (`deltaIncrease`), events (`started`, `updated`, `destroyed`), and the core `start / update / draw / destroy` lifecycle. `Node2D` extends it with a `position` property and a translation-aware `draw()` that shifts the canvas context before rendering children. See [Lifecycle](/guides/lifecycle) for the full lifecycle contract.
 
 ### Collision & Physics
-Two singleton systems — `CollisionSystem` and `PhysicsSystem` — run every frame after node updates. `CollisionSystem` maintains a spatial hash for broadphase filtering and a narrowphase detector for precise shape tests. `PhysicsSystem` integrates velocity, applies gravity, and resolves overlaps. See [Collision Pipeline](/advanced/collision-pipeline) for details.
+Two singleton systems — `CollisionSystem` and `PhysicsSystem` — run every frame after node updates. `CollisionSystem` maintains a spatial hash for broadphase filtering and a narrowphase detector for precise shape tests. `PhysicsSystem` integrates velocity, applies gravity, and resolves overlaps. See [Collision Pipeline](/guides/collision-pipeline) for details.
 
 ### Input
 `Input` wraps browser pointer and keyboard events, normalizing coordinates against the canvas size. It is updated once per frame at the end of `Game.loop()`.

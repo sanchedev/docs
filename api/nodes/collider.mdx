@@ -7,13 +7,13 @@ description: "Detect overlaps between game objects using rectangle, circle, or c
 Use `<collider>` to give a game object a physical presence in the collision system. A collider has a `shape` (rectangle, circle, or capsule), belongs to one or more named `group`s, and responds to colliders whose groups match its `collidesWith` list. Events fire on **both** colliders when an overlap begins, persists, or ends. The collider must be a descendant of a node that has a `position` (any `Node2D` subtype).
 
 ```tsx
-import { useNode, useEvent } from 'fraxel/hooks'
-import { PrimaryNode, shapes } from 'fraxel'
+import { useCollider, useTrigger } from 'fraxel/hooks'
+import { shapes } from 'fraxel'
 
 function Projectile() {
-  const col = useNode(PrimaryNode.Collider)
+  const col = useCollider()
 
-  useEvent(col, 'colliderEntered', (enemyCol) => {
+  useTrigger(col.colliderEntered, (enemyCol) => {
     enemyCol.parent.script.takeDamage(10)
   })
 
@@ -77,6 +77,12 @@ Create shapes with the `shapes` factory imported from `'fraxel'`:
   `true`). Defaults to `0`.
 </ParamField>
 
+<ParamField path="gameMode" type="GameMode">
+  Controls how this node behaves when the game is paused. Defaults to
+  `GameMode.INHERIT`. Use `GameMode.ALWAYS` for nodes that should keep updating
+  while paused.
+</ParamField>
+
 <ParamField path="ref" type="NodeReference<PrimaryNode.Collider>">
   Attach a node reference to subscribe to events or read properties.
 </ParamField>
@@ -100,21 +106,23 @@ Create shapes with the `shapes` factory imported from `'fraxel'`:
 | `colliderExited` | `(other: Collider) => void` | Fires once when the overlap ends. |
 | `started` | `() => void` | Fires when the node finishes `start()`. |
 | `updated` | `(delta: number) => void` | Fires every frame during update. |
+| `drawed` | `(delta: number) => void` | Fires every frame when the node is being drawn. |
 | `destroyed` | `() => void` | Fires on removal. |
+| `zIndexChanged` | `(zIndex: number) => void` | Fires when the node's `zIndex` value changes. |
 
 <CodeGroup>
 
 ```tsx Collect a coin
-import { useNode, useEvent } from 'fraxel/hooks'
-import { PrimaryNode, shapes } from 'fraxel'
+import { useCollider, useTrigger } from 'fraxel/hooks'
+import { shapes } from 'fraxel'
 
 function Coin() {
-  const col = useNode(PrimaryNode.Collider)
+  const col = useCollider()
 
-  useEvent(col, 'colliderEntered', (other) => {
+  useTrigger(col.colliderEntered, (other) => {
     if (other.group.has('player')) {
       addScore(100)
-      col.node.destroy()
+      col.destroy()
     }
   })
 

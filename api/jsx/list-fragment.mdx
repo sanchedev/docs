@@ -166,11 +166,11 @@ Use `<Fragment>` when a component function must return a single JSX expression b
 
 ---
 
-## Comparison: List vs manual useSpawn
+## Comparison: List vs manual spawning
 
 Both approaches can render dynamic children, but they serve different use cases:
 
-| | `<List>` | `useSpawn` |
+| | `<List>` | `ref.spawn()` |
 |---|---|---|
 | Input | Reactive signal array | Imperative call |
 | Reconciliation | Keyed diffing — only new/removed items change | None — you manage add/remove |

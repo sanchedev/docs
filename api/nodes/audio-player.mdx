@@ -7,18 +7,17 @@ description: "Play decoded audio buffers loaded with loadSound(). Supports loopi
 Use `<audio-player>` to play sounds and music loaded with `loadSound()`. It wraps the Web Audio API's `AudioBufferSourceNode` and `GainNode`, giving you volume control and playback rate adjustment with low overhead. Call `play()`, `pause()`, and `stop()` imperatively, or drive playback from events. For components that destroy themselves immediately after triggering a sound, set `persistUntilEnd` to keep the audio node alive until playback finishes.
 
 ```tsx
-import { useNode, useEvent } from 'fraxel/hooks'
-import { PrimaryNode } from 'fraxel'
+import { useAudio, useClickable, useTrigger } from 'fraxel/hooks'
 import { loadSound } from 'fraxel/assets'
 
 const SHOOT_SFX = await loadSound('/assets/shoot.mp3')
 
 function Gun() {
-  const audio = useNode(PrimaryNode.AudioPlayer)
-  const clickable = useNode(PrimaryNode.Clickable)
+  const audio = useAudio()
+  const clickable = useClickable()
 
-  useEvent(clickable, 'clicked', () => {
-    audio.node.play()
+  useTrigger(clickable.clicked, () => {
+    audio.play()
   })
 
   return (
@@ -66,12 +65,18 @@ function Gun() {
 
   ```tsx
   // The pea destroys itself, but the splat sound plays out
-  useEvent(col, 'colliderEntered', () => {
-    audio.node.play()
+  useTrigger(col.colliderEntered, () => {
+    audio.play()
     transform.node.destroy() // audio-player survives until `ended`
   })
-  <audio-player soundId={SPLAT} persistUntilEnd />
+  <audio-player ref={audio} soundId={SPLAT} persistUntilEnd />
   ```
+</ParamField>
+
+<ParamField path="gameMode" type="GameMode">
+  Controls how this node behaves when the game is paused. Defaults to
+  `GameMode.INHERIT`. Use `GameMode.ALWAYS` for nodes that should keep updating
+  while paused.
 </ParamField>
 
 <ParamField path="ref" type="NodeReference<PrimaryNode.AudioPlayer>">
@@ -103,26 +108,27 @@ function Gun() {
 | `error` | `(err: Error) => void` | Fires if playback fails (e.g. decoding error, missing buffer). |
 | `started` | `() => void` | Fires once after the node finishes `start()`. |
 | `updated` | `(delta: number) => void` | Fires every frame during the update cycle. |
+| `drawed` | `(delta: number) => void` | Fires every frame when the node is being drawn. |
 | `destroyed` | `() => void` | Fires on removal (after any `persistUntilEnd` delay). |
+| `zIndexChanged` | `(zIndex: number) => void` | Fires when the node's `zIndex` value changes. |
 
 <CodeGroup>
 
 ```tsx Background music with auto-resume
-import { useNode, useMount } from 'fraxel/hooks'
-import { PrimaryNode } from 'fraxel'
+import { useAudio, useMount } from 'fraxel/hooks'
 import { loadSound } from 'fraxel/assets'
 import { getAudioContext } from 'fraxel/audio'
 
 const BG_MUSIC = await loadSound('/assets/music.mp3')
 
 function MusicPlayer() {
-  const music = useNode(PrimaryNode.AudioPlayer)
+  const music = useAudio()
 
   useMount(() => {
     // Browsers require a user gesture before audio plays
     const ctx = getAudioContext()
     if (ctx.state === 'suspended') ctx.resume()
-    music.node.play()
+    music.play()
   })
 
   return <audio-player ref={music} soundId={BG_MUSIC} loop volume={0.35} />
@@ -130,19 +136,18 @@ function MusicPlayer() {
 ```
 
 ```tsx Pitch-shifted variants
-import { useNode, useMount } from 'fraxel/hooks'
-import { PrimaryNode } from 'fraxel'
+import { useAudio, useMount } from 'fraxel/hooks'
 import { loadSound } from 'fraxel/assets'
 
 const HIT_SFX = await loadSound('/assets/hit.mp3')
 
 function randomHitSound() {
-  const audio = useNode(PrimaryNode.AudioPlayer)
+  const audio = useAudio()
 
   useMount(() => {
     // Random pitch between 0.85× and 1.15×
-    audio.node.playbackRate = 0.85 + Math.random() * 0.3
-    audio.node.play()
+    audio.playbackRate = 0.85 + Math.random() * 0.3
+    audio.play()
   })
 
   return (

@@ -9,14 +9,13 @@ Not every animation needs a sprite sheet. Moving a UI element into view, fading 
 ## Your First Tween
 
 ```tsx CoinPop.tsx
-import { useMount, useNode } from 'fraxel/hooks'
-import { PrimaryNode } from 'fraxel'
+import { useMount, useSprite } from 'fraxel/hooks'
 import { tween, easeOutBounce } from 'fraxel/animation'
 
 const COIN = await loadTexture('/assets/coin.png')
 
 function CoinPop() {
-  const sprite = useNode(PrimaryNode.Sprite)
+  const sprite = useSprite()
 
   useMount(() => {
     // Fade in with a bounce
@@ -93,11 +92,11 @@ t.progress      // number 0 to 1 — how far through the tween
 Store the controller in a `useRef` to pause/resume from other events:
 
 ```tsx
-import { useRef, useMount } from 'fraxel/hooks'
+import { useRef, useMount, useSprite } from 'fraxel/hooks'
 import { tween } from 'fraxel/animation'
 
 function ScrollingBG() {
-  const sprite = useNode(PrimaryNode.Sprite)
+  const sprite = useSprite()
   const tweenRef = useRef<ReturnType<typeof tween> | null>(null)
 
   useMount(() => {
@@ -226,12 +225,11 @@ parallel([
 The canonical pattern for entry animations is to start the tween inside `useMount`, which runs once when the node is ready:
 
 ```tsx PowerUp.tsx
-import { useMount, useNode } from 'fraxel/hooks'
-import { PrimaryNode } from 'fraxel'
+import { useMount, useSprite } from 'fraxel/hooks'
 import { tween, sequence, easeOutBounce, easeInQuad } from 'fraxel/animation'
 
 function PowerUp() {
-  const sprite = useNode(PrimaryNode.Sprite)
+  const sprite = useSprite()
 
   useMount(() => {
     // Pop-in: scale from 0 → 1 with bounce
@@ -271,15 +269,14 @@ function PowerUp() {
 ## Complete Example: Coin Pop-In Animation
 
 ```tsx Coin.tsx
-import { useMount, useNode } from 'fraxel/hooks'
-import { PrimaryNode } from 'fraxel'
+import { useMount, useSprite } from 'fraxel/hooks'
 import { tween, parallel, sequence, easeOutElastic, easeOutBounce, easeInQuad } from 'fraxel/animation'
 import { loadTexture } from 'fraxel/assets'
 
 const COIN = await loadTexture('/assets/coin.png')
 
 function Coin({ x, y }: { x: number; y: number }) {
-  const sprite = useNode(PrimaryNode.Sprite)
+  const sprite = useSprite()
 
   useMount(() => {
     // Phase 1: pop in (scale up + fade in simultaneously)

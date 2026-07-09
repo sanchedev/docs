@@ -1,0 +1,128 @@
+---
+title: "Context API Reference — Fraxel Game Engine"
+sidebarTitle: "Context API"
+description: "Reference for Fraxel's Context API: sharing state across components without prop drilling."
+---
+
+The Context API provides a way to share values across the component tree without passing props through every level. It is similar to React's Context API but designed for Fraxel's game environment.
+
+---
+
+## createContext
+
+Creates a typed context object with a `Provider` component.
+
+```ts
+createContext<T>(defaultValue: T): ContextCreated<T>
+```
+
+<ParamField path="defaultValue" type="T" required>
+  The value returned by `useContext` when no `Provider` is found in the ancestor tree.
+</ParamField>
+
+**Returns** `ContextCreated<T>` — an object with a `Provider` component.
+
+```tsx
+import { createContext } from 'fraxel/hooks'
+
+const DifficultyCtx = createContext<'easy' | 'hard'>('easy')
+```
+
+---
+
+## useContext
+
+Retrieves the value of a context from the nearest ancestor `Provider`.
+
+```ts
+useContext<T>(ctx: ContextCreated<T>): T
+```
+
+<ParamField path="ctx" type="ContextCreated<T>" required>
+  The context created with `createContext`.
+</ParamField>
+
+**Returns** `T` — the current context value, or the default value if no `Provider` is found.
+
+```tsx
+import { createContext, useContext } from 'fraxel/hooks'
+
+const ThemeCtx = createContext<'light' | 'dark'>('light')
+
+function Child() {
+  const theme = useContext(ThemeCtx)
+  return <text text={theme} />
+}
+```
+
+---
+
+## Provider Component
+
+The `Provider` component wraps a subtree that should receive the context value.
+
+```tsx
+<DifficultyCtx.Provider value="hard">
+  <Enemy />
+  <Ally />
+</DifficultyCtx.Provider>
+```
+
+<ParamField path="value" type="T" required>
+  The value to provide to descendant components.
+</ParamField>
+<ParamField path="children" type="Fraxel.Node" required>
+  The child nodes that will have access to the context.
+</ParamField>
+
+---
+
+## Complete Example
+
+```tsx
+import { createContext, useContext } from 'fraxel/hooks'
+
+// Create context with default value
+const GameLevelCtx = createContext<number>(1)
+
+// Provider component
+function GameScene() {
+  return (
+    <GameLevelCtx.Provider value={3}>
+      <Player />
+      <Enemy />
+    </GameLevelCtx.Provider>
+  )
+}
+
+// Consumer component
+function Player() {
+  const level = useContext(GameLevelCtx)
+  return <text text={() => `Level: ${level}`} />
+}
+
+// Another consumer
+function Enemy() {
+  const level = useContext(GameLevelCtx)
+  const speed = 100 + level * 20
+  return <transform />
+}
+```
+
+---
+
+## Limitations
+
+<Note>
+Context values are static — they do not trigger reactivity when changed. If you need reactive shared state, use signals at module scope or the Trigger system.
+</Note>
+
+- Context values are passed down the tree but do not trigger re-renders when changed
+- For reactive shared state, use `createTrigger` or module-level signals
+- Context is scoped to the component tree, not the game world
+
+## Related
+
+- [Context Hooks](/api/hooks/context) — `createContext`, `useContext` hooks
+- [Pub/Sub Hooks](/api/hooks/pub-sub) — `createTrigger`, `useTrigger` for reactive cross-component communication
+- [State Hooks](/api/hooks/state) — `useSignal` for reactive state

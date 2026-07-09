@@ -1,7 +1,7 @@
 ---
 title: "Scene Management in Fraxel"
 sidebarTitle: "Scenes"
-description: "Organize your Fraxel game into scenes for menus, levels, and game states. Learn changeScene, preloadScene, useGame, and per-scene asset loading patterns."
+description: "Organize your Fraxel game into scenes for menus, levels, and game states. Learn changeScene, preloadScene, and per-scene asset loading patterns."
 ---
 
 A complete game is more than one screen. You need a main menu, a gameplay level, a pause screen, a game-over state. Scenes let you divide your game into discrete, self-contained units that Fraxel loads and unloads on demand. Each scene is a separate JSX tree — when you switch scenes, the old tree is destroyed and the new one starts fresh.
@@ -34,13 +34,18 @@ The `defaultScene` prop on `<Game>` sets which scene loads first. Each `<Scene>`
 
 ## Switching Scenes
 
-Use `useGame()` inside any component to access scene controls. Call `changeScene` with a registered scene name to transition:
+Use `useScene()` inside any component to access scene controls. Call `changeScene` with a registered scene name to transition:
 
 ```tsx MainMenu.tsx
-import { useGame } from 'fraxel/hooks'
+import { useScene, useClickable, useTrigger } from 'fraxel/hooks'
 
 function MainMenu() {
-  const game = useGame()
+  const scene = useScene()
+  const btn = useClickable()
+
+  useTrigger(btn.clicked, () => {
+    scene.change('level1')
+  })
 
   return (
     <transform>
@@ -50,10 +55,7 @@ function MainMenu() {
         style={{ fontSize: 32, foregroundColor: '#fff', textAlign: 'center' }}
       />
       <sprite textureId={PLAY_BTN}>
-        <clickable
-          size={[120, 40]}
-          onClick={() => game.changeScene('level1')}
-        />
+        <clickable ref={btn} size={[120, 40]} />
       </sprite>
     </transform>
   )
@@ -67,15 +69,15 @@ function MainMenu() {
 For fast scene transitions — especially when a scene involves heavy asset loading — preload it while the current scene is still running. `preloadScene` returns a `Promise` that resolves to an activation function you call to swap the scene instantly:
 
 ```tsx Level1.tsx
-import { useGame, useMount } from 'fraxel/hooks'
+import { useScene, useMount } from 'fraxel/hooks'
 
 function Level1() {
-  const game = useGame()
+  const scene = useScene()
   let activateLevel2: (() => void) | null = null
 
   useMount(async () => {
     // Start loading level 2 in the background immediately
-    activateLevel2 = await game.preloadScene('level2')
+    activateLevel2 = await scene.preloadScene('level2')
   })
 
   const onLevelComplete = () => {
@@ -95,22 +97,24 @@ function Level1() {
   `preloadScene` runs the scene's component function in the background. The returned activation function swaps the scene without re-loading — the JSX tree is already built.
 </Note>
 
-## `useGame` Hook
+## `useScene` Hook
 
-`useGame` gives any component access to the top-level game controls:
+`useScene` gives any component access to the top-level scene controls:
 
 ```tsx PauseButton.tsx
-import { useGame } from 'fraxel/hooks'
+import { useScene, useClickable, useTrigger } from 'fraxel/hooks'
 
 function PauseButton() {
-  const game = useGame()
+  const scene = useScene()
+  const btn = useClickable()
+
+  useTrigger(btn.clicked, () => {
+    scene.pause()
+  })
 
   return (
     <sprite textureId={PAUSE_BTN}>
-      <clickable
-        size={[32, 32]}
-        onClick={() => game.pause()}
-      />
+      <clickable ref={btn} size={[32, 32]} />
     </sprite>
   )
 }
@@ -118,12 +122,9 @@ function PauseButton() {
 
 | Method | Description |
 |--------|-------------|
-| `game.changeScene(name)` | Destroy the current scene and load a new one |
-| `game.preloadScene(name)` | Load a scene in the background; returns a `Promise<() => void>` activation function |
-| `game.play()` | Start or resume the game loop |
-| `game.pause()` | Pause the game loop |
-| `game.destroy()` | Tear down the entire game (stops loop, removes all listeners) |
-| `game.getSize()` | Returns the canvas size as a `Vector2` |
+| `scene.change(name)` | Destroy the current scene and load a new one |
+| `scene.preload(name)` | Load a scene in the background; returns a `Promise<() => void>` activation function |
+| `scene.current` | The name of the currently active scene |
 
 ## Per-Scene Asset Loading
 
@@ -239,14 +240,14 @@ game.play()
 ```
 
 ```tsx LoadingScreen.tsx
-import { useGame, useMount } from 'fraxel/hooks'
+import { useScene, useMount } from 'fraxel/hooks'
 
 function LoadingScreen() {
-  const game = useGame()
+  const scene = useScene()
 
   useMount(async () => {
     // Begin loading the real scene, then switch when ready
-    const activate = await game.preloadScene('level3')
+    const activate = await scene.preloadScene('level3')
     activate()
   })
 

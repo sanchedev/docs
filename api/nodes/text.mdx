@@ -7,11 +7,10 @@ description: "Render styled text on the canvas with reactive content. Supports f
 Use `<text>` to render a string directly onto the canvas using `ctx.fillText()`. Pass a plain string or a reactive `SignalGetter<string>` to `text` — the node re-draws automatically whenever the signal changes, making it the simplest way to display live game data like scores, timers, or dialogue. Style the text with a `Partial<TextStyle>` — any property you omit falls back to the engine default.
 
 ```tsx
-import { useNode, useSignal } from 'fraxel/hooks'
-import { PrimaryNode } from 'fraxel'
+import { useText, useSignal } from 'fraxel/hooks'
 
 function ScoreLabel() {
-  const label = useNode(PrimaryNode.Text)
+  const label = useText()
   const [score] = useSignal(0)
 
   return (
@@ -61,6 +60,12 @@ function ScoreLabel() {
   Rendering order relative to siblings. Defaults to `0`.
 </ParamField>
 
+<ParamField path="gameMode" type="GameMode">
+  Controls how this node behaves when the game is paused. Defaults to
+  `GameMode.INHERIT`. Use `GameMode.ALWAYS` for nodes that should keep updating
+  while paused.
+</ParamField>
+
 <ParamField path="ref" type="NodeReference<PrimaryNode.Text>">
   Attach a node reference to access the `Text` instance imperatively.
 </ParamField>
@@ -71,9 +76,9 @@ function ScoreLabel() {
 |---|---|---|---|
 | `fontSize` | `number` | `16` | Font size in pixels. |
 | `fontFamily` | `string` | `'sans-serif'` | CSS font family string. |
-| `fontWeight` | `string \| number` | `'normal'` | CSS `font-weight` value, e.g. `'bold'` or `700`. |
+| `fontWeight` | `FontWeight` | `'normal'` | Font weight enum: `'normal'` or `'bold'`. |
 | `foregroundColor` | `string` | `'#000000'` | CSS color string for the text fill. |
-| `textAlign` | `'left' \| 'center' \| 'right'` | `'left'` | Horizontal alignment of the text relative to `position.x`. |
+| `textAlign` | `TextAlign` | `'start'` | Text alignment enum: `'start'`, `'center'`, or `'end'`. |
 
 ## Events
 
@@ -81,16 +86,17 @@ function ScoreLabel() {
 |---|---|---|
 | `started` | `() => void` | Fires once after the node is initialized. |
 | `updated` | `(delta: number) => void` | Fires every frame during update. |
+| `drawed` | `(delta: number) => void` | Fires every frame when the node is being drawn. |
 | `destroyed` | `() => void` | Fires when the node is removed. |
+| `zIndexChanged` | `(zIndex: number) => void` | Fires when the node's `zIndex` value changes. |
 
 <CodeGroup>
 
 ```tsx Countdown timer label
-import { useNode, useEvent } from 'fraxel/hooks'
-import { PrimaryNode } from 'fraxel'
+import { useTimer } from 'fraxel/hooks'
 
 function CountdownLabel() {
-  const timer = useNode(PrimaryNode.Timer)
+  const timer = useTimer()
 
   return (
     <>

@@ -1,0 +1,169 @@
+---
+title: "Event System API Reference — Fraxel Game Engine"
+sidebarTitle: "Event System"
+description: "Reference for Fraxel's Event class: type-safe events with subscribe, unsubscribe, and emit capabilities."
+---
+
+The `Event` class is a type-safe event emitter that supports subscribing, unsubscribing, and emitting events. It is used throughout the engine for node lifecycle events, collision events, and custom game events.
+
+---
+
+## Creating an Event
+
+```ts
+new Event<T, K>(baseName: K, exampleFun: Fun<T>)
+```
+
+<ParamField path="baseName" type="string" required>
+  The base name used to derive the event handler name (e.g., `'damage'` → `'onDamage'`).
+</ParamField>
+<ParamField path="exampleFun" type="function" required>
+  An example function used for type inference in event subscriptions.
+</ParamField>
+
+```ts
+const onDamage = new Event<[number], 'damage'>('damage', (amount) => {})
+```
+
+---
+
+## Methods
+
+### on
+
+Subscribes a callback to this event. Returns an unsubscribe function.
+
+```ts
+on(cb: Fun<T>): () => void
+```
+
+<ParamField path="cb" type="function" required>
+  The callback function to invoke when the event is emitted.
+</ParamField>
+
+**Returns** `() => void` — call to unsubscribe.
+
+```ts
+const unsubscribe = sprite.started.on(() => {
+  console.log('Sprite started!')
+})
+
+// Later, to unsubscribe:
+unsubscribe()
+```
+
+### onFirst
+
+Subscribes a callback to this event with highest priority. This callback will be called before any previously registered callbacks.
+
+```ts
+onFirst(cb: Fun<T>): void
+```
+
+<ParamField path="cb" type="function" required>
+  The callback function to invoke first when the event is emitted.
+</ParamField>
+
+```ts
+collider.collided.onFirst((other) => {
+  console.log('Priority handler:', other)
+})
+```
+
+### off
+
+Unsubscribes a callback from this event.
+
+```ts
+off(cb: Fun<T>): void
+```
+
+<ParamField path="cb" type="function" required>
+  The callback function to remove.
+</ParamField>
+
+```ts
+const handler = (delta: number) => { /* ... */ }
+node.updated.on(handler)
+node.updated.off(handler)
+```
+
+### emit
+
+Invokes all subscribed callbacks with the given parameters.
+
+```ts
+emit(...params: T): void
+```
+
+<ParamField path="params" type="T" required>
+  The parameters to pass to each callback.
+</ParamField>
+
+```ts
+collider.colliderEntered.emit(otherCollider)
+```
+
+### clean
+
+Removes all subscribed callbacks from this event.
+
+```ts
+clean(): void
+```
+
+```ts
+// Remove all listeners before destroying a node
+node.updated.clean()
+```
+
+---
+
+## Utility Function
+
+### getEventName
+
+Converts a base event name to its handler name. For example, `'damage'` becomes `'onDamage'`.
+
+```ts
+getEventName<const K extends string>(baseName: K): EventName<K>
+```
+
+<ParamField path="baseName" type="string" required>
+  The base name of the event.
+</ParamField>
+
+**Returns** `string` — the event handler name with `on` prefix.
+
+```ts
+getEventName('damage')       // 'onDamage'
+getEventName('colliderEnter') // 'onColliderEnter'
+```
+
+---
+
+## Common Node Events
+
+All nodes have these lifecycle events:
+
+| Event | Callback | Description |
+|---|---|---|
+| `started` | `() => void` | Fires once after `start()`. |
+| `updated` | `(delta: number) => void` | Fires every frame during update. |
+| `drawed` | `(delta: number) => void` | Fires every frame during draw. |
+| `destroyed` | `() => void` | Fires on removal from the scene. |
+| `zIndexChanged` | `(zIndex: number) => void` | Fires when `zIndex` changes. |
+
+Node-specific events include:
+
+- **Collider**: `colliderEntered`, `colliderExited`
+- **Clickable**: `mouseEntered`, `mouseExited`, `clicked`
+- **Timer**: `timeout`, `timeChanged`
+- **RayCast**: `colliderEntered`, `colliderExited`
+- **RigidBody**: `collisionStarted`, `collisionEnded`
+- **Input**: `pointerMoved`, `pointerPressed`, `pointerUnpressed`
+
+## Related
+
+- [Node Hooks](/api/hooks/node) — `useTrigger` for subscribing to events in components
+- [FraxelScript](/api/concepts/fraxel-script) — `connect()` method for script event subscriptions

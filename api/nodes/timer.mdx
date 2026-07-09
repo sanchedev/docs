@@ -7,17 +7,16 @@ description: "Count up to a duration and fire a timeout event. Drive cooldowns, 
 Use `<timer>` to measure elapsed time without visual output. It increments an internal counter by `delta` each frame and fires `timeout` when the counter reaches `duration`. Use `autoPlay` to start immediately, or call `play()` imperatively. The counter can be paused, resumed, and reset. `duration` accepts a reactive `SignalGetter<number>` so you can change the interval at runtime.
 
 ```tsx
-import { useNode, useEvent } from 'fraxel/hooks'
-import { PrimaryNode } from 'fraxel'
+import { useTimer, useTrigger } from 'fraxel/hooks'
 
 function RespawnDelay() {
-  const timer = useNode(PrimaryNode.Timer)
+  const timer = useTimer()
 
-  useEvent(timer, 'timeout', () => {
+  useTrigger(timer.timeout, () => {
     spawnPlayer()
   })
 
-  useEvent(timer, 'timeChanged', (elapsed) => {
+  useTrigger(timer.timeChanged, (elapsed) => {
     setCountdownLabel(`Respawning in ${(3 - elapsed).toFixed(1)}s`)
   })
 
@@ -54,6 +53,12 @@ function RespawnDelay() {
   nodes. Defaults to `0`.
 </ParamField>
 
+<ParamField path="gameMode" type="GameMode">
+  Controls how this node behaves when the game is paused. Defaults to
+  `GameMode.INHERIT`. Use `GameMode.ALWAYS` for nodes that should keep updating
+  while paused.
+</ParamField>
+
 ## Methods
 
 | Method | Signature | Description |
@@ -70,21 +75,22 @@ function RespawnDelay() {
 | `timeChanged` | `(elapsed: number) => void` | Fires every frame while the timer is playing. `elapsed` is the current counter value in seconds. |
 | `started` | `() => void` | Fires once after `start()`. |
 | `updated` | `(delta: number) => void` | Fires every frame (timer logic runs here). |
+| `drawed` | `(delta: number) => void` | Fires every frame when the node is being drawn. |
 | `destroyed` | `() => void` | Fires on removal. |
+| `zIndexChanged` | `(zIndex: number) => void` | Fires when the node's `zIndex` value changes. |
 
 <CodeGroup>
 
 ```tsx Repeating spawn interval
-import { useNode, useEvent } from 'fraxel/hooks'
-import { PrimaryNode } from 'fraxel'
+import { useTimer, useTrigger } from 'fraxel/hooks'
 
 function EnemySpawner() {
-  const timer = useNode(PrimaryNode.Timer)
+  const timer = useTimer()
 
-  useEvent(timer, 'timeout', () => {
+  useTrigger(timer.timeout, () => {
     spawnEnemy()
     // Restart for the next interval
-    timer.node.play(0)
+    timer.play(0)
   })
 
   return <timer ref={timer} duration={2.5} autoPlay />
@@ -92,18 +98,18 @@ function EnemySpawner() {
 ```
 
 ```tsx Cooldown bar driven by timeChanged
-import { useNode, useEvent, useSignal } from 'fraxel/hooks'
-import { PrimaryNode, shapes } from 'fraxel'
+import { useTimer, useTrigger, useSignal } from 'fraxel/hooks'
+import { shapes } from 'fraxel'
 
 function AbilityButton() {
-  const timer = useNode(PrimaryNode.Timer)
+  const timer = useTimer()
   const [progress, setProgress] = useSignal(0)
 
-  useEvent(timer, 'timeChanged', (elapsed) => {
+  useTrigger(timer.timeChanged, (elapsed) => {
     setProgress(elapsed / 5) // 5-second cooldown
   })
 
-  useEvent(timer, 'timeout', () => {
+  useTrigger(timer.timeout, () => {
     setProgress(1) // fully charged
   })
 

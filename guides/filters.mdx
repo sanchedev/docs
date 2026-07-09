@@ -83,12 +83,11 @@ function Player() {
 Flash the sprite white for a fraction of a second when the player takes damage. Use `tween` to fade the brightness back:
 
 ```tsx Player.tsx
-import { useNode, useMount } from 'fraxel/hooks'
-import { PrimaryNode } from 'fraxel'
+import { useSprite, useMount } from 'fraxel/hooks'
 import { tween } from 'fraxel/animation'
 
 function Player() {
-  const sprite = useNode(PrimaryNode.Sprite)
+  const sprite = useSprite()
 
   const takeDamage = () => {
     // Instant white flash, fade back over 0.2 seconds
@@ -111,12 +110,11 @@ function Player() {
 Smoothly desaturate an enemy as it dies:
 
 ```tsx Enemy.tsx
-import { useNode } from 'fraxel/hooks'
+import { useSprite } from 'fraxel/hooks'
 import { tween } from 'fraxel/animation'
-import { PrimaryNode } from 'fraxel'
 
 function Enemy() {
-  const sprite = useNode(PrimaryNode.Sprite)
+  const sprite = useSprite()
 
   const die = () => {
     tween({

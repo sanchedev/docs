@@ -80,8 +80,21 @@
             "pages": [
               "guides/hooks-in-depth",
               "guides/signals-reactivity",
-              "guides/scripts",
+              "guides/fraxel-script",
               "guides/tweening"
+            ]
+          },
+          {
+            "group": "Engine Internals",
+            "pages": [
+              "guides/architecture",
+              "guides/jsx-runtime-internals",
+              "guides/rendering-pipeline",
+              "guides/reactivity-internals",
+              "guides/event-system-internals",
+              "guides/collision-pipeline",
+              "guides/lifecycle",
+              "guides/performance"
             ]
           }
         ]
@@ -95,6 +108,7 @@
               "api/nodes/transform",
               "api/nodes/sprite",
               "api/nodes/text",
+              "api/nodes/geometry",
               "api/nodes/collider",
               "api/nodes/rigid-body",
               "api/nodes/camera",
@@ -102,15 +116,21 @@
               "api/nodes/audio-player",
               "api/nodes/clickable",
               "api/nodes/timer",
-              "api/nodes/geometry",
-              "api/nodes/ray-cast"
+              "api/nodes/ray-cast",
+              "api/nodes/group"
             ]
           },
           {
             "group": "Hooks",
             "pages": [
-              "api/hooks/core-hooks",
-              "api/hooks/derived-hooks"
+              "api/hooks/state",
+              "api/hooks/lifecycle",
+              "api/hooks/node",
+              "api/hooks/game",
+              "api/hooks/input",
+              "api/hooks/context",
+              "api/hooks/pub-sub",
+              "api/hooks/deriveds"
             ]
           },
           {
@@ -129,28 +149,14 @@
               "api/jsx/game-scene",
               "api/jsx/list-fragment"
             ]
-          }
-        ]
-      },
-      {
-        "tab": "Advanced",
-        "groups": [
-          {
-            "group": "Internals",
-            "pages": [
-              "advanced/architecture",
-              "advanced/jsx-runtime",
-              "advanced/rendering-pipeline",
-              "advanced/reactivity-internals",
-              "advanced/event-system"
-            ]
           },
           {
-            "group": "Systems",
+            "group": "Core Concepts",
             "pages": [
-              "advanced/collision-pipeline",
-              "advanced/lifecycle",
-              "advanced/performance"
+              "api/concepts/fraxel-script",
+              "api/concepts/event-system",
+              "api/concepts/context",
+              "api/concepts/triggers"
             ]
           }
         ]
