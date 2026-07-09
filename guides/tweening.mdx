@@ -8,9 +8,9 @@ Not every animation needs a sprite sheet. Moving a UI element into view, fading 
 
 ## Your First Tween
 
-```tsx CoinPop.tsx
+```tsx coin-pop.tsx
 import { useMount, useSprite } from 'fraxel/hooks'
-import { tween, easeOutBounce } from 'fraxel/animation'
+import { tween, easeOutBounce } from 'fraxel'
 
 const COIN = await loadTexture('/assets/coin.png')
 
@@ -58,7 +58,7 @@ The tween starts the moment `useMount` runs (when the node is ready), modifying 
 </ParamField>
 
 <ParamField path="easing" type="EasingFn" default="linear">
-  The easing function. Import from `fraxel/animation`. See the table below.
+  The easing function. Import from `fraxel`. See the table below.
 </ParamField>
 
 <ParamField path="onUpdate" type="(value: number) => void">
@@ -93,7 +93,7 @@ Store the controller in a `let` variable to pause/resume from other events:
 
 ```tsx
 import { useMount, useSprite } from 'fraxel/hooks'
-import { tween } from 'fraxel/animation'
+import { tween } from 'fraxel'
 
 function ScrollingBG() {
   const sprite = useSprite()
@@ -121,7 +121,7 @@ function ScrollingBG() {
 When you don't have a target object, use `tweenValue`. It calls your `onUpdate` callback each frame with the interpolated number:
 
 ```tsx
-import { tweenValue } from 'fraxel/animation'
+import { tweenValue } from 'fraxel'
 
 tweenValue({
   from: 0,
@@ -139,7 +139,7 @@ tweenValue({
 
 ## All Easing Functions
 
-Import any easing function from `fraxel/animation`:
+Import any easing function from `fraxel`:
 
 ```tsx
 import {
@@ -149,7 +149,7 @@ import {
   easeBackOut, easeBackInOut,
   easeOutBounce, easeInBounce,
   easeOutElastic,
-} from 'fraxel/animation'
+} from 'fraxel'
 ```
 
 | Function | Character | Best for |
@@ -172,7 +172,7 @@ import {
 ### `sequence()` — One After Another
 
 ```tsx
-import { tween, sequence, easeOutCubic, easeOutBounce } from 'fraxel/animation'
+import { tween, sequence, easeOutCubic, easeOutBounce } from 'fraxel'
 
 // Slide in, then bounce down
 sequence([
@@ -198,7 +198,7 @@ sequence([
 ### `parallel()` — Simultaneously
 
 ```tsx
-import { tween, parallel, easeOutElastic } from 'fraxel/animation'
+import { tween, parallel, easeOutElastic } from 'fraxel'
 
 // Fade in AND scale up at the same time
 parallel([
@@ -224,9 +224,9 @@ parallel([
 
 The canonical pattern for entry animations is to start the tween inside `useMount`, which runs once when the node is ready:
 
-```tsx PowerUp.tsx
+```tsx power-up.tsx
 import { useMount, useSprite } from 'fraxel/hooks'
-import { tween, sequence, easeOutBounce, easeInQuad } from 'fraxel/animation'
+import { tween, sequence, easeOutBounce, easeInQuad } from 'fraxel'
 
 function PowerUp() {
   const sprite = useSprite()
@@ -268,10 +268,9 @@ function PowerUp() {
 
 ## Complete Example: Coin Pop-In Animation
 
-```tsx Coin.tsx
+```tsx coin.tsx
 import { useMount, useSprite } from 'fraxel/hooks'
-import { tween, parallel, sequence, easeOutElastic, easeOutBounce, easeInQuad } from 'fraxel/animation'
-import { loadTexture } from 'fraxel/assets'
+import { loadTexture, tween, parallel, sequence, easeOutElastic, easeOutBounce, easeInQuad } from 'fraxel'
 
 const COIN = await loadTexture('/assets/coin.png')
 

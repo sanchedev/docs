@@ -8,10 +8,10 @@ Every visible game object in Fraxel starts with a texture on the canvas. The `<s
 
 ## Loading a Texture
 
-Use `loadTexture()` from `fraxel/assets` to fetch an image and register it with the engine. It returns a `symbol` that acts as a stable, deduplicated handle. Calling `loadTexture` with the same URL twice returns the same symbol.
+Use `loadTexture()` from `fraxel` to fetch an image and register it with the engine. It returns a `symbol` that acts as a stable, deduplicated handle. Calling `loadTexture` with the same URL twice returns the same symbol.
 
 ```ts assets.ts
-import { loadTexture } from 'fraxel/assets'
+import { loadTexture } from 'fraxel'
 
 export const PLAYER = await loadTexture('/assets/player.png')
 export const BACKGROUND = await loadTexture('/assets/background.png')
@@ -25,8 +25,8 @@ export const BACKGROUND = await loadTexture('/assets/background.png')
 
 Pass the symbol to `textureId` and the engine takes care of the rest:
 
-```tsx Player.tsx
-import { PLAYER } from './assets'
+```tsx player.tsx
+import { PLAYER } from './assets.js'
 
 function Player() {
   return <sprite textureId={PLAYER} />
@@ -39,8 +39,8 @@ The sprite renders centered at the node's `position`. By default it uses the ful
 
 A `<sprite>` node carries its own `position` prop, but the idiomatic way to position game objects is to wrap them in a `<transform>` container. This lets you move both the sprite and its siblings (colliders, children) together:
 
-```tsx Player.tsx
-import { PLAYER } from './assets'
+```tsx player.tsx
+import { PLAYER } from './assets.js'
 
 function Player() {
   return (
@@ -55,8 +55,8 @@ function Player() {
 
 When your texture is a sprite sheet — multiple frames packed into one image — you tell the sprite which region to display using `margin` (the top-left offset in pixels) and `sourceSize` (the width and height of a single frame). `displaySize` lets you scale the frame up for rendering without changing the source crop.
 
-```tsx Player.tsx
-import { WALK_SHEET } from './assets'
+```tsx player.tsx
+import { WALK_SHEET } from './assets.js'
 
 function Player() {
   return (
@@ -120,9 +120,9 @@ Sprites support a rich set of CSS-like visual filters. All filter props accept a
 
 Any prop that accepts `Reactive<T>` can receive a `SignalGetter<T>` — a zero-argument function that returns the current value. The engine re-reads it every frame:
 
-```tsx Player.tsx
+```tsx player.tsx
 import { useSignal } from 'fraxel/hooks'
-import { PLAYER, PLAYER_HIT } from './assets'
+import { PLAYER, PLAYER_HIT } from './assets.js'
 
 function Player() {
   const [isHit, setIsHit] = useSignal(false)
@@ -138,11 +138,9 @@ function Player() {
 
 Here's a complete player component with a sprite sheet slice, 2× display scale, and a hit-flash effect driven by a tween:
 
-```tsx Player.tsx
+```tsx player.tsx
 import { useSprite, useCollider, useTrigger } from 'fraxel/hooks'
-import { shapes } from 'fraxel'
-import { loadTexture } from 'fraxel/assets'
-import { tween } from 'fraxel/animation'
+import { loadTexture, shapes, tween } from 'fraxel'
 
 const PLAYER_SHEET = await loadTexture('/assets/player-sheet.png')
 

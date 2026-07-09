@@ -20,9 +20,8 @@ A sprite sheet packs all animation frames side-by-side (or in a grid) into one t
 
 First, load your sprite sheet texture. Then use `animationFromSheet` to build a complete `Animation` object — keyframes and FPS are calculated for you:
 
-```tsx Player.tsx
-import { loadTexture } from 'fraxel/assets'
-import { animationFromSheet } from 'fraxel/animation'
+```tsx player.tsx
+import { loadTexture, animationFromSheet } from 'fraxel'
 import { useSprite } from 'fraxel/hooks'
 
 const IDLE_SHEET = await loadTexture('/assets/player-idle.png') // 4 columns × 1 row
@@ -31,25 +30,24 @@ const WALK_SHEET = await loadTexture('/assets/player-walk.png') // 4 columns × 
 function Player() {
   const sprite = useSprite()
 
-  const idleAnim = animationFromSheet(sprite.ref, IDLE_SHEET, {
-    columns: 4,
-    duration: 0.8,
-    loop: true,
-  })
-
-  const walkAnim = animationFromSheet(sprite.ref, WALK_SHEET, {
-    columns: 4,
-    rows: 2,
-    range: [0, 7],
-    duration: 0.6,
-    loop: true,
-  })
-
   return (
     <transform>
       <sprite ref={sprite} sourceSize={[32, 32]} displaySize={[64, 64]} />
       <animation-player
-        animations={() => ({ idle: idleAnim, walk: walkAnim })}
+        animations={() => ({
+          idle: animationFromSheet(sprite, IDLE_SHEET, {
+            columns: 4,
+            duration: 0.8,
+            loop: true,
+          }),
+          walk: animationFromSheet(sprite, WALK_SHEET, {
+            columns: 4,
+            rows: 2,
+            range: [0, 7],
+            duration: 0.6,
+            loop: true,
+          }),
+        })}
         currentAnim="idle"
       />
     </transform>
@@ -93,11 +91,11 @@ function Player() {
 
 ## `<animation-player>` Props
 
-<ParamField path="animations" type="() => Record<string, Animation>" required>
-  A factory function returning a named map of animations. Called once on start.
+<ParamField path="animations" type="Reactive<Record<string, Animation>>" required>
+  An object or a factory function returning a named map of animations. Called once on start.
 </ParamField>
 
-<ParamField path="currentAnim" type="string | SignalGetter<string>">
+<ParamField path="currentAnim" type="Reactive<string>">
   The animation to play. Pass a `SignalGetter` for reactive, automatic switching.
 </ParamField>
 
@@ -109,7 +107,7 @@ function Player() {
 
 Pass a `SignalGetter<string>` as `currentAnim` and the player will switch automatically whenever your signal changes. Combine with `useComputed` to derive the animation name from game state:
 
-```tsx Player.tsx
+```tsx player.tsx
 import { useSignal, useComputed, useSprite } from 'fraxel/hooks'
 
 function Player() {
@@ -132,17 +130,17 @@ function Player() {
 
 For multi-state characters, `useMatch` reads like a switch expression:
 
-```tsx Player.tsx
+```tsx player.tsx
 import { useMatch, useSignal, useSprite } from 'fraxel/hooks'
 
 function Player() {
   const sprite = useSprite()
-  const [state, setState] = useSignal<'idle' | 'walk' | 'jump'>('idle')
+  const [state, setState] = useSignal<'0' | '1' | '2'>('0')
 
   const currentAnim = useMatch(state, {
-    idle: 'idle',
-    walk: 'walk',
-    jump: 'jump',
+    '0': 'idle',
+    '1': 'walk',
+    '2': 'jump',
   })
 
   return (
@@ -161,7 +159,7 @@ function Player() {
 
 `useAnimation` wraps `AnimationPlayer` with reactive state and control methods:
 
-```tsx Player.tsx
+```tsx player.tsx
 import { useAnimation, useSprite } from 'fraxel/hooks'
 
 function Enemy() {
@@ -190,7 +188,8 @@ function Enemy() {
 
 | Property | Type | Description |
 |----------|------|-------------|
-| `ref` | `NodeReference` | Pass to `<animation-player ref={ref}>` |
+| `node` | `AnimationPlayer` | wrapped node |
+| `signal` | `SignalGetter<AnimationPlayer \| null>` | node as a signal |
 | `animName` | `SignalGetter<string>` | Current animation name |
 | `frameIndex` | `SignalGetter<number>` | Current frame index |
 | `ended` | `SignalGetter<boolean>` | `true` when the current animation ends |
@@ -203,8 +202,7 @@ function Enemy() {
 When you need finer control — for example, pulling frames from multiple rows of a shared atlas — use `keyframesFromSheet` directly:
 
 ```tsx
-import { keyframesFromSheet } from 'fraxel'
-import { animationFromSheet } from 'fraxel/animation'
+import { animationFromSheet, keyframesFromSheet } from 'fraxel'
 
 // frames 0–3: first row (idle)
 const idleFrames = keyframesFromSheet(sprite, ATLAS, 4, 2, [0, 3])
@@ -224,9 +222,9 @@ const walk = { keyframes: walkFrames, fps: 10, loop: true }
 
 Not everything needs frame-by-frame artwork. Use `tween()` for smooth property animations — fading, scaling, bouncing. See [Tweening](/guides/tweening) for the full API.
 
-```tsx CoinPop.tsx
+```tsx coin-pop.tsx
 import { useMount, useSprite } from 'fraxel/hooks'
-import { tween, easeOutBounce } from 'fraxel/animation'
+import { tween, easeOutBounce } from 'fraxel'
 
 function CoinPop() {
   const sprite = useSprite()

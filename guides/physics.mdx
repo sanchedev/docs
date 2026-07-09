@@ -10,9 +10,8 @@ Physics makes your game world feel real. A platformer character that actually fa
 
 Wrap any game object in `<rigid-body>` to give it physics. The body **must** contain at least one `<collider>` child — the collider defines the physical shape that interacts with the world:
 
-```tsx FallingBall.tsx
-import { shapes } from 'fraxel'
-import { loadTexture } from 'fraxel/assets'
+```tsx falling-ball.tsx
+import { loadTexture, shapes } from 'fraxel'
 
 const BALL = await loadTexture('/assets/ball.png')
 
@@ -129,7 +128,7 @@ function Rocket() {
 
 `useRigidBody` bundles the node ref, reactive state signals, and control methods into one object:
 
-```tsx Player.tsx
+```tsx player.tsx
 import { useRigidBody } from 'fraxel/hooks'
 
 function Player() {
@@ -146,7 +145,8 @@ function Player() {
 
 | Property | Type | Description |
 |----------|------|-------------|
-| `ref` | `NodeReference` | Pass to `<rigid-body ref={ref}>` |
+| `node` | `RigidBody` | wrapped node |
+| `signal` | `SignalGetter<RigidBody \| null>` | node as a signal |
 | `velocity` | `SignalGetter<{x, y}>` | Reactive current velocity in px/s |
 | `isGrounded` | `SignalGetter<boolean>` | `true` when resting on a surface |
 | `applyForce` | `(v: VectorLike) => void` | Apply a continuous force |
@@ -157,7 +157,7 @@ function Player() {
 
 Set `isStatic` on any body that should never move:
 
-```tsx Platform.tsx
+```tsx platform.tsx
 function Platform({ x, y, width }: { x: number; y: number; width: number }) {
   return (
     <rigid-body position={[x, y]} isStatic>
@@ -178,7 +178,7 @@ Static bodies still fire collision events — see [Collision Groups](/guides/col
 
 A single `<rigid-body>` can contain multiple `<collider>` nodes to form compound shapes:
 
-```tsx CompositePlayer.tsx
+```tsx composite-player.tsx
 function Player() {
   return (
     <rigid-body mass={1}>
@@ -193,10 +193,9 @@ function Player() {
 
 ## Complete Example: Falling Ball Scene
 
-```tsx FallingBallScene.tsx
+```tsx falling-ball-scene.tsx
 import { useRigidBody } from 'fraxel/hooks'
-import { PhysicsSystem, shapes, vector2 } from 'fraxel'
-import { loadTexture } from 'fraxel/assets'
+import { loadTexture, PhysicsSystem, shapes, vector2 } from 'fraxel'
 
 const BALL = await loadTexture('/assets/ball.png')
 const GROUND = await loadTexture('/assets/ground.png')

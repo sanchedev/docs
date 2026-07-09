@@ -12,8 +12,8 @@ If you have used React or another component-based UI framework, the mental model
 
 A component is just a TypeScript function. Define it, use it in JSX like a built-in tag.
 
-```tsx src/components/Coin.tsx
-import { loadTexture } from 'fraxel/assets'
+```tsx src/components/coin.tsx
+import { loadTexture } from 'fraxel'
 import { useSignal, useSprite, useClickable, useTrigger } from 'fraxel/hooks'
 
 const COIN_TEX = await loadTexture('/assets/coin.png')
@@ -27,18 +27,18 @@ export function Coin() {
 
   return (
     <sprite
-      ref={sprite.ref}
+      ref={sprite}
       textureId={COIN_TEX}
       opacity={() => (collected() ? 0 : 1)}
     >
-      <clickable ref={clickable.ref} size={[16, 16]} disabled={() => collected()} />
+      <clickable ref={clickable} size={[16, 16]} disabled={() => collected()} />
     </sprite>
   )
 }
 ```
 
 ```tsx src/scenes/main.tsx
-import { Coin } from '../components/Coin'
+import { Coin } from '../components/coin.js'
 
 export function MainScene() {
   return (
@@ -53,7 +53,7 @@ export function MainScene() {
 
 Pass data to a component through its props object. Define a TypeScript interface for the props to get type checking and editor autocomplete.
 
-```tsx src/components/Enemy.tsx
+```tsx src/components/enemy.tsx
 import type { VectorLike } from 'fraxel'
 import { shapes } from 'fraxel'
 import { useSignal } from 'fraxel/hooks'
@@ -92,13 +92,13 @@ export function Enemy({ position, maxHealth = 100 }: EnemyProps) {
 
 Accept child nodes by including `children` in your props type. Render them by placing `{children}` in the JSX you return.
 
-```tsx src/components/FloatingLabel.tsx
+```tsx src/components/floatingLabel.tsx
 import type { Fraxel } from 'fraxel/jsx'
 import { shapes } from 'fraxel'
 
 interface FloatingLabelProps {
   position: [number, number]
-  children: Fraxel.Node | Fraxel.Node[]
+  children: Fraxel.Node
 }
 
 export function FloatingLabel({ position, children }: FloatingLabelProps) {
@@ -132,7 +132,7 @@ function Player() {
     // Game logic here
   })
 
-  return <sprite ref={sprite.ref} textureId={PLAYER_TEX} />
+  return <sprite ref={sprite} textureId={PLAYER_TEX} />
 }
 
 // ❌ Wrong — hook inside a conditional
@@ -149,10 +149,10 @@ function Player() {
 Break your scene into logical components, then assemble them in the scene function. Each component manages its own state and events — the scene function just declares what exists and where.
 
 ```tsx src/scenes/main.tsx
-import { Player } from '../components/Player'
-import { Enemy } from '../components/Enemy'
-import { HUD } from '../components/HUD'
-import { BG_TEX } from '../assets'
+import { Player } from '../components/player.js'
+import { Enemy } from '../components/enemy.js'
+import { HUD } from '../components/hud.js'
+import { BG_TEX } from '../assets.js'
 
 export function MainScene() {
   return (
@@ -189,9 +189,9 @@ export const GameCtx = createContext<{ score: SignalGetter<number>; lives: Signa
 
 ```tsx src/scenes/main.tsx
 import { useSignal } from 'fraxel/hooks'
-import { GameCtx } from '../context'
-import { HUD } from '../components/HUD'
-import { Player } from '../components/Player'
+import { GameCtx } from '../context.js'
+import { HUD } from '../components/hud.js'
+import { Player } from '../components/player.js'
 
 export function MainScene() {
   const [score] = useSignal(0)
@@ -208,9 +208,9 @@ export function MainScene() {
 }
 ```
 
-```tsx src/components/HUD.tsx
+```tsx src/components/hud.tsx
 import { useContext } from 'fraxel/hooks'
-import { GameCtx } from '../context'
+import { GameCtx } from '../context.js'
 
 export function HUD() {
   const { score } = useContext(GameCtx)
@@ -232,7 +232,7 @@ Use `container.node.spawn()` to add nodes to the scene at runtime — for exampl
 ```tsx
 import { useTransform, useTrigger } from 'fraxel/hooks'
 import { Input } from 'fraxel'
-import { Shoot } from '../input'
+import { Shoot } from '../input.js'
 
 function BulletSpawner() {
   const container = useTransform()
@@ -243,7 +243,7 @@ function BulletSpawner() {
     }
   })
 
-  return <transform ref={container.ref} />
+  return <transform ref={container} />
 }
 ```
 

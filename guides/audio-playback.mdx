@@ -9,7 +9,7 @@ Sound makes gameplay feel alive — a crunch when a bullet lands, a musical stin
 ## Loading a Sound
 
 ```tsx
-import { loadSound } from 'fraxel/assets'
+import { loadSound } from 'fraxel'
 
 const SHOOT_SFX = await loadSound('/assets/shoot.mp3')
 const JUMP_SFX = await loadSound('/assets/jump.ogg')
@@ -22,9 +22,9 @@ const BG_MUSIC = await loadSound('/assets/music.mp3')
 
 Place `<audio-player>` anywhere in your scene tree and pass the sound's symbol ID. Call `play()` on the node to start playback:
 
-```tsx Gun.tsx
+```tsx gun.tsx
 import { useAudio, useClickable, useTrigger } from 'fraxel/hooks'
-import { loadSound } from 'fraxel/assets'
+import { loadSound } from 'fraxel'
 
 const SHOOT_SFX = await loadSound('/assets/shoot.mp3')
 
@@ -104,7 +104,7 @@ useTrigger(audio.ended, () => {
 Browsers block audio until the user has interacted with the page. If you try to play sound before a click or keypress, it will be silently blocked. Resume the `AudioContext` after the first user gesture:
 
 ```tsx
-import { getAudioContext } from 'fraxel/audio'
+import { getAudioContext } from 'fraxel'
 import { useClickable, useTrigger } from 'fraxel/hooks'
 
 function GameScene() {
@@ -133,7 +133,7 @@ function GameScene() {
 
 `useAudio` wraps `AudioPlayer` with reactive state and control methods, so you can build play/pause toggles and reactive UI without manual event wiring:
 
-```tsx MusicPlayer.tsx
+```tsx music-player.tsx
 import { useAudio, useClickable, useTrigger, useComputed } from 'fraxel/hooks'
 
 const BG_MUSIC = await loadSound('/assets/music.mp3')
@@ -162,7 +162,8 @@ function MusicPlayer() {
 
 | Property | Type | Description |
 |----------|------|-------------|
-| `ref` | `NodeReference` | Pass to `<audio-player ref={ref}>` |
+| `node` | `AudioPlayer` | wrapped node |
+| `signal` | `SignalGetter<AudioPlayer \| null>` | node as a signal |
 | `playing` | `SignalGetter<boolean>` | `true` while audio is playing |
 | `play()` | `() => void` | Start playback |
 | `pause()` | `() => void` | Pause without resetting |
@@ -172,9 +173,9 @@ function MusicPlayer() {
 
 <Tabs>
   <Tab title="Background Music">
-    ```tsx GameMusic.tsx
+    ```tsx game-music.tsx
     import { useAudio, useMount } from 'fraxel/hooks'
-    import { getAudioContext } from 'fraxel/audio'
+    import { getAudioContext } from 'fraxel'
 
     const BG_MUSIC = await loadSound('/assets/music.mp3')
 
@@ -192,7 +193,7 @@ function MusicPlayer() {
     ```
   </Tab>
   <Tab title="Sound Effects">
-    ```tsx SFXPlayer.tsx
+    ```tsx sfx-player.tsx
     // For one-shot SFX on collider hit:
     function ExplosionSFX({ position }: { position: [number, number] }) {
       const audio = useAudio()
@@ -211,7 +212,7 @@ function MusicPlayer() {
     ```
   </Tab>
   <Tab title="Varied Pitch SFX">
-    ```tsx VariedSFX.tsx
+    ```tsx varied-sfx.tsx
     // Slightly randomize pitch for natural-sounding repeated effects
     function Footstep() {
       const audio = useAudio()
@@ -229,10 +230,9 @@ function MusicPlayer() {
 
 ## Complete Example
 
-```tsx GameAudio.tsx
+```tsx game-audio.tsx
 import { useAudio, useMount } from 'fraxel/hooks'
-import { loadSound } from 'fraxel/assets'
-import { getAudioContext } from 'fraxel/audio'
+import { loadSound, getAudioContext } from 'fraxel'
 
 const BG_MUSIC = await loadSound('/assets/music.mp3')
 const SHOOT_SFX = await loadSound('/assets/shoot.mp3')

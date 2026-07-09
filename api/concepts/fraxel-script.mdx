@@ -117,8 +117,8 @@ setup() {
 
 Pass a script instance to any node's `script` prop:
 
-```tsx Player.tsx
-import { PlayerScript } from './PlayerScript'
+```tsx player.tsx
+import { PlayerScript } from './player-script.js'
 import { shapes } from 'fraxel'
 
 const playerScript = new PlayerScript()
@@ -147,7 +147,7 @@ There are two ways to call methods on a script from another component.
 
 **`ref.script(ScriptClass)`** — call it on any node reference to retrieve the attached script instance. Returns the script if attached, or `undefined`:
 
-```tsx HUD.tsx
+```tsx hud.tsx
 import { useSprite, useEffect } from 'fraxel/hooks'
 
 function HUD({ playerRef }: { playerRef: SpriteReference }) {
@@ -174,10 +174,10 @@ function HUD({ playerRef }: { playerRef: SpriteReference }) {
 
 **`getParentScript(node, ScriptClass)`** — use this inside event callbacks when you encounter a node dynamically and want to retrieve its parent's script:
 
-```tsx Projectile.tsx
+```tsx projectile.tsx
 import { useCollider } from 'fraxel/hooks'
 import { shapes, getParentScript } from 'fraxel'
-import { EnemyScript } from './EnemyScript'
+import { EnemyScript } from './enemy-script.js'
 
 function Projectile() {
   const collider = useCollider()

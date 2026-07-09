@@ -23,7 +23,7 @@ loadTexture(url: string): Promise<symbol>
 **Returns** `Promise<symbol>` — resolves to a stable `symbol` ID unique to that URL. Identical URLs always resolve to the same `symbol`.
 
 ```ts
-import { loadTexture } from 'fraxel/assets'
+import { loadTexture } from 'fraxel'
 
 const PLAYER = await loadTexture('/assets/sprites/player.png')
 const ENEMY  = await loadTexture('/assets/sprites/enemy.png')
@@ -49,7 +49,7 @@ loadSound(url: string): Promise<symbol>
 **Returns** `Promise<symbol>` — resolves to a stable `symbol` ID for the audio buffer.
 
 ```ts
-import { loadSound } from 'fraxel/assets'
+import { loadSound } from 'fraxel'
 
 const SHOOT = await loadSound('/assets/sounds/shoot.ogg')
 const JUMP  = await loadSound('/assets/sounds/jump.mp3')
@@ -81,7 +81,7 @@ loadBatch<T>(
 **Returns** `Promise<T[]>` — resolves with results in the **same order** as the input loaders, regardless of completion order.
 
 ```ts
-import { loadBatch, loadTexture, loadSound } from 'fraxel/assets'
+import { loadBatch, loadTexture, loadSound } from 'fraxel'
 
 const [BG, PLAYER, ENEMY, SHOOT] = await loadBatch(
   [
@@ -126,7 +126,7 @@ loadBatchAsset(
 **Returns** `Promise<symbol[]>` — resolves with `symbol` IDs in the same order as `urls`.
 
 ```ts
-import { loadBatchAsset } from 'fraxel/assets'
+import { loadBatchAsset } from 'fraxel'
 
 // Load all level-1 textures
 const [BG, TILES, ENEMIES] = await loadBatchAsset('texture', [
@@ -226,7 +226,7 @@ unloadSound(id: symbol): void
 </ParamField>
 
 ```ts
-import { unloadTexture, unloadSound } from 'fraxel/assets'
+import { unloadTexture, unloadSound } from 'fraxel'
 
 // Clean up when leaving a scene
 unloadTexture(LEVEL_1_BG)
@@ -269,14 +269,14 @@ console.log(A === B) // true — same symbol
 <CodeGroup>
 ```ts Module-level (simple)
 // assets.ts — loaded once when the module imports
-import { loadTexture, loadSound } from 'fraxel/assets'
+import { loadTexture, loadSound } from 'fraxel'
 
 export const PLAYER = await loadTexture('/assets/player.png')
 export const SHOOT  = await loadSound('/assets/shoot.ogg')
 ```
 ```ts Preload screen
 // preload.ts
-import { loadBatch, loadTexture, loadSound } from 'fraxel/assets'
+import { loadBatch, loadTexture, loadSound } from 'fraxel'
 
 export async function preload(onProgress: (p: number) => void) {
   await loadBatch(
@@ -295,7 +295,7 @@ export async function preload(onProgress: (p: number) => void) {
 ```
 ```ts Per-scene loading
 // scenes/level2.ts
-import { loadBatchAsset } from 'fraxel/assets'
+import { loadBatchAsset } from 'fraxel'
 
 const [BG, BOSS, FLOOR] = await loadBatchAsset('texture', [
   '/assets/level2/bg.png',

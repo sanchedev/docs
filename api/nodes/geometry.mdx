@@ -25,7 +25,7 @@ function HealthBar({ current, max }: { current: number; max: number }) {
 
 ## Props
 
-<ParamField path="shape" type="Shape | SignalGetter<Shape>" required>
+<ParamField path="shape" type="Reactive<Shape>" required>
   The shape to render. Use the `shapes` factory:
 
   - `shapes.rectangle(width, height)` — axis-aligned filled rectangle.
@@ -42,7 +42,7 @@ function HealthBar({ current, max }: { current: number; max: number }) {
   ```
 </ParamField>
 
-<ParamField path="fillColor" type="Color | SignalGetter<Color>">
+<ParamField path="fillColor" type="Reactive<Color>">
   RGBA fill color. `Color` is `[r, g, b, a]` with each channel in `0–1` range.
   Defaults to `[1, 1, 1, 1]` (opaque white).
 
@@ -51,7 +51,7 @@ function HealthBar({ current, max }: { current: number; max: number }) {
   ```
 </ParamField>
 
-<ParamField path="strokeColor" type="Color | SignalGetter<Color>">
+<ParamField path="strokeColor" type="Reactive<Color>">
   RGBA border/outline color. If omitted, no border is drawn.
 
   ```tsx
@@ -64,11 +64,11 @@ function HealthBar({ current, max }: { current: number; max: number }) {
   ```
 </ParamField>
 
-<ParamField path="strokeWidth" type="number | SignalGetter<number>">
+<ParamField path="strokeWidth" type="Reactive<number>">
   Border width in pixels. Only used when `strokeColor` is set. Defaults to `1`.
 </ParamField>
 
-<ParamField path="position" type="VectorLike | SignalGetter<VectorLike>">
+<ParamField path="position" type="Reactive<VectorLike>">
   Position relative to the parent node. For rectangles and capsules, this is the
   top-left corner. For circles, this is the center. Defaults to `[0, 0]`.
 </ParamField>

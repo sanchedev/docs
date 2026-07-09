@@ -41,7 +41,7 @@ function GameScene() {
   Defaults to `false`.
 </ParamField>
 
-<ParamField path="position" type="VectorLike | SignalGetter<VectorLike>">
+<ParamField path="position" type="Reactive<VectorLike>">
   World-space position of the camera. When the camera is a child of another
   node, its `globalPosition` is the sum of this and all ancestor positions.
   Defaults to `[0, 0]`.

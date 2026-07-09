@@ -41,7 +41,7 @@ The following component renders a sprite with reactive health state. When `healt
 
 ```tsx main.tsx
 import { useSignal, useClickable, useTrigger } from 'fraxel/hooks'
-import { PLAYER_TEX } from './assets'
+import { PLAYER_TEX } from './assets.js'
 
 export function Player() {
   const [health, setHealth] = useSignal(100)

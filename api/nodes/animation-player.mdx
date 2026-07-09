@@ -49,7 +49,7 @@ function Hero() {
   ```
 </ParamField>
 
-<ParamField path="currentAnim" type="string | SignalGetter<string>">
+<ParamField path="currentAnim" type="Reactive<string>">
   The animation to play. Accepts a static string or a reactive
   `SignalGetter<string>`. When a `SignalGetter` is provided, the player tracks
   its dependencies and switches animations automatically when the value changes.

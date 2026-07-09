@@ -114,7 +114,7 @@ Nested component calls each get their own hook context because `renderFuncCompon
 
 ## `useSprite` and `ref.node.child`: Accessing Nodes After Render
 
-`useSprite()` returns a `NodeReference<PrimaryNode.Sprite>` — an object with a `.ref` property. The reference is populated by the JSX `ref` prop during scene construction. You access the node in lifecycle callbacks, not during render:
+`useSprite()` returns a `NodeReference<PrimaryNode.Sprite>`. The reference is populated by the JSX `ref` prop during scene construction. You access the node in lifecycle callbacks, not during render:
 
 ```tsx
 const sprite = useSprite()

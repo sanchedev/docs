@@ -32,7 +32,7 @@ function LineOfSight() {
 
 ## Props
 
-<ParamField path="direction" type="VectorLike | SignalGetter<VectorLike>" required>
+<ParamField path="direction" type="Reactive<VectorLike>" required>
   The endpoint of the ray **relative to the node's world position**. The ray
   travels from `globalPosition` to `globalPosition + direction`. Measured in
   pixels, so `[200, 0]` casts 200 px to the right.
@@ -56,7 +56,7 @@ function LineOfSight() {
   ```
 </ParamField>
 
-<ParamField path="position" type="VectorLike | SignalGetter<VectorLike>">
+<ParamField path="position" type="Reactive<VectorLike>">
   Local offset of the ray origin relative to the parent node. Defaults to
   `[0, 0]`. Set this to offset the origin (e.g. to the gun barrel tip).
 </ParamField>

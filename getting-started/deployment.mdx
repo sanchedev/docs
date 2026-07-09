@@ -84,7 +84,7 @@ Fraxel assets (`loadTexture`, `loadSound`) take URL strings. In development thes
 Place all your game assets in `public/assets/` and reference them with absolute paths starting with `/`:
 
 ```ts src/assets.ts
-import { loadTexture, loadSound } from 'fraxel/assets'
+import { loadTexture, loadSound } from 'fraxel'
 
 export const PLAYER_TEX = await loadTexture('/assets/sprites/player.png')
 export const JUMP_SFX   = await loadSound('/assets/sounds/jump.mp3')
@@ -161,20 +161,30 @@ Assets loaded with `loadTexture` and `loadSound` are decoded asynchronously. If 
 
 Because Fraxel uses top-level `await`, the recommended pattern — loading all assets before calling `createGame` — is simply how the code reads naturally:
 
-```tsx src/main.tsx
-import { createGame, Game, Scene } from 'fraxel/jsx'
-import { loadBatch } from 'fraxel/assets'
+```tsx src/scenes/main.tsx
+import { loadBatchAsset } from 'fraxel'
 
 // All assets are decoded before createGame is called
-const assets = await loadBatch({
-  PLAYER: { type: 'texture', url: '/assets/sprites/player.png' },
-  BG:     { type: 'texture', url: '/assets/sprites/bg.png' },
-  MUSIC:  { type: 'sound',   url: '/assets/sounds/music.mp3' },
-})
+const [ PLAYER, BG ] = await loadBatchAsset('texture', [
+  '/assets/sprites/player.png',
+  '/assets/sprites/bg.png',
+  '/assets/sounds/music.mp3',
+])
+const [ MUSIC ] = await loadBatchAsset('sound', [
+  '/assets/sounds/music.mp3',
+])
+
+export default function MainScene() {
+  return <transform />
+}
+```
+
+```tsx src/main.tsx
+import { createGame, Game, Scene } from 'fraxel/jsx'
 
 const game = createGame(
   <Game width={320} height={180} defaultScene="main">
-    <Scene name="main" component={() => <MainScene {...assets} />} />
+    <Scene name="main" component={() => import('./scenes/main.js')} />
   </Game>,
   document.querySelector('#root')!,
 )
@@ -182,7 +192,7 @@ const game = createGame(
 game.play()
 ```
 
-For games with large asset sets, display a loading screen by rendering a simple HTML overlay while the `loadBatch` promise resolves.
+For games with large asset sets, display a loading screen by rendering a simple HTML overlay while the `loadBatchAsset` promise resolves.
 
 ## Device pixel ratio (DPR)
 

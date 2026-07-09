@@ -32,7 +32,7 @@ function Player() {
 
 These two hooks form the foundation of node interaction. `useSprite` creates a typed reference that you attach to a JSX element with `ref={}`. The reference exposes each of the node's underlying `Event`s as a `Trigger` — for example, `updated`, `destroyed`, `colliderEntered` — so you can pass them to `useTrigger` and get automatic cleanup on destroy:
 
-```tsx Enemy.tsx
+```tsx enemy.tsx
 import { useCollider, useRigidBody, useTrigger } from 'fraxel/hooks'
 import { shapes } from 'fraxel'
 
@@ -66,9 +66,9 @@ function Enemy() {
 
 Run code once when the node starts, with optional cleanup on destroy:
 
-```tsx FadeIn.tsx
+```tsx fade-in.tsx
 import { useMount, useSprite } from 'fraxel/hooks'
-import { tween } from 'fraxel/animation'
+import { tween } from 'fraxel'
 
 function FadeIn() {
   const sprite = useSprite()
@@ -178,8 +178,8 @@ export const onPlayerDied = createTrigger<[]>()
 export const onScoreChanged = createTrigger<[number]>()
 ```
 
-```tsx Player.tsx
-import { onPlayerDied } from './triggers'
+```tsx player.tsx
+import { onPlayerDied } from './triggers.js'
 
 function Player() {
   const takeDamage = (amount: number) => {
@@ -192,9 +192,9 @@ function Player() {
 }
 ```
 
-```tsx HUD.tsx
+```tsx hud.tsx
 import { useTrigger } from 'fraxel/hooks'
-import { onPlayerDied } from './triggers'
+import { onPlayerDied } from './triggers.js'
 
 function HUD() {
   useTrigger(onPlayerDied, () => {
@@ -210,7 +210,7 @@ function HUD() {
 
 Share data down a component tree without prop drilling. Create a context with a default value, wrap children in the `Provider`, and read it anywhere below with `useContext`:
 
-```tsx GameContext.tsx
+```tsx game-context.tsx
 import { createContext, useContext } from 'fraxel/hooks'
 
 interface GameCtxValue {
@@ -224,8 +224,8 @@ export const GameCtx = createContext<GameCtxValue>({
 })
 ```
 
-```tsx GameScene.tsx
-import { GameCtx } from './GameContext'
+```tsx game-scene.tsx
+import { GameCtx } from './game-context.js'
 
 function GameScene() {
   const [score] = useSignal(0)
@@ -240,8 +240,8 @@ function GameScene() {
 }
 ```
 
-```tsx HUD.tsx
-import { GameCtx } from './GameContext'
+```tsx hud.tsx
+import { GameCtx } from './game-context.js'
 
 function HUD() {
   const { difficulty, score } = useContext(GameCtx)
@@ -310,7 +310,7 @@ const isHovered = useCondition(clickable, 'mouseEntered', 'mouseExited')
 
 Wraps `<timer>` with reactive progress and control methods:
 
-```tsx Cooldown.tsx
+```tsx cooldown.tsx
 import { useTimer } from 'fraxel/hooks'
 import { shapes } from 'fraxel'
 
@@ -337,7 +337,7 @@ function Cooldown() {
 
 Returns a node ref and a reactive `hovered` boolean:
 
-```tsx Button.tsx
+```tsx button.tsx
 import { useClickable, useTrigger, useComputed } from 'fraxel/hooks'
 
 function Button({ onClick }: { onClick: () => void }) {

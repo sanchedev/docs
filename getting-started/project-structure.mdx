@@ -37,7 +37,7 @@ my-game/
 
 ### Why this layout works
 
-**`src/assets.ts`** — Centralizing all `loadTexture` and `loadSound` calls in one file means the rest of your code imports typed symbol constants (`import { PLAYER_TEX } from '../assets'`) rather than hard-coding URL strings. You only have one place to update when an asset path changes.
+**`src/assets.ts`** — Centralizing all `loadTexture` and `loadSound` calls in one file means the rest of your code imports typed symbol constants (`import { PLAYER_TEX } from '../assets.js'`) rather than hard-coding URL strings. You only have one place to update when an asset path changes.
 
 **`src/scenes/`** — Each scene is its own file. Scene component functions can be large, and keeping them isolated prevents `main.tsx` from becoming a thousand-line file.
 
@@ -48,7 +48,7 @@ my-game/
 ## Asset file
 
 ```ts src/assets.ts
-import { loadTexture, loadSound, loadBatch } from 'fraxel/assets'
+import { loadTexture, loadSound, loadBatch } from 'fraxel'
 
 // Load all assets upfront so scenes can import the symbols directly
 export const PLAYER_TEX = await loadTexture('/assets/sprites/player.png')
@@ -59,15 +59,15 @@ export const BG_MUSIC   = await loadSound('/assets/sounds/music.mp3')
 
 Because `assets.ts` uses top-level `await`, you must import it at the top of `main.tsx` before calling `createGame`. This guarantees all textures are decoded and cached before the first scene tries to render them.
 
-For large games, consider using `loadBatch` to load groups of assets with a progress callback:
+For large games, consider using `loadBatchAsset` to load groups of assets with a progress callback:
 
 ```ts src/assets.ts
-import { loadBatch } from 'fraxel/assets'
+import { loadBatchAsset } from 'fraxel'
 
-const { PLAYER_TEX, ENEMY_TEX } = await loadBatch({
-  PLAYER_TEX: { type: 'texture', url: '/assets/sprites/player.png' },
-  ENEMY_TEX:  { type: 'texture', url: '/assets/sprites/enemy.png' },
-})
+const [ PLAYER_TEX, ENEMY_TEX ] = await loadBatchAsset('texture', [
+  '/assets/sprites/player.png',
+  '/assets/sprites/enemy.png',
+])
 
 export { PLAYER_TEX, ENEMY_TEX }
 ```
@@ -91,12 +91,9 @@ Fraxel splits its public API across several sub-path exports. The separation is 
 
 | Path | Description |
 |---|---|
-| `fraxel` | Nodes (`PrimaryNode`), math (`Vector2`, `vector2`), collision (`shapes`, `Narrowphase`), `Input`, `Signal`, `PhysicsSystem` |
+| `fraxel` | Nodes (`PrimaryNode`), math (`Vector2`, `vector2`), collision (`shapes`, `Narrowphase`), `Input`, `Signal`, `PhysicsSystem`, assets (`loadTexture`, `loadSound`, `loadBatch`), animation (`animationFromSheet`, `tween`), audio (`getAudioContext`) |
 | `fraxel/hooks` | All hooks: `useSignal`, `useEffect`, `useComputed`, `useMount`, `useAction`, `useActionAxis`, `useTrigger`, `createContext`, `useContext`, and all node-specific hooks (`useSprite`, `useTransform`, `useCollider`, etc.) |
 | `fraxel/jsx` | JSX components: `Game`, `Scene`, `List`, `Fragment`; bootstrap function: `createGame` |
-| `fraxel/assets` | `loadTexture`, `loadSound`, `loadBatch` |
-| `fraxel/animation` | `tween`, easing functions (`easeOutQuad`, `easeInBounce`, …), `animationFromSheet` |
-| `fraxel/audio` | `getAudioContext` — manual access to the Web Audio `AudioContext` |
 
 ## How scenes and components relate
 
@@ -106,9 +103,9 @@ In Fraxel there is no technical difference between a scene and a component. Both
 - A **component** is a function you define and call from inside a scene (or another component). It encapsulates a reusable piece of the node tree — a player, an enemy, a HUD element.
 
 ```tsx src/scenes/main.tsx
-import { Player } from '../components/Player'
-import { HUD } from '../components/HUD'
-import { BG_TEX } from '../assets'
+import { Player } from '../components/player.js'
+import { HUD } from '../components/hud.js'
+import { BG_TEX } from '../assets.js'
 
 export function MainScene() {
   return (
@@ -131,8 +128,8 @@ Your `main.tsx` should do three things and nothing else:
 
 ```tsx src/main.tsx
 import './assets'        // Side-effect: loads all textures and sounds
-import { MainScene }  from './scenes/main'
-import { MenuScene }  from './scenes/menu'
+import { MainScene } from './scenes/main.js'
+import { MenuScene } from './scenes/menu.js'
 import { createGame, Game, Scene } from 'fraxel/jsx'
 
 const game = createGame(

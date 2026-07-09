@@ -29,7 +29,7 @@ function MenuButton() {
 
 ## Props
 
-<ParamField path="size" type="VectorLike | SignalGetter<VectorLike>" required>
+<ParamField path="size" type="Reactive<VectorLike>" required>
   Dimensions of the rectangular hit area in pixels. Accepts an `[x, y]` tuple,
   an `{ x, y }` object, a single number (square), or a reactive
   `SignalGetter`. There is no default — omitting `size` is a runtime error.
@@ -41,7 +41,7 @@ function MenuButton() {
   ```
 </ParamField>
 
-<ParamField path="disabled" type="boolean | SignalGetter<boolean>">
+<ParamField path="disabled" type="Reactive<boolean>">
   When `true`, all event detection is suspended. The hit area is still visible
   in debug mode (drawn in grey). Defaults to `false`.
 
@@ -50,7 +50,7 @@ function MenuButton() {
   ```
 </ParamField>
 
-<ParamField path="position" type="VectorLike | SignalGetter<VectorLike>">
+<ParamField path="position" type="Reactive<VectorLike>">
   Top-left corner of the hit area relative to the parent node. Defaults to
   `[0, 0]`. Align with the sprite's top-left corner for accurate hit detection.
 </ParamField>

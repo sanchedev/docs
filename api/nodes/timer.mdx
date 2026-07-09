@@ -26,7 +26,7 @@ function RespawnDelay() {
 
 ## Props
 
-<ParamField path="duration" type="number | SignalGetter<number>" required>
+<ParamField path="duration" type="Reactive<number>" required>
   Total timer duration in seconds. The `timeout` event fires when the counter
   reaches this value. Accepts a reactive `SignalGetter<number>` to change the
   target time while the timer is running.

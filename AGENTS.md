@@ -206,7 +206,7 @@ This section documents known issues found by comparing docs with `api-declaratio
 - `keyframesFromSheet()` — exported from `fraxel`, no API page
 - `tween()` / `tweenValue()` — exported from `fraxel`, no API page
 - `easing` functions — exported from `fraxel`, no API page
-- `getAudioContext()` — exported from `fraxel/audio`, no API page
+- `getAudioContext()` — exported from `fraxel`, no API page
 - `getParentScript()` — used in `fraxel-script.mdx` but no API page
 - `getTexture()` / `getSound()` — documented in assets.mdx but no dedicated section
 
@@ -233,10 +233,10 @@ This section documents known issues found by comparing docs with `api-declaratio
 
 - `Sprite.modulate` — docs say `Color | SignalGetter<Color>`, type is `Reactive<ColorLike>`
 - `usePaused` / `useScene` — documented under "Game hooks" but are actually derived hooks from `fraxel/hooks`
-- Import paths inconsistent — some examples use `fraxel`, others `fraxel/hooks`, `fraxel/assets`, etc.
+- Import paths inconsistent — some examples use `fraxel`, others `fraxel/hooks`, etc.
 
 ### Organizational issues
 
 - `advanced/` directory listed in structure but does not exist
-- `getAudioContext` imported from `fraxel/audio` in audio-player.mdx but not documented as export
+- `getAudioContext` imported from `fraxel` in audio-player.mdx but not documented as export
 - `animationFromSheet` imported from `fraxel` in animation-player.mdx but not in API reference

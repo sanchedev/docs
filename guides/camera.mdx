@@ -10,7 +10,7 @@ A game world can be much larger than the visible screen. The `<camera>` node dec
 
 Drop a `<camera current>` anywhere in your scene tree. One camera should be `current` at any given time:
 
-```tsx GameScene.tsx
+```tsx game-scene.tsx
 import { useCamera } from 'fraxel/hooks'
 
 function GameScene() {
@@ -58,7 +58,7 @@ The camera starts at the world origin and shows the scene without any offset. Ev
 
 The simplest way to follow a character is to parent the camera directly inside the player's `<rigid-body>` or `<transform>`. The camera inherits its parent's global position automatically:
 
-```tsx Player.tsx
+```tsx player.tsx
 import { useRigidBody } from 'fraxel/hooks'
 import { shapes } from 'fraxel'
 
@@ -137,10 +137,9 @@ Both methods account for the current zoom level, screen-space offset, and the sm
 
 Here's a full platformer setup with a follow camera, smooth easing, a vertical look-ahead offset, and level bounds:
 
-```tsx Platformer.tsx
+```tsx platformer.tsx
 import { useRigidBody, useAction } from 'fraxel/hooks'
-import { Input, shapes, bounds } from 'fraxel'
-import { loadTexture } from 'fraxel/assets'
+import { loadTexture, Input, shapes, bounds } from 'fraxel'
 
 const PLAYER = await loadTexture('/assets/player.png')
 const GROUND = await loadTexture('/assets/ground.png')

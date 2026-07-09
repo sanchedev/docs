@@ -8,7 +8,7 @@ Use `<transform>` to position child nodes in world space. It has no visual repre
 
 ```tsx
 import { useTransform, useTrigger } from 'fraxel/hooks'
-import { loadTexture } from 'fraxel/assets'
+import { loadTexture } from 'fraxel'
 
 const PLAYER_TEX = await loadTexture('/assets/player.png')
 
@@ -32,7 +32,7 @@ function Player() {
 
 `<transform>` inherits all props from the shared **Node2D** base and adds none of its own.
 
-<ParamField path="position" type="VectorLike | SignalGetter<VectorLike>">
+<ParamField path="position" type="Reactive<VectorLike>">
   World-space position of this node relative to its parent. Accepts an `[x, y]`
   tuple, an `{ x, y }` object, or a reactive `SignalGetter`. Defaults to
   `[0, 0]`.

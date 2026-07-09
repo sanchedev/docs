@@ -8,7 +8,7 @@ Use `<audio-player>` to play sounds and music loaded with `loadSound()`. It wrap
 
 ```tsx
 import { useAudio, useClickable, useTrigger } from 'fraxel/hooks'
-import { loadSound } from 'fraxel/assets'
+import { loadSound } from 'fraxel'
 
 const SHOOT_SFX = await loadSound('/assets/shoot.mp3')
 
@@ -116,8 +116,7 @@ function Gun() {
 
 ```tsx Background music with auto-resume
 import { useAudio, useMount } from 'fraxel/hooks'
-import { loadSound } from 'fraxel/assets'
-import { getAudioContext } from 'fraxel/audio'
+import { loadSound, getAudioContext } from 'fraxel'
 
 const BG_MUSIC = await loadSound('/assets/music.mp3')
 
@@ -137,7 +136,7 @@ function MusicPlayer() {
 
 ```tsx Pitch-shifted variants
 import { useAudio, useMount } from 'fraxel/hooks'
-import { loadSound } from 'fraxel/assets'
+import { loadSound } from 'fraxel'
 
 const HIT_SFX = await loadSound('/assets/hit.mp3')
 

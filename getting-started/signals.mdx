@@ -167,20 +167,20 @@ function MusicPlayer() {
 
 For common patterns, Fraxel provides higher-level hooks built on top of `useSignal` and `useEffect`.
 
-### `useCondition` — toggle from events
+### `useCondition` — toggle from triggers
 
-Returns a reactive boolean that flips between `true` and `false` based on two opposing events.
+Returns a reactive boolean that flips between `true` and `false` based on two opposing triggers.
 
 ```tsx
 import { useCondition, useClickable } from 'fraxel/hooks'
 
 function Button() {
   const clickable = useClickable()
-  const hovered = useCondition(clickable.ref, 'mouseEntered', 'mouseExited')
+  const hovered = useCondition(clickable.mouseEntered, clickable.mouseExited)
 
   return (
     <sprite textureId={BTN_TEX} brightness={() => hovered() ? 1.2 : 1}>
-      <clickable ref={clickable.ref} size={[64, 24]} />
+      <clickable ref={clickable} size={[64, 24]} />
     </sprite>
   )
 }
@@ -193,12 +193,12 @@ import { useCondition, useWhen, useClickable } from 'fraxel/hooks'
 
 function Button() {
   const clickable = useClickable()
-  const hovered = useCondition(clickable.ref, 'mouseEntered', 'mouseExited')
+  const hovered = useCondition(clickable.mouseEntered, clickable.mouseExited)
   const brightness = useWhen(hovered, 1.3, 1.0)
 
   return (
     <sprite textureId={BTN_TEX} brightness={brightness}>
-      <clickable ref={clickable.ref} size={[64, 24]} />
+      <clickable ref={clickable} size={[64, 24]} />
     </sprite>
   )
 }
@@ -243,7 +243,7 @@ score.clearSubs()
 The `Signal` class exposes a `.getter` and `.setter` that work exactly like the functions returned by `useSignal`, so you can pass `score.getter` as a JSX auto-computed prop:
 
 ```tsx
-import { score } from '../state'
+import { score } from '../state.js'
 
 function ScoreDisplay() {
   return (

@@ -22,7 +22,7 @@ There are three reactive primitives:
 
 `useSignal` returns a `[getter, setter]` tuple. The getter is a zero-argument function — calling it returns the current value and registers the caller as a dependency:
 
-```tsx HealthTracker.tsx
+```tsx health-tracker.tsx
 import { useSignal, useEffect } from 'fraxel/hooks'
 
 function HealthTracker() {
@@ -57,7 +57,7 @@ function HealthTracker() {
 
 `useComputed` creates a derived, read-only signal. Its value is recalculated whenever any signal read inside the callback changes:
 
-```tsx CooldownBar.tsx
+```tsx cooldown-bar.tsx
 import { useSignal, useComputed } from 'fraxel/hooks'
 
 function CooldownBar() {
@@ -142,7 +142,7 @@ This avoids creating intermediate `useComputed` signals when you only need the v
 
 For reactive state that lives outside a component — global game state, shared scores, event buses — use the `Signal` class directly:
 
-```tsx gameState.ts
+```tsx game-state.ts
 import { Signal } from 'fraxel'
 
 export const score = new Signal(0)
@@ -224,14 +224,14 @@ import { useCondition, useWhen, useClickable } from 'fraxel/hooks'
 
 function Button() {
   const clickable = useClickable()
-  const isHovered = useCondition(clickable.ref, 'mouseEntered', 'mouseExited')
+  const isHovered = useCondition(clickable, 'mouseEntered', 'mouseExited')
 
   // brightness is 1.2 when hovered, 1.0 otherwise
   const brightness = useWhen(isHovered, 1.2, 1.0)
 
   return (
     <sprite textureId={BTN} brightness={brightness}>
-      <clickable ref={clickable.ref} size={[64, 24]} />
+      <clickable ref={clickable} size={[64, 24]} />
     </sprite>
   )
 }

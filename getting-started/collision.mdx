@@ -69,10 +69,10 @@ Collision events are exposed on the collider reference as `Trigger`s, so you can
 | `collided` | Two colliders are currently overlapping (every frame of contact) |
 | `colliderExited` | Two colliders stop overlapping |
 
-```tsx src/components/Projectile.tsx
+```tsx src/components/projectile.tsx
 import { useCollider, useTransform, useTrigger } from 'fraxel/hooks'
 import { shapes } from 'fraxel'
-import { BULLET_TEX } from '../assets'
+import { BULLET_TEX } from '../assets.js'
 
 export function Projectile() {
   const collider = useCollider()
@@ -102,7 +102,7 @@ export function Projectile() {
 
 ## The `useCollider` derived hook
 
-`useCollider` wraps the common pattern of a collider node with reactive `colliding` and `other` state:
+`useCollider` wraps the common pattern of a collider node with reactive `colliding` and `detectedColliders` state:
 
 ```tsx
 import { useCollider, useComputed } from 'fraxel/hooks'
@@ -126,7 +126,7 @@ function Player() {
 ```
 
 - `colliding()` — `true` while touching at least one matching collider
-- `other()` — the most recently entered `Collider` node, or `null`
+- `detectedColliders()` — set of currently colliding collider nodes
 
 ## Placing a collider in the world
 
@@ -234,12 +234,12 @@ function Ball() {
 
 During development, enable collider visualization to see hit areas drawn over your sprites:
 
-```ts
-import { GameConfig } from 'fraxel'
+```tsx
+import { createGame } from 'fraxel/jsx'
 
 // In your createGame options:
 const game = createGame(
-  <Game width={320} height={180} defaultScene="main" testOptions={{ showClickables: true }}>
+  <Game width={320} height={180} defaultScene="main" testOptions={{ showColliders: true }}>
     ...
   </Game>,
   document.querySelector('#root')!,

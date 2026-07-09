@@ -61,8 +61,8 @@ class PlayerScript extends FraxelScript<PrimaryNode.Transform> {
 
 Pass a script instance to any node's `script` prop:
 
-```tsx Player.tsx
-import { PlayerScript } from './PlayerScript'
+```tsx player.tsx
+import { PlayerScript } from './player-script.js'
 import { shapes } from 'fraxel'
 
 const playerScript = new PlayerScript()
@@ -132,16 +132,16 @@ There are two ways to call methods on a script from another component.
 
 **`node.script(ScriptClass)`** — access the script attached to a node via the `ref.script()` method. The script is available once the node has started:
 
-```tsx HUD.tsx
+```tsx hud.tsx
 import { useTransform } from 'fraxel/hooks'
 
 function HUD({ playerRef }: { playerRef: NodeReference }) {
   const player = useTransform()
 
   return (
-    <transform ref={player.ref}>
+    <transform ref={player}>
       <text
-        text={() => `HP: ${playerRef.script(PlayerScript)?.health ?? 100}`}
+        text={() => `HP: ${playerRef.script(PlayerScript)?.health() ?? 100}`}
         style={{ fontSize: 14, foregroundColor: '#fff' }}
       />
     </transform>
@@ -151,10 +151,10 @@ function HUD({ playerRef }: { playerRef: NodeReference }) {
 
 **`getParentScript(node, ScriptClass)`** — use this inside event callbacks when you encounter a node dynamically and want to retrieve its parent's script. It walks up `node.parent.script` and returns it only if it matches the given class:
 
-```tsx Projectile.tsx
+```tsx projectile.tsx
 import { useCollider, useTrigger } from 'fraxel/hooks'
 import { shapes, getParentScript } from 'fraxel'
-import { EnemyScript } from './EnemyScript'
+import { EnemyScript } from './enemy-script.js'
 
 function Projectile() {
   const collider = useCollider()
@@ -169,7 +169,7 @@ function Projectile() {
     <rigid-body useGravity={false}>
       <sprite textureId={BULLET} sourceSize={[8, 4]} />
       <collider
-        ref={collider.ref}
+        ref={collider}
         shape={shapes.circle(4)}
         group={['bullet']}
         collidesWith={['enemy']}
@@ -230,8 +230,8 @@ export class EnemyScript extends FraxelScript<PrimaryNode.RigidBody> {
 }
 ```
 
-```tsx Enemy.tsx
-import { EnemyScript } from './EnemyScript'
+```tsx enemy.tsx
+import { EnemyScript } from './enemy-script.js'
 import { shapes } from 'fraxel'
 
 const enemyScript = new EnemyScript()

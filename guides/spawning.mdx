@@ -45,7 +45,7 @@ The spawned node is rendered and started immediately. It behaves identically to 
 
 Call `.destroy()` on any node to remove it from the scene and clean up all its listeners:
 
-```tsx Bullet.tsx
+```tsx bullet.tsx
 import { useRigidBody, useCollider, useTrigger } from 'fraxel/hooks'
 import { shapes } from 'fraxel'
 
@@ -59,10 +59,10 @@ function Bullet({ position }: { position: [number, number] }) {
   })
 
   return (
-    <rigid-body ref={body.ref} position={position} useGravity={false}>
+    <rigid-body ref={body} position={position} useGravity={false}>
       <sprite textureId={BULLET} sourceSize={[8, 4]} />
       <collider
-        ref={collider.ref}
+        ref={collider}
         shape={shapes.circle(4)}
         group={['bullet']}
         collidesWith={['enemy', 'wall']}
@@ -84,10 +84,10 @@ export const onFireBullet = createTrigger<[{ x: number; y: number }]>()
 export const onEnemyDied = createTrigger<[]>()
 ```
 
-```tsx Gun.tsx
+```tsx gun.tsx
 import { useAction, useEffect } from 'fraxel/hooks'
 import { Input } from 'fraxel'
-import { onFireBullet } from './triggers'
+import { onFireBullet } from './triggers.js'
 
 function Gun() {
   const fireAction = useAction(Input.createAction({ key: ' ' }))
@@ -102,9 +102,9 @@ function Gun() {
 }
 ```
 
-```tsx GameScene.tsx
+```tsx game-scene.tsx
 import { useTransform, useTrigger } from 'fraxel/hooks'
-import { onFireBullet } from './triggers'
+import { onFireBullet } from './triggers.js'
 
 function GameScene() {
   const container = useTransform()
@@ -114,7 +114,7 @@ function GameScene() {
   })
 
   return (
-    <transform ref={container.ref}>
+    <transform ref={container}>
       <Player />
     </transform>
   )
@@ -127,7 +127,7 @@ function GameScene() {
 
 When you have a signal that holds an array of data and you want to render a node for each item, use the `List` component from `fraxel/jsx`. It performs efficient keyed reconciliation — only adding and removing nodes when items are added or removed:
 
-```tsx EnemyList.tsx
+```tsx enemy-list.tsx
 import { List } from 'fraxel/jsx'
 import { useSignal } from 'fraxel/hooks'
 
@@ -175,11 +175,10 @@ function EnemyManager() {
 
 Here's a full shooter combining `spawn()`, `useTrigger`, and bullet destruction:
 
-```tsx ShooterGame.tsx
+```tsx shooter-game.tsx
 import { useTransform, useRigidBody, useCollider, useTrigger, useAction, useEffect } from 'fraxel/hooks'
-import { Input, shapes } from 'fraxel'
+import { loadTexture, Input, shapes } from 'fraxel'
 import { createTrigger } from 'fraxel/hooks'
-import { loadTexture } from 'fraxel/assets'
 
 const PLAYER_TEX = await loadTexture('/assets/player.png')
 const BULLET_TEX = await loadTexture('/assets/bullet.png')
@@ -199,7 +198,7 @@ function Player() {
   })
 
   return (
-    <transform ref={body.ref} position={[100, 200]}>
+    <transform ref={body} position={[100, 200]}>
       <sprite textureId={PLAYER_TEX} sourceSize={[32, 48]} displaySize={[32, 48]} />
     </transform>
   )
@@ -214,10 +213,10 @@ function Bullet({ x, y }: { x: number; y: number }) {
   })
 
   return (
-    <rigid-body ref={body.ref} position={[x, y]} useGravity={false}>
+    <rigid-body ref={body} position={[x, y]} useGravity={false}>
       <sprite textureId={BULLET_TEX} sourceSize={[8, 4]} />
       <collider
-        ref={collider.ref}
+        ref={collider}
         shape={shapes.circle(4)}
         group={['bullet']}
         collidesWith={['enemy']}
@@ -234,7 +233,7 @@ function GameScene() {
   })
 
   return (
-    <transform ref={container.ref}>
+    <transform ref={container}>
       <Player />
       <Enemy position={[350, 200]} />
     </transform>

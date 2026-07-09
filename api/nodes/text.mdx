@@ -31,7 +31,7 @@ function ScoreLabel() {
 
 ## Props
 
-<ParamField path="text" type="string | SignalGetter<string>" required>
+<ParamField path="text" type="Reactive<string>" required>
   The string to render. A plain `string` is rendered as-is. Pass a
   `SignalGetter<string>` (a zero-argument function) to bind the label to reactive
   state — the canvas updates automatically each frame when the signal changes.
@@ -45,7 +45,7 @@ function ScoreLabel() {
   ```
 </ParamField>
 
-<ParamField path="position" type="VectorLike | SignalGetter<VectorLike>">
+<ParamField path="position" type="Reactive<VectorLike>">
   Position of the top-left text baseline relative to the parent node. Defaults
   to `[0, 0]`. The engine sets `ctx.textBaseline = 'top'` so `position.y` aligns
   to the top of the cap height.

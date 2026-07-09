@@ -12,7 +12,7 @@ You define scenes declaratively when you call `createGame`. Pass a `<Game>` elem
 
 ```tsx main.tsx
 import { createGame, Game, Scene } from 'fraxel/jsx'
-import { loadTexture } from 'fraxel/assets'
+import { loadTexture } from 'fraxel'
 
 const game = createGame(
   <Game width={480} height={270} defaultScene="menu">
@@ -36,7 +36,7 @@ The `defaultScene` prop on `<Game>` sets which scene loads first. Each `<Scene>`
 
 Use `useScene()` inside any component to access scene controls. Call `changeScene` with a registered scene name to transition:
 
-```tsx MainMenu.tsx
+```tsx main-menu.tsx
 import { useScene, useClickable, useTrigger } from 'fraxel/hooks'
 
 function MainMenu() {
@@ -68,7 +68,7 @@ function MainMenu() {
 
 For fast scene transitions — especially when a scene involves heavy asset loading — preload it while the current scene is still running. `preloadScene` returns a `Promise` that resolves to an activation function you call to swap the scene instantly:
 
-```tsx Level1.tsx
+```tsx level1.tsx
 import { useScene, useMount } from 'fraxel/hooks'
 
 function Level1() {
@@ -101,7 +101,7 @@ function Level1() {
 
 `useScene` gives any component access to the top-level scene controls:
 
-```tsx PauseButton.tsx
+```tsx pause-button.tsx
 import { useScene, useClickable, useTrigger } from 'fraxel/hooks'
 
 function PauseButton() {
@@ -132,7 +132,7 @@ A scene's `component` function is the natural place for scene-specific asset loa
 
 ```tsx main.tsx
 import { createGame, Game, Scene } from 'fraxel/jsx'
-import { loadTexture, loadBatch } from 'fraxel/assets'
+import { loadTexture, loadBatch } from 'fraxel'
 
 const game = createGame(
   <Game width={480} height={270} defaultScene="boss-fight">
@@ -155,9 +155,9 @@ game.play()
 
 For memory management, unload scene-specific assets when leaving:
 
-```tsx BossFight.tsx
+```tsx boss-fight.tsx
 import { useMount } from 'fraxel/hooks'
-import { unloadTexture } from 'fraxel/assets'
+import { unloadTexture } from 'fraxel'
 
 function BossFight({ boss, arena }: BossFightProps) {
   useMount(() => {
@@ -190,7 +190,7 @@ function BossFight({ boss, arena }: BossFightProps) {
   <Tab title="Async Asset Loading">
     ```tsx
     import { createGame, Game, Scene } from 'fraxel/jsx'
-    import { loadTexture } from 'fraxel/assets'
+    import { loadTexture } from 'fraxel'
 
     const game = createGame(
       <Game width={480} height={270} defaultScene="level1">
@@ -239,7 +239,7 @@ const game = createGame(
 game.play()
 ```
 
-```tsx LoadingScreen.tsx
+```tsx loading-screen.tsx
 import { useScene, useMount } from 'fraxel/hooks'
 
 function LoadingScreen() {

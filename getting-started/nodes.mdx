@@ -82,7 +82,7 @@ function MovingPlatform() {
     console.log('Platform left the scene')
   })
 
-  return <transform ref={body.ref} position={[96, 80]} />
+  return <transform ref={body} position={[96, 80]} />
 }
 ```
 
@@ -102,7 +102,7 @@ function Player() {
     sprite.node.position.x += delta * 60
   })
 
-  return <sprite ref={sprite.ref} textureId={PLAYER_TEX} />
+  return <sprite ref={sprite} textureId={PLAYER_TEX} />
 }
 ```
 
@@ -132,10 +132,10 @@ Key props:
 | `textureId` | `symbol` | Texture from `loadTexture` — required |
 | `sourceSize` | `VectorLike` | Crop region from the source image |
 | `displaySize` | `VectorLike` | Size to draw on canvas (default: source size) |
-| `brightness` | \`number | SignalGetter\` | Multiply luminance (1 = normal) |
-| `grayscale` | \`number | SignalGetter\` | Desaturate (0 = color, 1 = gray) |
-| `modulate` | \`Color | SignalGetter\` | Multiply RGBA tint |
-| `opacity` | \`number | SignalGetter\` | Overall transparency (0–1) |
+| `brightness` | `Reactive<number>` | Multiply luminance (1 = normal) |
+| `grayscale` | `Reactive<number>` | Desaturate (0 = color, 1 = gray) |
+| `modulate` | `Reactive<Color>` | Multiply RGBA tint |
+| `opacity` | `Reactive<number>` | Overall transparency (0–1) |
 
 ## Text node
 
@@ -148,7 +148,7 @@ function ScoreLabel() {
 
   return (
     <text
-      ref={label.ref}
+      ref={label}
       position={[8, 16]}
       text={() => `Score: ${score()}`}
       style={{
@@ -205,7 +205,7 @@ function Countdown() {
     console.log('Elapsed:', elapsed) // current elapsed time in seconds
   })
 
-  return <timer ref={timer.ref} duration={3} autoPlay />
+  return <timer ref={timer} duration={3} autoPlay />
 }
 ```
 

@@ -61,7 +61,7 @@ const white: Color = [1, 1, 1, 1] // no tint
 
 Pass a `SignalGetter` (zero-argument function returning the value) as any filter prop to make it update every frame. The engine reads the getter during rendering:
 
-```tsx Player.tsx
+```tsx player.tsx
 import { useSignal, useComputed } from 'fraxel/hooks'
 
 function Player() {
@@ -82,9 +82,9 @@ function Player() {
 
 Flash the sprite white for a fraction of a second when the player takes damage. Use `tween` to fade the brightness back:
 
-```tsx Player.tsx
+```tsx player.tsx
 import { useSprite, useMount } from 'fraxel/hooks'
-import { tween } from 'fraxel/animation'
+import { tween } from 'fraxel'
 
 function Player() {
   const sprite = useSprite()
@@ -109,9 +109,9 @@ function Player() {
 
 Smoothly desaturate an enemy as it dies:
 
-```tsx Enemy.tsx
+```tsx enemy.tsx
 import { useSprite } from 'fraxel/hooks'
-import { tween } from 'fraxel/animation'
+import { tween } from 'fraxel'
 
 function Enemy() {
   const sprite = useSprite()
@@ -135,7 +135,7 @@ function Enemy() {
 
 Apply a reactive tint to show an enemy's health state:
 
-```tsx Enemy.tsx
+```tsx enemy.tsx
 import { useSignal, useComputed } from 'fraxel/hooks'
 
 function Enemy() {

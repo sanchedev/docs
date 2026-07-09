@@ -10,7 +10,7 @@ Every game needs a heads-up display: a score counter, a health bar, a timer, a d
 
 The `<text>` node calls the canvas `fillText()` API. Pass a string or a reactive `SignalGetter<string>` as the `text` prop, and style it with a `TextStyle` object:
 
-```tsx ScoreLabel.tsx
+```tsx score-label.tsx
 import { useSignal } from 'fraxel/hooks'
 
 function ScoreLabel() {
@@ -84,7 +84,7 @@ Colors use the `Color` type: a `[r, g, b, a]` tuple with values from `0` to `1`.
 
 Combine a background rectangle with a reactive foreground bar to display a health meter:
 
-```tsx HealthBar.tsx
+```tsx health-bar.tsx
 import { useSignal, useComputed } from 'fraxel/hooks'
 import { shapes } from 'fraxel'
 
@@ -126,7 +126,7 @@ function HealthBar() {
 
 Game objects move with the world, but HUD elements should stay fixed on screen. The easiest approach is to position UI nodes at a fixed offset relative to the camera using the camera's `offset` as a reference, or by placing them as children of a separate root node that sits at a known screen position.
 
-```tsx HUD.tsx
+```tsx hud.tsx
 function HUD() {
   // These coordinates are in world space but chosen to always map
   // to the top-left of the viewport when the camera is at the origin.
@@ -146,7 +146,7 @@ function HUD() {
 
 ## Full HUD Example
 
-```tsx GameHUD.tsx
+```tsx game-hud.tsx
 import { useSignal, useComputed } from 'fraxel/hooks'
 import { shapes } from 'fraxel'
 
