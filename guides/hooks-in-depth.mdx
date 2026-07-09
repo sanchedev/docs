@@ -116,18 +116,26 @@ function Player() {
 
 ## `useRef`
 
+<Warning>
+`useRef` is deprecated. Use a plain `let` variable instead. Component functions in
+Fraxel execute only once, so a `let` at the top of the function body persists across
+frames without triggering reactive updates.
+</Warning>
+
 Store a mutable value that persists across renders without triggering reactive updates. Unlike `useSignal`, changing a ref's value doesn't re-run effects or recompute derived signals:
 
 ```tsx
-import { useRef } from 'fraxel/hooks'
+// Before (deprecated)
+const lastAttackTime = useRef(0)
+
+// After — use a plain let
+let lastAttackTime = 0
 
 function Player() {
-  const lastAttackTime = useRef(0)
-
   const attack = () => {
     const now = performance.now()
-    if (now - lastAttackTime.current > 500) { // 500ms cooldown
-      lastAttackTime.current = now
+    if (now - lastAttackTime > 500) { // 500ms cooldown
+      lastAttackTime = now
       // Fire bullet...
     }
   }

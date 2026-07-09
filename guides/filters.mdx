@@ -169,23 +169,23 @@ Combine multiple filters for a richer effect:
 Alternate `opacity` between `0` and `1` rapidly to indicate temporary invincibility after taking damage:
 
 ```tsx
-import { useSignal, useRef, useEffect } from 'fraxel/hooks'
+import { useSignal, useEffect } from 'fraxel/hooks'
 
 function Player() {
   const [invincible, setInvincible] = useSignal(false)
   const [opacity, setOpacity] = useSignal(1)
-  const flickerRef = useRef(1)
+  let flickerValue = 1
 
   useEffect(() => {
     if (!invincible()) {
       setOpacity(1)
-      flickerRef.current = 1
+      flickerValue = 1
       return
     }
     // Toggle every 100ms using a timer
     const interval = setInterval(() => {
-      flickerRef.current = flickerRef.current === 1 ? 0 : 1
-      setOpacity(flickerRef.current)
+      flickerValue = flickerValue === 1 ? 0 : 1
+      setOpacity(flickerValue)
     }, 100)
     return () => clearInterval(interval)
   })

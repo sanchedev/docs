@@ -91,6 +91,12 @@ Use `useComputed` to transform or combine signals without managing intermediate 
 
 ## useRef
 
+<Warning>
+`useRef` is deprecated. Use a plain `let` variable instead. Component functions in
+Fraxel execute only once, so a `let` at the top of the function body has the same
+behavior as `useRef`. The engine logs a warning via `warnUseRef()` when `useRef` is called.
+</Warning>
+
 Creates a mutable reference object that persists across renders but does not trigger reactivity when changed. Analogous to a plain mutable variable scoped to the component.
 
 ```ts
@@ -104,32 +110,13 @@ useRef<T>(value: T): Reference<T>
 **Returns** `Reference<T>` — an object with a single mutable `current` property.
 
 ```tsx
-import { useRef, useCollider, useEffect } from 'fraxel/hooks'
-import { shapes } from 'fraxel'
+// Before (deprecated)
+const bounces = useRef(0)
+bounces.current++
 
-function Projectile() {
-  const bounces = useRef(0)
-
-  const collider = useCollider()
-
-  useEffect(() => {
-    if (collider.colliding()) {
-      bounces.current++
-      if (bounces.current >= 3) {
-        // destroy self
-      }
-    }
-  })
-
-  return (
-    <collider
-      ref={collider}
-      shape={shapes.circle(4)}
-      group={['projectile']}
-      collidesWith={['wall']}
-    />
-  )
-}
+// After — use a plain let
+let bounces = 0
+bounces++
 ```
 
 ---

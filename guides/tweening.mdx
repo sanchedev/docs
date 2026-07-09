@@ -89,18 +89,18 @@ t.isPlaying     // boolean — true if currently running
 t.progress      // number 0 to 1 — how far through the tween
 ```
 
-Store the controller in a `useRef` to pause/resume from other events:
+Store the controller in a `let` variable to pause/resume from other events:
 
 ```tsx
-import { useRef, useMount, useSprite } from 'fraxel/hooks'
+import { useMount, useSprite } from 'fraxel/hooks'
 import { tween } from 'fraxel/animation'
 
 function ScrollingBG() {
   const sprite = useSprite()
-  const tweenRef = useRef<ReturnType<typeof tween> | null>(null)
+  let tweenController: ReturnType<typeof tween> | null = null
 
   useMount(() => {
-    tweenRef.current = tween({
+    tweenController = tween({
       target: sprite.node,
       prop: 'position',
       from: 0,
@@ -109,8 +109,8 @@ function ScrollingBG() {
     })
   })
 
-  const pause = () => tweenRef.current?.pause()
-  const resume = () => tweenRef.current?.resume()
+  const pause = () => tweenController?.pause()
+  const resume = () => tweenController?.resume()
 
   return <sprite ref={sprite} textureId={BG} />
 }

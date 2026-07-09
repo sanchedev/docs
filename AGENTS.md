@@ -95,7 +95,7 @@ The following is extracted from `api-declarations/` type definitions for quick r
 - `useComputed<T>(fn)` → `SignalGetter<T>` (derived value)
 - `useEffect(fn)` → cleanup function (side effects)
 - `useMount(fn)` → cleanup function (mount/unmount lifecycle)
-- `useRef<T>()` → mutable ref object
+- `useRef<T>()` → mutable ref object **(deprecated: use plain `let` instead)**
 - `useUpdate(fn)` → execute once per frame
 - `useAction(action)` → object with pressed, justPressed, justUnpressed properties `SignalGetter<boolean>` (action pressed state)
 - `useActionAxis(neg, pos)` → `SignalGetter<number>` (-1/0/1)
@@ -106,6 +106,10 @@ The following is extracted from `api-declarations/` type definitions for quick r
 
 - `createSignal<T>(default)` → `SignalGetter<T>` (outside hooks, for FraxelScript)
 - `signalSetterFrom(getter)` → `SignalSetter<T>` (extract setter from getter)
+
+**Deprecation warnings:**
+
+- `warnUseRef()` — logs console warning when `useRef` is used (exported from `fraxel/warn/use-ref.js`)
 
 ## Event System
 
