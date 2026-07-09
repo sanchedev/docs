@@ -61,10 +61,10 @@ When a projectile overlaps an enemy collider, both nodes receive the collision e
 
 ## Responding to collisions
 
-Subscribe to collision events using `useTrigger`. The three events are:
+Collision events are exposed on the collider reference as `Trigger`s, so you can subscribe to them with `useTrigger`. The three events are:
 
 | Event | Fires when |
-|---|---|
+| --- | --- |
 | `colliderEntered` | Two colliders begin overlapping (first frame of contact) |
 | `collided` | Two colliders are currently overlapping (every frame of contact) |
 | `colliderExited` | Two colliders stop overlapping |

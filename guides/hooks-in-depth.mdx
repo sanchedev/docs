@@ -28,9 +28,9 @@ function Player() {
 }
 ```
 
-## `useSprite` + `useTrigger`
+## `useSprite` \+ `useTrigger`
 
-These two hooks form the foundation of node interaction. `useSprite` creates a typed reference that you attach to a JSX element with `ref={}`. `useTrigger` subscribes to an event on that reference:
+These two hooks form the foundation of node interaction. `useSprite` creates a typed reference that you attach to a JSX element with `ref={}`. The reference exposes each of the node's underlying `Event`s as a `Trigger` — for example, `updated`, `destroyed`, `colliderEntered` — so you can pass them to `useTrigger` and get automatic cleanup on destroy:
 
 ```tsx Enemy.tsx
 import { useCollider, useRigidBody, useTrigger } from 'fraxel/hooks'
@@ -117,9 +117,7 @@ function Player() {
 ## `useRef`
 
 <Warning>
-`useRef` is deprecated. Use a plain `let` variable instead. Component functions in
-Fraxel execute only once, so a `let` at the top of the function body persists across
-frames without triggering reactive updates.
+  `useRef` is deprecated. Use a plain `let` variable instead. Component functions in Fraxel execute only once, so a `let` at the top of the function body persists across frames without triggering reactive updates.
 </Warning>
 
 Store a mutable value that persists across renders without triggering reactive updates. Unlike `useSignal`, changing a ref's value doesn't re-run effects or recompute derived signals:
@@ -266,24 +264,31 @@ Fraxel ships several derived hooks that combine native hooks into domain-specifi
   <Card title="useCollider" href="/guides/collision-groups">
     Reactive `colliding` and `other` state for `<collider>` nodes.
   </Card>
+
   <Card title="useRayCast" href="/guides/collision-groups">
     Reactive `detected` and `collider` state for `<ray-cast>` nodes.
   </Card>
+
   <Card title="useRigidBody" href="/guides/physics">
     Reactive `velocity` and `isGrounded` state plus force helpers.
   </Card>
+
   <Card title="useAnimation" href="/guides/animation">
     Reactive `animName`, `frameIndex`, `ended` state and control methods.
   </Card>
+
   <Card title="useAudio" href="/guides/audio-playback">
     Reactive `playing` state plus `play`, `pause`, `stop`.
   </Card>
+
   <Card title="useTimer" href="/guides/hooks-in-depth">
     Reactive `time` and `progress` state plus timer controls.
   </Card>
+
   <Card title="useSignal / useComputed" href="/guides/signals-reactivity">
     Raw reactive primitives for custom state management.
   </Card>
+
   <Card title="useClickable" href="/guides/hooks-in-depth">
     Reactive `hovered` state for `<clickable>` nodes.
   </Card>

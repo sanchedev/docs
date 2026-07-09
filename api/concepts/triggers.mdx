@@ -43,6 +43,7 @@ useTrigger<T extends Trigger<any[]>>(trigger: T, fn: Parameters<T['connect']>[0]
 <ParamField path="trigger" type="Trigger<T>" required>
   The trigger created by `createTrigger`.
 </ParamField>
+
 <ParamField path="fn" type="(...args: T) => void" required>
   Callback that fires when `trigger.emit(...)` is called.
 </ParamField>
@@ -69,7 +70,7 @@ The `Trigger` class provides the underlying pub/sub mechanism.
 ### Methods
 
 | Method | Signature | Description |
-|---|---|---|
+| --- | --- | --- |
 | `connect` | `(cb: Fun<T>) => void` | Manually add a listener. Returns unsubscribe function. |
 | `disconnect` | `(cb: Fun<T>) => void` | Manually remove a listener. |
 | `clear` | `() => void` | Remove all listeners. |
@@ -149,12 +150,16 @@ function ScoreDisplay() {
 ## Triggers vs Events vs Context
 
 | Feature | Triggers | Node Events | Context |
-|---------|----------|-------------|---------|
+| --- | --- | --- | --- |
 | Scope | Global (module-level) | Per-node | Component tree |
-| Reactive | Yes (with `useTrigger`) | Yes (with `useTrigger`) | No |
+| Reactive | Yes (with `useTrigger`) | Only through the `Trigger` version exposed on a node reference | No |
 | Cross-component | Yes | Requires node reference | Yes |
-| Cleanup | Automatic with `useTrigger` | Automatic with `useTrigger` | None needed |
+| Cleanup | Automatic with `useTrigger` | Manual `.on` / `.off` on the raw `Event`; automatic when subscribed via the node reference's `Trigger` with `useTrigger` | None needed |
 | Use case | Game-wide events | Node lifecycle, collisions | Static shared values |
+
+<Note>
+  `useTrigger` only accepts a `Trigger`. Raw `Event` instances (e.g. `node.updated`, `node.destroyed` on the class directly) must be subscribed to manually with `.on()` / `.off()`. Node-based hooks translate a node's `Event`s into `Trigger`s on the returned reference (for example, `spriteRef.updated`), which is why you can pass them to `useTrigger` and get automatic cleanup on destroy.
+</Note>
 
 ## Related
 

@@ -20,7 +20,7 @@ onDamage.clean()    // remove all listeners
 Callbacks are stored in an array (`#list: Fun<T>[]`). Emission takes a snapshot of the array before iterating (`[...this.#list]`), so a callback that removes itself during emission does not cause missed calls or index errors.
 
 | Method | Behavior |
-|---|---|
+| --- | --- |
 | `on(cb)` | Appends `cb` to the listener list |
 | `onFirst(cb)` | Prepends `cb` — highest priority, called before all others |
 | `off(cb)` | Removes the first occurrence of `cb` by reference |
@@ -59,7 +59,7 @@ useMount(() => {
 Every node has four built-in events defined in the `Node` base class:
 
 | Property | Base name | Emitted when |
-|---|---|---|
+| --- | --- | --- |
 | `started` | `'start'` | `node.start()` finishes (after all children start) |
 | `updated` | `'update'` | Every frame, during the update phase |
 | `drawed` | `'draw'` | Every frame, during the draw phase |
@@ -84,7 +84,7 @@ This means a `Node` subclass can override `onUpdate(delta: number)` as a method 
 
 ## Trigger-Based Subscriptions: Auto-Unsubscribe on Destroy
 
-Node references expose lifecycle events as `Trigger` instances. You can subscribe to them directly or use `useTrigger` for automatic cleanup:
+The raw `Event` API (`on` / `off`) requires manual cleanup and is not compatible with `useTrigger`. To make node events safe to consume from components, node references expose each `Event` as a `Trigger` instance (same `baseName`, but with `connect` / `disconnect`). You can subscribe to that `Trigger` directly, or pass it to `useTrigger` for automatic cleanup on destroy:
 
 ```tsx
 const sprite = useSprite()
@@ -105,7 +105,7 @@ return <sprite ref={sprite} />
 `useTrigger` calls `trigger.connect(fn)` and registers a cleanup via `node.destroyed.on(() => trigger.disconnect(fn))`. This means the consumer's callback is automatically removed when the node is destroyed, preventing stale subscriptions.
 
 <Warning>
-`useTrigger` only works during component render. Do not call it inside callbacks, `setTimeout`, or other asynchronous contexts — there will be no active hook context to register the effect.
+  `useTrigger` only works during component render. Do not call it inside callbacks, `setTimeout`, or other asynchronous contexts — there will be no active hook context to register the effect.
 </Warning>
 
 ## `FraxelScript.connect()`: Script-Based Subscriptions
@@ -162,12 +162,13 @@ function Counter() {
 ### When to Use Which
 
 | Mechanism | Best for |
-|---|---|
-| `useTrigger(ref.eventName, cb)` | Reacting to a specific node's lifecycle or built-in events |
+| --- | --- |
+| `useTrigger(ref.eventName, cb)` | Reacting to a specific node's lifecycle or built-in events from a component (the reference exposes each `Event` as a `Trigger`) |
+| `event.on(cb)` / `event.off(cb)` | Subscribing to a raw `Event` from outside a component, or when you need manual control (no `useTrigger` support) |
 | JSX `onEventName` prop | One-time static subscription set at scene construction |
 | `createTrigger + useTrigger` | Cross-component signaling where nodes don't share a parent |
 | `Signal` | Sharing reactive state values (not just notifications) between components |
 
 <Accordion title="Why not use the DOM EventTarget API?">
-Fraxel's `Event` class is simpler, typed at the TypeScript level, and has no overhead from `CustomEvent` construction or DOM event bubbling. It also works in non-browser environments (e.g., unit tests running in Node.js with a mocked canvas) without polyfills.
+  Fraxel's `Event` class is simpler, typed at the TypeScript level, and has no overhead from `CustomEvent` construction or DOM event bubbling. It also works in non-browser environments (e.g., unit tests running in Node.js with a mocked canvas) without polyfills.
 </Accordion>

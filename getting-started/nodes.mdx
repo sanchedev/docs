@@ -30,7 +30,7 @@ Moving the `<transform>` node moves the entire character. Destroying it also des
 All spatial nodes extend `Node2D`, which provides:
 
 | Property | Type | Description |
-|---|---|---|
+| --- | --- | --- |
 | `position` | `Vector2` | Local position relative to the parent |
 | `globalPosition` | `Vector2` | World-space position (read-only, computed) |
 
@@ -39,7 +39,7 @@ Access these properties via `nodeRef.node.position` inside event handlers after 
 ## All built-in nodes
 
 | JSX tag | Class | Description |
-|---|---|---|
+| --- | --- | --- |
 | `<transform>` | `Transform` | Positional container — groups children and provides a shared origin |
 | `<group>` | `Group` | Logical container with no spatial position; used for keyed lists |
 | `<sprite>` | `Sprite` | Renders a texture; supports filters (brightness, grayscale, modulate, etc.) |
@@ -56,10 +56,10 @@ Access these properties via `nodeRef.node.position` inside event handlers after 
 
 ## Lifecycle events
 
-Every node goes through three lifecycle phases. You subscribe to these phases using `useTrigger`.
+Every node goes through three lifecycle phases. On the node's class these phases are `Event`s, but node references expose them as `Trigger`s so you can subscribe to them with `useTrigger` and get automatic cleanup.
 
 | Event | When it fires | Callback signature |
-|---|---|---|
+| --- | --- | --- |
 | `started` | Once, when the node is first inserted into the scene | `() => void` |
 | `updated` | Every frame while the node is alive | `(delta: number) => void` — `delta` is seconds since last frame |
 | `destroyed` | Once, when the node is removed from the scene | `() => void` |
@@ -128,14 +128,14 @@ function Player() {
 Key props:
 
 | Prop | Type | Description |
-|---|---|---|
+| --- | --- | --- |
 | `textureId` | `symbol` | Texture from `loadTexture` — required |
 | `sourceSize` | `VectorLike` | Crop region from the source image |
 | `displaySize` | `VectorLike` | Size to draw on canvas (default: source size) |
-| `brightness` | `number \| SignalGetter` | Multiply luminance (1 = normal) |
-| `grayscale` | `number \| SignalGetter` | Desaturate (0 = color, 1 = gray) |
-| `modulate` | `Color \| SignalGetter` | Multiply RGBA tint |
-| `opacity` | `number \| SignalGetter` | Overall transparency (0–1) |
+| `brightness` | \`number | SignalGetter\` | Multiply luminance (1 = normal) |
+| `grayscale` | \`number | SignalGetter\` | Desaturate (0 = color, 1 = gray) |
+| `modulate` | \`Color | SignalGetter\` | Multiply RGBA tint |
+| `opacity` | \`number | SignalGetter\` | Overall transparency (0–1) |
 
 ## Text node
 

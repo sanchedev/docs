@@ -6,6 +6,21 @@ description: "Reference for Fraxel's Event class: type-safe events with subscrib
 
 The `Event` class is a type-safe event emitter that supports subscribing, unsubscribing, and emitting events. It is used throughout the engine for node lifecycle events, collision events, and custom game events.
 
+<Note>
+  `Event` is subscribed to manually with `.on(cb)` / `.off(cb)` — it is **not** compatible with `useTrigger`, which only accepts a `Trigger`. Inside components, prefer the `Trigger` versions of these events exposed by node references (for example, `spriteRef.updated`, `colliderRef.colliderEntered`), which are automatically translated from the underlying `Event`s. To listen to a raw `Event` from inside a component, subscribe manually in `useMount` and return a cleanup function:
+
+  ```ts
+  const event = new Event<[], 'ready'>('ready', () => {})
+  
+  // in component
+  useMount(() => {
+    const handleEvent = () => { /* ... */ }
+    event.on(handleEvent)
+    return () => { event.off(handleEvent) }
+  })
+  ```
+</Note>
+
 ---
 
 ## Creating an Event
@@ -17,6 +32,7 @@ new Event<T, K>(baseName: K, exampleFun: Fun<T>)
 <ParamField path="baseName" type="string" required>
   The base name used to derive the event handler name (e.g., `'damage'` → `'onDamage'`).
 </ParamField>
+
 <ParamField path="exampleFun" type="function" required>
   An example function used for type inference in event subscriptions.
 </ParamField>
@@ -147,7 +163,7 @@ getEventName('colliderEnter') // 'onColliderEnter'
 All nodes have these lifecycle events:
 
 | Event | Callback | Description |
-|---|---|---|
+| --- | --- | --- |
 | `started` | `() => void` | Fires once after `start()`. |
 | `updated` | `(delta: number) => void` | Fires every frame during update. |
 | `drawed` | `(delta: number) => void` | Fires every frame during draw. |
@@ -163,7 +179,25 @@ Node-specific events include:
 - **RigidBody**: `collisionStarted`, `collisionEnded`
 - **Input**: `pointerMoved`, `pointerPressed`, `pointerUnpressed`
 
+## Subscribing to events in components
+
+`useTrigger` accepts `Trigger` instances only — it does **not** accept an `Event` directly. To subscribe to a raw `Event` from a component you must call `event.on(fn)` and clean up manually with `event.off(fn)`:
+
+```ts
+const event = new Event<[], 'event'>('event', () => {})
+
+// In a component
+useMount(() => {
+  const handleEvent = () => { /* ... */ }
+  event.on(handleEvent)
+  return () => { event.off(handleEvent) }
+})
+```
+
+Because manual subscription is verbose and easy to leak, prefer `Trigger`s inside components. Node-based hooks (`useSprite`, `useTransform`, `useCollider`, etc.) expose each of the node's `Event`s as a `Trigger` on the returned reference (`sprite.updated`, `collider.colliderEntered`, …). Pass those `Trigger`s to `useTrigger` and cleanup is automatic when the node is destroyed.
+
 ## Related
 
-- [Node Hooks](/api/hooks/node) — `useTrigger` for subscribing to events in components
+- [Triggers](/api/concepts/triggers) — Pub/sub primitive compatible with `useTrigger`
+- [Node Hooks](/api/hooks/node) — Node references translate `Event`s into `Trigger`s so they can be subscribed to with `useTrigger` inside components
 - [FraxelScript](/api/concepts/fraxel-script) — `connect()` method for script event subscriptions
