@@ -253,26 +253,46 @@ function BulletSpawner() {
   `spawn()` does not re-render the component. It imperatively inserts nodes. Spawned nodes are managed by the engine's scene tree — they will be destroyed when their parent is destroyed or when they call their own destroy logic.
 </Note>
 
-## Class components (advanced)
+## Scripts (advanced)
 
-Fraxel supports class components for cases where you want to encapsulate game object logic inside a class. A class component must **extend a built-in node class** (such as `Transform` or `Sprite`). When Fraxel encounters `<MyClass />` in JSX, it calls `new MyClass(props)` and expects the result to be a `Node` instance. The constructor receives the props object directly.
-
-This is a less common pattern — prefer function components for most use cases.
+For complex game objects where you want to separate logic from rendering, use **FraxelScript**. A script is a class that extends `FraxelScript<NodeType>` and attaches to a node via the `script` prop. It gives you a class-based context with type-safe access to the node's events and properties.
 
 ```tsx
-import { Transform } from 'fraxel'
+import { FraxelScript } from 'fraxel/scripts'
+import { PrimaryNode } from 'fraxel'
 
-class Rock extends Transform {
-  constructor(props: { position: [number, number] }) {
-    super({ position: props.position, children: [] })
-    // Any additional setup goes here
+class PlayerScript extends FraxelScript<PrimaryNode.Transform> {
+  health = 100
+
+  setup() {
+    this.connect('updated', (delta) => {
+      // Game logic runs every frame
+    })
+  }
+
+  applyDamage(amount: number) {
+    this.health -= amount
+    if (this.health <= 0) this.me.destroy()
   }
 }
-
-// Used in JSX like any other component:
-// <Rock position={[100, 80]} />
 ```
 
+Attach the script to a node with the `script` prop:
+
+```tsx
+function Player() {
+  return (
+    <transform script={new PlayerScript()}>
+      <sprite textureId={PLAYER_TEX} />
+    </transform>
+  )
+}
+```
+
+Scripts use `createSignal` and `signalSetterFrom` (from `fraxel/hooks`) for reactive state instead of `useSignal`, since they run outside the hook context.
+
 <Note>
-  Because class components must extend a built-in node, they cannot call hooks. Use function components with node-specific hooks (like `useSprite`, `useTransform`) and `useTrigger` when you need reactive state or lifecycle subscriptions.
+  Use function components with hooks for most cases. Scripts are best when you need class-based encapsulation, inheritance, or logic that spans multiple nodes.
 </Note>
+
+For the full API and more examples, see [FraxelScript](/api/concepts/fraxel-script) and the [FraxelScript guide](/guides/fraxel-script).

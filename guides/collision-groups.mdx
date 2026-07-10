@@ -72,14 +72,14 @@ function Enemy() {
 `useCollider` wraps `<collider>` with reactive state — a `colliding` boolean and the `other` collider currently overlapping:
 
 ```tsx player.tsx
-import { useCollider, useComputed } from 'fraxel/hooks'
+import { useCollider, useWhen } from 'fraxel/hooks'
 import { shapes } from 'fraxel'
 
 function Player() {
   const collider = useCollider()
 
   // Flash red while touching an enemy
-  const brightness = useComputed(() => (collider.colliding() ? 2.0 : 1.0))
+  const brightness = useWhen(collider.colliding, 2, 1)
 
   return (
     <transform>
@@ -137,19 +137,19 @@ function EnemyDetector() {
 ### `useRayCast` Derived Hook
 
 ```tsx
-import { useRayCast, useComputed } from 'fraxel/hooks'
+import { useRayCast, useWhen } from 'fraxel/hooks'
 
 function GuardAI() {
   const ray = useRayCast()
 
   // Show an alert icon when an enemy is in sight
-  const alertVisible = useComputed(() => ray.detected())
+  const alertVisibility = useWhen(ray.detected, 1, 0)
 
   return (
     <transform>
       <ray-cast ref={ray} direction={[150, 0]} collidesWith={['player']} />
       {/* Alert sprite appears/disappears reactively */}
-      <sprite textureId={ALERT_ICON} opacity={() => (alertVisible() ? 1 : 0)} />
+      <sprite textureId={ALERT_ICON} opacity={alertVisibility} />
     </transform>
   )
 }

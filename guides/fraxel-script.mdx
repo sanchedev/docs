@@ -65,11 +65,9 @@ Pass a script instance to any node's `script` prop:
 import { PlayerScript } from './player-script.js'
 import { shapes } from 'fraxel'
 
-const playerScript = new PlayerScript()
-
 function Player() {
   return (
-    <transform script={playerScript} position={[100, 200]}>
+    <transform position={[100, 200]} script={new PlayerScript()}>
       <sprite textureId={PLAYER} sourceSize={[32, 48]} displaySize={[64, 96]} />
       <collider
         shape={shapes.rectangle(32, 48)}

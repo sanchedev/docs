@@ -28,9 +28,9 @@ function Player() {
 }
 ```
 
-## `useSprite` \+ `useTrigger`
+## `useCollider` \+ `useTrigger`
 
-These two hooks form the foundation of node interaction. `useSprite` creates a typed reference that you attach to a JSX element with `ref={}`. The reference exposes each of the node's underlying `Event`s as a `Trigger` — for example, `updated`, `destroyed`, `colliderEntered` — so you can pass them to `useTrigger` and get automatic cleanup on destroy:
+These two hooks form the foundation of node interaction. `useCollider` creates a typed reference that you attach to a JSX element with `ref={}`. The reference exposes each of the node's underlying `Event`s as a `Trigger` — for example, `updated`, `destroyed`, `colliderEntered` — so you can pass them to `useTrigger` and get automatic cleanup on destroy:
 
 ```tsx enemy.tsx
 import { useCollider, useRigidBody, useTrigger } from 'fraxel/hooks'
@@ -41,7 +41,7 @@ function Enemy() {
   const body = useRigidBody()
 
   useTrigger(collider.colliderEntered, (other) => {
-    if (other.node.name === 'bullet') {
+    if (other.id === 'bullet') {
       body.node.destroy()
     }
   })
@@ -88,7 +88,7 @@ function FadeIn() {
 
 The cleanup function is optional. Use it to cancel intervals, clear external state, or stop tweens.
 
-## `ref.node.child`
+## `visual.signal().child`
 
 Access a specific child node anywhere in the subtree by providing a path string (dot-separated node names) and the expected type:
 
@@ -98,10 +98,11 @@ import { useSprite, useMount } from 'fraxel/hooks'
 function Player() {
   // Access the sprite named 'body' that's a child of 'visual'
   const visual = useSprite()
-  const bodySprite = useComputed(() => visual.node.child('body', PrimaryNode.Sprite))
+  const bodySprite = useComputed(() => visual.signal().child('body', PrimaryNode.Sprite))
 
   useMount(() => {
-    bodySprite.node.brightness = 1.5
+    const sprite = bodySprite()
+    if (sprite) sprite.brightness = 1.5
   })
 
   return (

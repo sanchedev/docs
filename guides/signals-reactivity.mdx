@@ -138,52 +138,70 @@ function Enemy() {
 
 This avoids creating intermediate `useComputed` signals when you only need the value in one place.
 
-## The `Signal` Class (Outside Components)
+## Reactive state outside components
 
-For reactive state that lives outside a component — global game state, shared scores, event buses — use the `Signal` class directly:
+For reactive state that lives outside a component — global game state, shared scores, event buses — use `createSignal` and `signalSetterFrom` from `fraxel/hooks`:
 
 ```tsx game-state.ts
-import { Signal } from 'fraxel'
+import { createSignal, signalSetterFrom } from 'fraxel/hooks'
 
-export const score = new Signal(0)
-export const lives = new Signal(3)
+export const score = createSignal(0)
+export const setScore = signalSetterFrom(score)
+export const lives = createSignal(3)
 
-// Subscribe manually
-score.sub((newScore) => {
-  console.log('Score changed:', newScore)
-})
+// Update via the standalone setter
+setScore(score() + 100)
 
-// Update
-score.value = score.value + 100
+// Or via the getter's underlying Signal
+score.signal.setter(score() + 100)
+score.signal.value = score() + 100
 ```
 
-| Property / Method | Description |
-|-------------------|-------------|
-| `signal.value` | Get or set the current value |
-| `signal.getter` | `SignalGetter<T>` — a function returning the current value |
-| `signal.setter` | `SignalSetter<T>` — a function to update the value |
-| `signal.sub(fn)` | Subscribe to changes |
-| `signal.unsub(fn)` | Unsubscribe a specific callback |
-| `signal.clearSubs()` | Remove all subscribers |
+| Pattern | Description |
+|---------|-------------|
+| `createSignal(initial)` | Creates a `SignalGetter<T>` — callable getter with dependency tracking |
+| `signalSetterFrom(getter)` | Extracts a standalone `SignalSetter<T>` from a getter |
+| `getter()` | Returns current value and registers as dependency |
+| `getter.signal.value = val` | Updates the value via the underlying `Signal` |
+| `getter.signal.setter(val)` | Updates the value via the `Signal`'s setter |
+| `setter(val)` | Updates the value and notifies dependents |
 
-## `clearSubs()` for Cleanup
-
-When a signal's owner is destroyed and no more notifications should fire, call `clearSubs()` to detach all subscribers:
+Since `score` is a `SignalGetter<number>`, you can pass it directly as a JSX auto-computed prop:
 
 ```tsx
-import { Signal } from 'fraxel'
+import { score } from './game-state.js'
 
-const health = new Signal(100)
-health.sub((val) => console.log('Health:', val))
-
-health.value = 50 // logs: "Health: 50"
-
-// Later, when the entity owning this signal is gone:
-health.clearSubs()
-health.value = 0 // logs nothing — all subs removed
+function ScoreDisplay() {
+  return (
+    <text
+      text={() => `Score: ${score()}`}
+      style={{ foregroundColor: '#fff', fontSize: 14 }}
+    />
+  )
+}
 ```
 
-`useSignal` calls `clearSubs()` automatically via the node's `destroyed` event. Only call it manually on `Signal` instances you manage outside of components.
+<Warning>
+  `createSignal` is prone to API changes. The recommended approach for module-level signals is still to instantiate `Signal` directly and access its `.getter` and `.setter`:
+
+  ```ts
+  import { Signal } from 'fraxel'
+
+  const scoreSignal = new Signal(0)
+  export const score = scoreSignal.getter
+  export const setScore = scoreSignal.setter
+  ```
+</Warning>
+
+### Cleanup
+
+When a signal's owner is destroyed and no more notifications should fire, call `clearSubs()` on the underlying `Signal` instance. Access it through `SignalGetter<T>.signal`:
+
+```ts
+score.signal.clearSubs()
+```
+
+Inside components, `useSignal` handles cleanup automatically via the node's `destroyed` event. Only call `clearSubs()` manually on signals you manage outside of components.
 
 ## `useMatch` — Switch Expression
 

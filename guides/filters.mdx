@@ -20,7 +20,7 @@ Filters are per-node props on `<sprite>`, applied during each draw call and rese
   Desaturates the sprite. `0` = full color, `1` = fully grayscale. Use for dead, frozen, or disabled states.
 </ParamField>
 
-<ParamField path="modulate" type="Reactive<Color>" default="[1, 1, 1, 1]">
+<ParamField path="modulate" type="Reactive<ColorLike>" default="[1, 1, 1, 1]">
   Multiplies each pixel's color channels by the given RGBA values. `[1, 1, 1, 1]` = no change. `[1, 0.3, 0.3, 1]` = reddish tint.
 </ParamField>
 
@@ -46,15 +46,24 @@ Filters are per-node props on `<sprite>`, applied during each draw call and rese
 
 ## The `Color` Type
 
-The `modulate` prop (and `fillColor`/`strokeColor` on `<geometry>`) uses the `Color` type: a 4-element tuple `[r, g, b, a]` with each channel in the `0`–`1` range:
+The `modulate` prop (and `fillColor`/`strokeColor` on `<geometry>`) accepts `ColorLike` values — which include `Color` instances, tuples, and objects. The `Color` class represents an RGBA color with channels in the `0`–`1` range:
 
 ```ts
-import type { Color } from 'fraxel'
+import { color } from 'fraxel'
 
-const red: Color = [1, 0, 0, 1]
-const orange: Color = [1, 0.5, 0, 1]
-const semiTransparentBlue: Color = [0, 0.3, 1, 0.6]
-const white: Color = [1, 1, 1, 1] // no tint
+const red = color(1, 0, 0)
+const transparentBlue = color(0, 0, 1, 0.5)
+const fromTuple = color([0.5, 0.5, 0.5])
+const fromObject = color({ r: 1, g: 0.5, b: 0 })
+```
+
+You can also use tuple or object shorthand directly — the engine converts them automatically:
+
+```ts
+// All equivalent:
+modulate={[1, 0, 0, 1]}                        // tuple
+modulate={{ r: 1, g: 0, b: 0, a: 1 }}          // object
+modulate={color(1, 0, 0)}                       // Color instance
 ```
 
 ## Reactive Filters
@@ -62,15 +71,15 @@ const white: Color = [1, 1, 1, 1] // no tint
 Pass a `SignalGetter` (zero-argument function returning the value) as any filter prop to make it update every frame. The engine reads the getter during rendering:
 
 ```tsx player.tsx
-import { useSignal, useComputed } from 'fraxel/hooks'
+import { useSignal, useWhen } from 'fraxel/hooks'
 
 function Player() {
   const [isHit, setIsHit] = useSignal(false)
   const [isDead, setIsDead] = useSignal(false)
 
   // Brightness jumps to 2 on hit, then fades back (see tween below)
-  const brightness = useComputed(() => (isHit() ? 2 : 1))
-  const gray = useComputed(() => (isDead() ? 1 : 0))
+  const brightness = useWhen(isHit, 2, 1)
+  const gray = useWhen(isDead, 1, 0)
 
   return <sprite textureId={PLAYER} brightness={brightness} grayscale={gray} />
 }
@@ -142,7 +151,7 @@ function Enemy() {
   const [health, setHealth] = useSignal(100)
 
   // Shift from white to red as health drops
-  const tint = useComputed<[number, number, number, number]>(() => {
+  const tint = useComputed<ColorLike>(() => {
     const t = health() / 100 // 1 at full health, 0 at zero
     return [1, t, t, 1] // full red at 0 health
   })

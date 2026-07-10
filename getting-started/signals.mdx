@@ -221,26 +221,25 @@ const animName = useMatch(state, {
 return <animation-player currentAnim={animName} />
 ```
 
-## The `Signal` class — advanced direct use
+## Reactive state outside components
 
-For state that lives outside a component — global game state, singletons, or utility modules — use the `Signal` class directly.
+For state that lives outside a component — global game state, singletons, or utility modules — use `createSignal` and `signalSetterFrom` from `fraxel/hooks`.
 
 ```tsx src/state.ts
-import { Signal } from 'fraxel'
+import { createSignal, signalSetterFrom } from 'fraxel/hooks'
 
-export const score = new Signal(0)
+export const score = createSignal(0)
+export const setScore = signalSetterFrom(score)
 
-// Subscribe manually
-score.sub((val) => console.log('Score:', val))
+// Update via the standalone setter
+setScore(score() + 10)
 
-// Update the value
-score.value = score.value + 10
-
-// Remove all subscribers (call when tearing down)
-score.clearSubs()
+// Or via the getter's underlying Signal
+score.signal.setter(score() + 10)
+score.signal.value = score() + 10
 ```
 
-The `Signal` class exposes a `.getter` and `.setter` that work exactly like the functions returned by `useSignal`, so you can pass `score.getter` as a JSX auto-computed prop:
+Since `score` is a `SignalGetter<number>`, you can pass it directly as a JSX auto-computed prop:
 
 ```tsx
 import { score } from '../state.js'
@@ -248,7 +247,7 @@ import { score } from '../state.js'
 function ScoreDisplay() {
   return (
     <text
-      text={() => `Score: ${score.getter()}`}
+      text={() => `Score: ${score()}`}
       style={{ foregroundColor: '#fff', fontSize: 14 }}
     />
   )
@@ -256,5 +255,23 @@ function ScoreDisplay() {
 ```
 
 <Warning>
-  When using `Signal` directly outside a component, you are responsible for calling `clearSubs()` or `unsub()` when the owning object is destroyed. Inside components, hooks clean up automatically.
+  `createSignal` is prone to API changes. The recommended approach for module-level signals is still to instantiate `Signal` directly and access its `.getter` and `.setter`:
+
+  ```ts
+  import { Signal } from 'fraxel'
+
+  const scoreSignal = new Signal(0)
+  export const score = scoreSignal.getter
+  export const setScore = scoreSignal.setter
+  ```
 </Warning>
+
+### Cleanup
+
+When a signal's owner is destroyed and no more notifications should fire, call `clearSubs()` on the underlying `Signal` instance. Access it through `SignalGetter<T>.signal`:
+
+```ts
+score.signal.clearSubs()
+```
+
+Inside components, `useSignal` handles cleanup automatically via the node's `destroyed` event. Only call `clearSubs()` manually on signals you manage outside of components.

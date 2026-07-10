@@ -15,17 +15,17 @@ Make sure you have [installed Fraxel and configured TypeScript](/getting-started
 Create `src/main.tsx` with the minimal game setup. `createGame` takes a `<Game>` JSX element and a DOM container, wires up the canvas, and returns game controls.
 
 ```tsx src/main.tsx
-import { createGame, Game, Scene } from 'fraxel/jsx'
+import { createGame, Game, Scene } from "fraxel/jsx"
 
 function Main() {
   return <transform />
 }
 
 const game = createGame(
-  <Game width={480} height={320} defaultScene="main">
+  <Game width={480} height={360} defaultScene="main">
     <Scene name="main" component={Main} />
   </Game>,
-  document.querySelector('#root')!,
+  document.querySelector("#root")!
 )
 
 game.play()
@@ -36,19 +36,33 @@ game.play()
 - **`createGame(jsx, root)`** — processes the JSX, creates the canvas inside `#root`, and returns game controls.
 - **`game.play()`** — starts the render loop.
 
-## Step 2 — Add platforms
+## Step 2 — Add platforms, a bouncing ball, and background
 
-Static platforms are rigid bodies with `isStatic`. They don't move but still participate in collisions — other bodies bounce off them.
+Static platforms are rigid bodies with `isStatic`. They don't move but still participate in collisions — other bodies bounce off them. We'll also add a bouncing ball and a dark background to give the scene depth.
 
 ```tsx src/main.tsx
-import { createGame, Game, Scene } from 'fraxel/jsx'
-import { shapes } from 'fraxel'
+import type { Shape, VectorLike } from "fraxel"
+import { createGame, Game, Scene } from "fraxel/jsx"
+import { shapes } from "fraxel"
 
-function Platform({ position, width }: { position: [number, number]; width: number }) {
+function Ball({ position }: { position: VectorLike }) {
   return (
-    <rigid-body isStatic position={position}>
-      <geometry shape={shapes.rectangle(width, 16)} fillColor={[0.2, 0.3, 1, 1]} />
-      <collider shape={shapes.rectangle(width, 16)} group={['ground']} collidesWith={['player']} />
+    <rigid-body position={position} friction={0} bounce={1}>
+      <geometry shape={shapes.circle(10)} fillColor={[0.2, 1, 0.3, 1]} />
+      <collider
+        shape={shapes.circle(10)}
+        group={["ground"]}
+        collidesWith={["ground"]}
+      />
+    </rigid-body>
+  )
+}
+
+function Platform({ position, shape }: { position: VectorLike; shape: Shape }) {
+  return (
+    <rigid-body isStatic position={position} friction={0} bounce={1}>
+      <geometry shape={shape} fillColor={[0.2, 0.3, 1, 1]} />
+      <collider shape={shape} group={["ground"]} collidesWith={["player"]} />
     </rigid-body>
   )
 }
@@ -56,40 +70,67 @@ function Platform({ position, width }: { position: [number, number]; width: numb
 function Main() {
   return (
     <transform>
-      <Platform position={[0, 300]} width={480} />
-      <Platform position={[80, 220]} width={100} />
-      <Platform position={[280, 160]} width={120} />
-      <Platform position={[140, 100]} width={100} />
+      <geometry
+        position={-250}
+        shape={shapes.rectangle(1000, 1000)}
+        fillColor={[0.05, 0.05, 0.09, 1]}
+      />
+      <Platform position={[-60, 460]} shape={shapes.rectangle(600, 20)} />
+      <Platform position={[50, 380]} shape={shapes.rectangle(100, 20)} />
+      <Platform position={[300, 300]} shape={shapes.rectangle(100, 20)} />
+      <Platform position={[80, 220]} shape={shapes.rectangle(100, 20)} />
+      <Platform position={[320, 140]} shape={shapes.rectangle(100, 20)} />
+      <Ball position={[10, 390]} />
     </transform>
   )
 }
 
 const game = createGame(
-  <Game width={480} height={320} defaultScene="main">
+  <Game width={480} height={360} defaultScene="main">
     <Scene name="main" component={Main} />
   </Game>,
-  document.querySelector('#root')!,
+  document.querySelector("#root")!
 )
 
 game.play()
 ```
 
-`<geometry>` renders a colored shape without needing textures. The `fillColor` is `[r, g, b, a]` with values from `0` to `1`.
+Here's what's new:
+
+- **`Shape` and `VectorLike`** — imported types from `fraxel` that let you pass any shape or position format to components.
+- **`Platform` takes a `shape` prop** — instead of a fixed `width`, each platform receives its own `Shape`. This makes the component reusable for any shape.
+- **`friction={0} bounce={1}`** — zero friction and full bounce make platforms and the ball perfectly elastic.
+- **`Ball`** — a small green circle that bounces around the scene. It collides with other `"ground"` group bodies.
+- **Background `<geometry>`** — a large dark rectangle positioned behind everything to fill the canvas with a near-black color.
 
 ## Step 3 — Add a player with physics
 
 A `<rigid-body>` node adds gravity, velocity, and collision response. It **must** contain a `<collider>` child that defines the physical shape.
 
 ```tsx src/main.tsx
-import { createGame, Game, Scene } from 'fraxel/jsx'
-import { shapes } from 'fraxel'
-import { useRigidBody } from 'fraxel/hooks'
+import type { Shape, VectorLike } from "fraxel"
+import { createGame, Game, Scene } from "fraxel/jsx"
+import { shapes } from "fraxel"
+import { useRigidBody } from "fraxel/hooks"
 
-function Platform({ position, width }: { position: [number, number]; width: number }) {
+function Ball({ position }: { position: VectorLike }) {
   return (
-    <rigid-body isStatic position={position}>
-      <geometry shape={shapes.rectangle(width, 16)} fillColor={[0.2, 0.3, 1, 1]} />
-      <collider shape={shapes.rectangle(width, 16)} group={['ground']} collidesWith={['player']} />
+    <rigid-body position={position} friction={0} bounce={1}>
+      <geometry shape={shapes.circle(10)} fillColor={[0.2, 1, 0.3, 1]} />
+      <collider
+        shape={shapes.circle(10)}
+        group={["ground"]}
+        collidesWith={["ground"]}
+      />
+    </rigid-body>
+  )
+}
+
+function Platform({ position, shape }: { position: VectorLike; shape: Shape }) {
+  return (
+    <rigid-body isStatic position={position} friction={0} bounce={1}>
+      <geometry shape={shape} fillColor={[0.2, 0.3, 1, 1]} />
+      <collider shape={shape} group={["ground"]} collidesWith={["player"]} />
     </rigid-body>
   )
 }
@@ -99,8 +140,8 @@ function Player() {
 
   return (
     <rigid-body ref={body} position={[220, 0]} mass={2}>
-      <geometry shape={shapes.capsule(12, 8)} fillColor={[1, 0.1, 0.4, 1]} />
-      <collider shape={shapes.capsule(12, 8)} group={['player']} collidesWith={['ground']} />
+      <geometry shape={shapes.capsule(60, 20)} fillColor={[1, 0.1, 0.4, 1]} />
+      <collider shape={shapes.capsule(60, 20)} group={["player"]} collidesWith={["ground"]} />
     </rigid-body>
   )
 }
@@ -108,20 +149,27 @@ function Player() {
 function Main() {
   return (
     <transform>
-      <Platform position={[0, 300]} width={480} />
-      <Platform position={[80, 220]} width={100} />
-      <Platform position={[280, 160]} width={120} />
-      <Platform position={[140, 100]} width={100} />
+      <geometry
+        position={-250}
+        shape={shapes.rectangle(1000, 1000)}
+        fillColor={[0.05, 0.05, 0.09, 1]}
+      />
+      <Platform position={[-60, 460]} shape={shapes.rectangle(600, 20)} />
+      <Platform position={[50, 380]} shape={shapes.rectangle(100, 20)} />
+      <Platform position={[300, 300]} shape={shapes.rectangle(100, 20)} />
+      <Platform position={[80, 220]} shape={shapes.rectangle(100, 20)} />
+      <Platform position={[320, 140]} shape={shapes.rectangle(100, 20)} />
+      <Ball position={[10, 390]} />
       <Player />
     </transform>
   )
 }
 
 const game = createGame(
-  <Game width={480} height={320} defaultScene="main">
+  <Game width={480} height={360} defaultScene="main">
     <Scene name="main" component={Main} />
   </Game>,
-  document.querySelector('#root')!,
+  document.querySelector("#root")!
 )
 
 game.play()
@@ -131,22 +179,36 @@ The player spawns at `[220, 0]` and immediately falls under gravity. When it hit
 
 ## Step 4 — Add input handling
 
-Fraxel's input system maps keys to semantic actions. `useAction` gives you reactive pressed/justPressed state, and `useActionAxis` returns `-1`, `0`, or `1` based on two opposing keys.
+Fraxel's input system maps keys to semantic actions. `useAction` gives you reactive pressed state, and `useActionAxis` returns `-1`, `0`, or `1` based on two opposing keys.
 
 ```tsx src/main.tsx
-import { createGame, Game, Scene } from 'fraxel/jsx'
-import { Input, shapes } from 'fraxel'
-import { useRigidBody, useAction, useActionAxis, useEffect, useUpdate } from 'fraxel/hooks'
+import type { Shape, VectorLike } from "fraxel"
+import { createGame, Game, Scene } from "fraxel/jsx"
+import { Input, shapes } from "fraxel"
+import { useRigidBody, useAction, useActionAxis, useEffect, useUpdate } from "fraxel/hooks"
 
-const Left = Input.createAction({ key: 'a' })
-const Right = Input.createAction({ key: 'd' })
-const Jump = Input.createAction({ key: ' ' })
+const Left = Input.createAction({ key: "a" })
+const Right = Input.createAction({ key: "d" })
+const Jump = Input.createAction({ key: " " })
 
-function Platform({ position, width }: { position: [number, number]; width: number }) {
+function Ball({ position }: { position: VectorLike }) {
   return (
-    <rigid-body isStatic position={position}>
-      <geometry shape={shapes.rectangle(width, 16)} fillColor={[0.2, 0.3, 1, 1]} />
-      <collider shape={shapes.rectangle(width, 16)} group={['ground']} collidesWith={['player']} />
+    <rigid-body position={position} friction={0} bounce={1}>
+      <geometry shape={shapes.circle(10)} fillColor={[0.2, 1, 0.3, 1]} />
+      <collider
+        shape={shapes.circle(10)}
+        group={["ground"]}
+        collidesWith={["ground"]}
+      />
+    </rigid-body>
+  )
+}
+
+function Platform({ position, shape }: { position: VectorLike; shape: Shape }) {
+  return (
+    <rigid-body isStatic position={position} friction={0} bounce={1}>
+      <geometry shape={shape} fillColor={[0.2, 0.3, 1, 1]} />
+      <collider shape={shape} group={["ground"]} collidesWith={["player"]} />
     </rigid-body>
   )
 }
@@ -157,9 +219,8 @@ function Player() {
   const jump = useAction(Jump)
 
   useEffect(() => {
-    if (jump.justPressed() && body.isGrounded()) {
-      body.applyImpulse([0, -400])
-    }
+    if (!jump.pressed() || !body.isGrounded()) return
+    body.applyImpulse([0, -400])
   })
 
   useUpdate(() => {
@@ -168,8 +229,8 @@ function Player() {
 
   return (
     <rigid-body ref={body} position={[220, 0]} mass={2}>
-      <geometry shape={shapes.capsule(12, 8)} fillColor={[1, 0.1, 0.4, 1]} />
-      <collider shape={shapes.capsule(12, 8)} group={['player']} collidesWith={['ground']} />
+      <geometry shape={shapes.capsule(60, 20)} fillColor={[1, 0.1, 0.4, 1]} />
+      <collider shape={shapes.capsule(60, 20)} group={["player"]} collidesWith={["ground"]} />
     </rigid-body>
   )
 }
@@ -177,20 +238,27 @@ function Player() {
 function Main() {
   return (
     <transform>
-      <Platform position={[0, 300]} width={480} />
-      <Platform position={[80, 220]} width={100} />
-      <Platform position={[280, 160]} width={120} />
-      <Platform position={[140, 100]} width={100} />
+      <geometry
+        position={-250}
+        shape={shapes.rectangle(1000, 1000)}
+        fillColor={[0.05, 0.05, 0.09, 1]}
+      />
+      <Platform position={[-60, 460]} shape={shapes.rectangle(600, 20)} />
+      <Platform position={[50, 380]} shape={shapes.rectangle(100, 20)} />
+      <Platform position={[300, 300]} shape={shapes.rectangle(100, 20)} />
+      <Platform position={[80, 220]} shape={shapes.rectangle(100, 20)} />
+      <Platform position={[320, 140]} shape={shapes.rectangle(100, 20)} />
+      <Ball position={[10, 390]} />
       <Player />
     </transform>
   )
 }
 
 const game = createGame(
-  <Game width={480} height={320} defaultScene="main">
+  <Game width={480} height={360} defaultScene="main">
     <Scene name="main" component={Main} />
   </Game>,
-  document.querySelector('#root')!,
+  document.querySelector("#root")!
 )
 
 game.play()
@@ -200,29 +268,44 @@ Here's what's happening:
 
 - **`Input.createAction({ key: 'a' })`** — creates a reusable action symbol bound to a key.
 - **`useActionAxis(Left, Right)`** — returns `-1` when moving left, `1` when right, `0` when neither.
-- **`useAction(Jump)`** — gives you `justPressed()` which is `true` only on the first frame the key is held.
+- **`useAction(Jump)`** — gives you `pressed()` which is `true` as long as the key is held.
 - **`body.isGrounded()`** — reactive `true` when the body rests on a surface.
 - **`body.applyImpulse([0, -400])`** — instant upward velocity for jumping.
 - **`body.setVelocity([x, y])`** — overrides velocity each frame for horizontal movement.
+- **Early return pattern** — the effect bails out immediately if the jump key isn't pressed or the player isn't grounded, keeping the logic flat.
 
 ## Step 5 — Add camera follow
 
 The `<camera>` node follows a target and applies viewport transforms. Attach it to the player so the view tracks their movement.
 
 ```tsx src/main.tsx
-import { createGame, Game, Scene } from 'fraxel/jsx'
-import { Input, shapes } from 'fraxel'
-import { useRigidBody, useAction, useActionAxis, useEffect, useUpdate } from 'fraxel/hooks'
+import type { Shape, VectorLike } from "fraxel"
+import { createGame, Game, Scene } from "fraxel/jsx"
+import { Input, shapes } from "fraxel"
+import { useRigidBody, useAction, useActionAxis, useEffect, useUpdate } from "fraxel/hooks"
 
-const Left = Input.createAction({ key: 'a' })
-const Right = Input.createAction({ key: 'd' })
-const Jump = Input.createAction({ key: ' ' })
+const Left = Input.createAction({ key: "a" })
+const Right = Input.createAction({ key: "d" })
+const Jump = Input.createAction({ key: " " })
 
-function Platform({ position, width }: { position: [number, number]; width: number }) {
+function Ball({ position }: { position: VectorLike }) {
   return (
-    <rigid-body isStatic position={position}>
-      <geometry shape={shapes.rectangle(width, 16)} fillColor={[0.2, 0.3, 1, 1]} />
-      <collider shape={shapes.rectangle(width, 16)} group={['ground']} collidesWith={['player']} />
+    <rigid-body position={position} friction={0} bounce={1}>
+      <geometry shape={shapes.circle(10)} fillColor={[0.2, 1, 0.3, 1]} />
+      <collider
+        shape={shapes.circle(10)}
+        group={["ground"]}
+        collidesWith={["ground"]}
+      />
+    </rigid-body>
+  )
+}
+
+function Platform({ position, shape }: { position: VectorLike; shape: Shape }) {
+  return (
+    <rigid-body isStatic position={position} friction={0} bounce={1}>
+      <geometry shape={shape} fillColor={[0.2, 0.3, 1, 1]} />
+      <collider shape={shape} group={["ground"]} collidesWith={["player"]} />
     </rigid-body>
   )
 }
@@ -233,9 +316,8 @@ function Player() {
   const jump = useAction(Jump)
 
   useEffect(() => {
-    if (jump.justPressed() && body.isGrounded()) {
-      body.applyImpulse([0, -400])
-    }
+    if (!jump.pressed() || !body.isGrounded()) return
+    body.applyImpulse([0, -400])
   })
 
   useUpdate(() => {
@@ -244,9 +326,9 @@ function Player() {
 
   return (
     <rigid-body ref={body} position={[220, 0]} mass={2}>
-      <camera current smoothing={5} offset={[0, -30]} />
-      <geometry shape={shapes.capsule(12, 8)} fillColor={[1, 0.1, 0.4, 1]} />
-      <collider shape={shapes.capsule(12, 8)} group={['player']} collidesWith={['ground']} />
+      <camera current smoothing={5} offset={[-20, -30]} />
+      <geometry shape={shapes.capsule(60, 20)} fillColor={[1, 0.1, 0.4, 1]} />
+      <collider shape={shapes.capsule(60, 20)} group={["player"]} collidesWith={["ground"]} />
     </rigid-body>
   )
 }
@@ -254,20 +336,27 @@ function Player() {
 function Main() {
   return (
     <transform>
-      <Platform position={[0, 300]} width={480} />
-      <Platform position={[80, 220]} width={100} />
-      <Platform position={[280, 160]} width={120} />
-      <Platform position={[140, 100]} width={100} />
+      <geometry
+        position={-250}
+        shape={shapes.rectangle(1000, 1000)}
+        fillColor={[0.05, 0.05, 0.09, 1]}
+      />
+      <Platform position={[-60, 460]} shape={shapes.rectangle(600, 20)} />
+      <Platform position={[50, 380]} shape={shapes.rectangle(100, 20)} />
+      <Platform position={[300, 300]} shape={shapes.rectangle(100, 20)} />
+      <Platform position={[80, 220]} shape={shapes.rectangle(100, 20)} />
+      <Platform position={[320, 140]} shape={shapes.rectangle(100, 20)} />
+      <Ball position={[10, 390]} />
       <Player />
     </transform>
   )
 }
 
 const game = createGame(
-  <Game width={480} height={320} defaultScene="main">
+  <Game width={480} height={360} defaultScene="main">
     <Scene name="main" component={Main} />
   </Game>,
-  document.querySelector('#root')!,
+  document.querySelector("#root")!
 )
 
 game.play()
@@ -275,7 +364,7 @@ game.play()
 
 - **`<camera current>`** — makes this the active camera that controls the viewport.
 - **`smoothing={5}`** — camera interpolation speed (higher = snappier follow).
-- **`offset={[0, -30]}`** — camera offset so the player isn't centered at the bottom.
+- **`offset={[-20, -30]}`** — shifts the camera so the player appears slightly left and above center.
 
 ## Complete example
 
@@ -292,22 +381,20 @@ game.play()
 </Steps>
 
 ```tsx src/main.tsx
-import { createGame, Game, Scene } from 'fraxel/jsx'
-import { Input, shapes } from 'fraxel'
-import { useRigidBody, useAction, useActionAxis, useEffect, useUpdate } from 'fraxel/hooks'
+import type { Shape, VectorLike } from "fraxel"
+import { Input, shapes } from "fraxel"
+import {
+  useAction,
+  useActionAxis,
+  useEffect,
+  useRigidBody,
+  useUpdate,
+} from "fraxel/hooks"
+import { createGame, Game, Scene } from "fraxel/jsx"
 
-const Left = Input.createAction({ key: 'a' })
-const Right = Input.createAction({ key: 'd' })
-const Jump = Input.createAction({ key: ' ' })
-
-function Platform({ position, width }: { position: [number, number]; width: number }) {
-  return (
-    <rigid-body isStatic position={position}>
-      <geometry shape={shapes.rectangle(width, 16)} fillColor={[0.2, 0.3, 1, 1]} />
-      <collider shape={shapes.rectangle(width, 16)} group={['ground']} collidesWith={['player']} />
-    </rigid-body>
-  )
-}
+const Left = Input.createAction({ key: "a" })
+const Right = Input.createAction({ key: "d" })
+const Jump = Input.createAction({ key: " " })
 
 function Player() {
   const body = useRigidBody()
@@ -315,9 +402,8 @@ function Player() {
   const jump = useAction(Jump)
 
   useEffect(() => {
-    if (jump.justPressed() && body.isGrounded()) {
-      body.applyImpulse([0, -400])
-    }
+    if (!jump.pressed() || !body.isGrounded()) return
+    body.applyImpulse([0, -400])
   })
 
   useUpdate(() => {
@@ -326,9 +412,35 @@ function Player() {
 
   return (
     <rigid-body ref={body} position={[220, 0]} mass={2}>
-      <camera current smoothing={5} offset={[0, -30]} />
-      <geometry shape={shapes.capsule(12, 8)} fillColor={[1, 0.1, 0.4, 1]} />
-      <collider shape={shapes.capsule(12, 8)} group={['player']} collidesWith={['ground']} />
+      <camera current smoothing={5} offset={[-20, -30]} />
+      <geometry shape={shapes.capsule(60, 20)} fillColor={[1, 0.1, 0.4, 1]} />
+      <collider
+        shape={shapes.capsule(60, 20)}
+        group={["player"]}
+        collidesWith={["ground"]}
+      />
+    </rigid-body>
+  )
+}
+
+function Ball({ position }: { position: VectorLike }) {
+  return (
+    <rigid-body position={position} friction={0} bounce={1}>
+      <geometry shape={shapes.circle(10)} fillColor={[0.2, 1, 0.3, 1]} />
+      <collider
+        shape={shapes.circle(10)}
+        group={["ground"]}
+        collidesWith={["ground"]}
+      />
+    </rigid-body>
+  )
+}
+
+function Platform({ position, shape }: { position: VectorLike; shape: Shape }) {
+  return (
+    <rigid-body isStatic position={position} friction={0} bounce={1}>
+      <geometry shape={shape} fillColor={[0.2, 0.3, 1, 1]} />
+      <collider shape={shape} group={["ground"]} collidesWith={["player"]} />
     </rigid-body>
   )
 }
@@ -336,20 +448,27 @@ function Player() {
 function Main() {
   return (
     <transform>
-      <Platform position={[0, 300]} width={480} />
-      <Platform position={[80, 220]} width={100} />
-      <Platform position={[280, 160]} width={120} />
-      <Platform position={[140, 100]} width={100} />
+      <geometry
+        position={-250}
+        shape={shapes.rectangle(1000, 1000)}
+        fillColor={[0.05, 0.05, 0.09, 1]}
+      />
+      <Platform position={[-60, 460]} shape={shapes.rectangle(600, 20)} />
+      <Platform position={[50, 380]} shape={shapes.rectangle(100, 20)} />
+      <Platform position={[300, 300]} shape={shapes.rectangle(100, 20)} />
+      <Platform position={[80, 220]} shape={shapes.rectangle(100, 20)} />
+      <Platform position={[320, 140]} shape={shapes.rectangle(100, 20)} />
+      <Ball position={[10, 390]} />
       <Player />
     </transform>
   )
 }
 
 const game = createGame(
-  <Game width={480} height={320} defaultScene="main">
+  <Game width={480} height={360} defaultScene="main">
     <Scene name="main" component={Main} />
   </Game>,
-  document.querySelector('#root')!,
+  document.querySelector("#root")!
 )
 
 game.play()
@@ -357,13 +476,15 @@ game.play()
 
 ## What you learned
 
-In under 80 lines you built a platformer with:
+In under 100 lines you built a platformer with:
 
-- **Physics** — gravity, collision response, and jumping via `applyImpulse`
+- **Physics** — gravity, collision response, bounce, and jumping via `applyImpulse`
 - **Input** — semantic actions with `Input.createAction` and reactive state with `useAction`
-- **Platforms** — static rigid bodies that the player lands on
+- **Platforms** — static rigid bodies that the player lands on, with configurable `Shape`
+- **Ball** — a dynamic body with `bounce={1}` and `friction={0}` for perfect elasticity
 - **Camera** — smooth follow attached to the player
-- **Geometry** — colored shapes rendered without textures
+- **Geometry** — colored shapes rendered without textures, including a dark background
+- **Types** — `Shape` and `VectorLike` for flexible, reusable components
 
 ## Next steps
 
