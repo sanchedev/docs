@@ -102,10 +102,7 @@
           },
           {
             "group": "Hooks",
-            "pages": [
-              "api/hooks/core-hooks",
-              "api/hooks/derived-hooks"
-            ]
+            "pages": ["api/hooks/core-hooks", "api/hooks/derived-hooks"]
           },
           {
             "group": "Engine",
@@ -119,10 +116,7 @@
           },
           {
             "group": "JSX Components",
-            "pages": [
-              "api/jsx/game-scene",
-              "api/jsx/list-fragment"
-            ]
+            "pages": ["api/jsx/game-scene", "api/jsx/list-fragment"]
           }
         ]
       },
@@ -200,7 +194,7 @@
     "useAnimation() — derived hook for AnimationPlayer node",
     "useAudio() — derived hook for AudioPlayer node",
     "useRigidBody() — derived hook for RigidBody node",
-    "useCondition(ref, onEvent, offEvent) — reactive boolean toggle hook",
+    "useCondition(trueTrigger, falseTrigger) — reactive boolean toggle hook",
     "useMatch(signal, record) — signal switch-expression hook",
     "useWhen(signal, truthy, falsy) — signal ternary hook",
     "Input.createAction({ key }) — bind keyboard action",

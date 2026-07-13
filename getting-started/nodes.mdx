@@ -1,7 +1,7 @@
 ---
-title: "Fraxel Nodes — All Built-in Game Objects Reference"
-sidebarTitle: "Nodes"
-description: "Learn what nodes are in Fraxel, explore every built-in node type from Sprite to RigidBody, and master refs, lifecycle events, and the node tree."
+title: 'Fraxel Nodes — All Built-in Game Objects Reference'
+sidebarTitle: 'Nodes'
+description: 'Learn what nodes are in Fraxel, explore every built-in node type from Sprite to RigidBody, and master refs, lifecycle events, and the node tree.'
 ---
 
 Every object in a Fraxel game world is a **node**. Nodes are engine objects that know how to update themselves, draw themselves to the canvas, and emit events. They are not DOM elements and have nothing to do with HTML. When you write `<sprite textureId={TEX} />` in JSX, Fraxel creates a `Sprite` node — a plain TypeScript object with position, draw logic, and an event bus — and inserts it into the scene tree.
@@ -16,10 +16,14 @@ Fraxel organizes nodes in a parent–child hierarchy. When a parent node moves, 
 import { shapes } from 'fraxel'
 
 // A "character" made of three nodes
-<transform position={[100, 80]}>
-  <sprite textureId={BODY_TEX} />                          {/* body */}
-  <sprite textureId={SHADOW_TEX} position={[0, 12]} />    {/* shadow */}
-  <collider shape={shapes.circle(14)} group={['player']} collidesWith={['enemy']} />
+;<transform position={[100, 80]}>
+  <sprite textureId={BODY_TEX} /> {/* body */}
+  <sprite textureId={SHADOW_TEX} position={[0, 12]} /> {/* shadow */}
+  <collider
+    shape={shapes.circle(14)}
+    group={['player']}
+    collidesWith={['enemy']}
+  />
 </transform>
 ```
 
@@ -29,43 +33,45 @@ Moving the `<transform>` node moves the entire character. Destroying it also des
 
 All spatial nodes extend `Node2D`, which provides:
 
-| Property | Type | Description |
-| --- | --- | --- |
-| `position` | `Vector2` | Local position relative to the parent |
-| `globalPosition` | `Vector2` | World-space position (read-only, computed) |
+| Property         | Type      | Description                                            |
+| ---------------- | --------- | ------------------------------------------------------ |
+| `position`       | `Vector2` | Local position relative to the parent                  |
+| `globalPosition` | `Vector2` | World-space position (read-only, computed)             |
+| `rotation`       | `number`  | Rotation in degrees around the Z axis                  |
+| `globalRotation` | `number`  | World-space rotation in degrees (read/write, computed) |
 
 Access these properties via `nodeRef.node.position` inside event handlers after the node has started.
 
 ## All built-in nodes
 
-| JSX tag | Class | Description |
-| --- | --- | --- |
-| `<transform>` | `Transform` | Positional container — groups children and provides a shared origin |
-| `<group>` | `Group` | Logical container with no spatial position; used for keyed lists |
-| `<sprite>` | `Sprite` | Renders a texture; supports filters (brightness, grayscale, modulate, etc.) |
-| `<text>` | `Text` | Renders a text string; supports font, size, color, and alignment |
-| `<geometry>` | `Geometry` | Draws filled/stroked rectangles, circles, or capsules |
-| `<collider>` | `Collider` | Detects overlaps; emits `colliderEntered`, `collided`, `colliderExited` |
-| `<ray-cast>` | `RayCast` | Projects a ray and emits `colliderEntered`/`colliderExited` when a collider crosses it |
-| `<rigid-body>` | `RigidBody` | Adds physics simulation; must parent a `<collider>` |
-| `<animation-player>` | `AnimationPlayer` | Plays frame-based animations; integrates with `<sprite>` |
-| `<audio-player>` | `AudioPlayer` | Plays a decoded audio buffer loaded with `loadSound` |
-| `<camera>` | `Camera` | Controls the viewport — pan, zoom, shake, and follow |
-| `<clickable>` | `Clickable` | Detects pointer events within a hit area; fires `clicked`, `mouseEntered`, `mouseExited` |
-| `<timer>` | `Timer` | Counts elapsed time; fires `timeout` and `timeChanged` events |
+| JSX tag       | Class             | Description                                                                              |
+| ------------- | ----------------- | ---------------------------------------------------------------------------------------- |
+| `<transform>` | `Transform`       | Positional container — groups children and provides a shared origin                      |
+| `<group>`     | `Group`           | Logical container with no spatial position; used for keyed lists                         |
+| `<sprite>`    | `Sprite`          | Renders a texture; supports filters (brightness, grayscale, modulate, etc.)              |
+| `<text>`      | `Text`            | Renders a text string; supports font, size, color, and alignment                         |
+| `<geometry>`  | `Geometry`        | Draws filled/stroked rectangles, circles, or capsules                                    |
+| `<collider>`  | `Collider`        | Detects overlaps; emits `colliderEntered`, `collided`, `colliderExited`                  |
+| `<raycast>`   | `RayCast`         | Projects a ray and emits `colliderEntered`/`colliderExited` when a collider crosses it   |
+| `<body>`      | `RigidBody`       | Adds physics simulation; must parent a `<collider>`                                      |
+| `<animator>`  | `AnimationPlayer` | Plays frame-based animations; integrates with `<sprite>`                                 |
+| `<audio>`     | `AudioPlayer`     | Plays a decoded audio buffer loaded with `loadSound`                                     |
+| `<camera>`    | `Camera`          | Controls the viewport — pan, zoom, shake, and follow                                     |
+| `<clickable>` | `Clickable`       | Detects pointer events within a hit area; fires `clicked`, `mouseEntered`, `mouseExited` |
+| `<timer>`     | `Timer`           | Counts elapsed time; fires `timeout` and `timeChanged` events                            |
 
 ## Lifecycle events
 
 Every node goes through three lifecycle phases. On the node's class these phases are `Event`s, but node references expose them as `Trigger`s so you can subscribe to them with `useTrigger` and get automatic cleanup.
 
-| Event | When it fires | Callback signature |
-| --- | --- | --- |
-| `started` | Once, when the node is first inserted into the scene | `() => void` |
-| `updated` | Every frame while the node is alive | `(delta: number) => void` — `delta` is seconds since last frame |
-| `destroyed` | Once, when the node is removed from the scene | `() => void` |
+| Event       | When it fires                                        | Callback signature                                              |
+| ----------- | ---------------------------------------------------- | --------------------------------------------------------------- |
+| `started`   | Once, when the node is first inserted into the scene | `() => void`                                                    |
+| `updated`   | Every frame while the node is alive                  | `(delta: number) => void` — `delta` is seconds since last frame |
+| `destroyed` | Once, when the node is removed from the scene        | `() => void`                                                    |
 
 ```tsx
-import { useTransform, useTrigger } from 'fraxel/hooks'
+import { useTransform, useTrigger } from 'fraxel'
 
 function MovingPlatform() {
   const body = useTransform()
@@ -91,7 +97,7 @@ function MovingPlatform() {
 Node-specific hooks (like `useSprite()`, `useTransform()`, `useCollider()`) create a `NodeReference<T>` — a typed container that Fraxel fills in when the node starts. Pass the reference to the `ref` prop on the corresponding JSX element.
 
 ```tsx
-import { useSprite, useTrigger } from 'fraxel/hooks'
+import { useSprite, useTrigger } from 'fraxel'
 
 function Player() {
   // Create a typed reference for a Sprite node
@@ -107,7 +113,10 @@ function Player() {
 ```
 
 <Warning>
-  Do not access `sprite.node` before the node has started (for example, at the top level of a component function body). It is `undefined` until the `started` event fires. Always access it inside a `useTrigger`, `useMount`, or `useEffect` callback.
+  Do not access `sprite.node` before the node has started (for example, at the
+  top level of a component function body). It is `undefined` until the `started`
+  event fires. Always access it inside a `useTrigger`, `useMount`, or
+  `useEffect` callback.
 </Warning>
 
 ## Sprite node
@@ -127,20 +136,20 @@ function Player() {
 
 Key props:
 
-| Prop | Type | Description |
-| --- | --- | --- |
-| `textureId` | `symbol` | Texture from `loadTexture` — required |
-| `sourceSize` | `VectorLike` | Crop region from the source image |
-| `displaySize` | `VectorLike` | Size to draw on canvas (default: source size) |
-| `brightness` | `Reactive<number>` | Multiply luminance (1 = normal) |
-| `grayscale` | `Reactive<number>` | Desaturate (0 = color, 1 = gray) |
-| `modulate` | `Reactive<Color>` | Multiply RGBA tint |
-| `opacity` | `Reactive<number>` | Overall transparency (0–1) |
+| Prop          | Type               | Description                                   |
+| ------------- | ------------------ | --------------------------------------------- |
+| `textureId`   | `symbol`           | Texture from `loadTexture` — required         |
+| `sourceSize`  | `VectorLike`       | Crop region from the source image             |
+| `displaySize` | `VectorLike`       | Size to draw on canvas (default: source size) |
+| `brightness`  | `Reactive<number>` | Multiply luminance (1 = normal)               |
+| `grayscale`   | `Reactive<number>` | Desaturate (0 = color, 1 = gray)              |
+| `modulate`    | `Reactive<Color>`  | Multiply RGBA tint                            |
+| `opacity`     | `Reactive<number>` | Overall transparency (0–1)                    |
 
 ## Text node
 
 ```tsx
-import { useText, useSignal } from 'fraxel/hooks'
+import { useText, useSignal } from 'fraxel'
 
 function ScoreLabel() {
   const label = useText()
@@ -169,7 +178,7 @@ The `text` prop accepts a `SignalGetter<string>` or a plain string. Passing a ge
 `<clickable>` adds pointer hit detection to any parent node. It does not render anything — it only listens for pointer events inside the defined area.
 
 ```tsx
-import { useClickable, useTrigger } from 'fraxel/hooks'
+import { useClickable, useTrigger } from 'fraxel'
 
 function Button() {
   const btn = useClickable()
@@ -192,7 +201,7 @@ function Button() {
 ## Timer node
 
 ```tsx
-import { useTimer, useTrigger } from 'fraxel/hooks'
+import { useTimer, useTrigger } from 'fraxel'
 
 function Countdown() {
   const timer = useTimer()

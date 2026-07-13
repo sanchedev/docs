@@ -27,7 +27,7 @@ createContext<T>(defaultValue: T): ContextCreated<T>
 | `ctx.Provider` | A component that accepts `value` and `children` props. Wrap subtrees that should receive the context value. |
 
 ```tsx
-import { createContext, useContext } from 'fraxel/hooks'
+import { createContext, useContext } from 'fraxel'
 
 const DifficultyCtx = createContext<'easy' | 'hard'>('easy')
 
@@ -64,7 +64,7 @@ useContext<T>(contextCreated: ContextCreated<T>): T
 **Returns** `T` — the current context value.
 
 ```tsx
-import { createContext, useContext } from 'fraxel/hooks'
+import { createContext, useContext } from 'fraxel'
 
 const ThemeCtx = createContext<'light' | 'dark'>('light')
 

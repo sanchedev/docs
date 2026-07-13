@@ -23,7 +23,7 @@ createTrigger<T extends any[]>(): Trigger<T>
 **Returns** `Trigger<T>` — a new trigger instance.
 
 ```tsx
-import { createTrigger } from 'fraxel/hooks'
+import { createTrigger } from 'fraxel'
 
 // Declare at module level so it is shared between components
 const onEnemyKilled = createTrigger<[enemyId: number]>()
@@ -47,7 +47,7 @@ useTrigger<T extends Trigger<any[]>>(trigger: T, fn: Parameters<T['connect']>[0]
 </ParamField>
 
 ```tsx
-import { createTrigger, useTrigger } from 'fraxel/hooks'
+import { createTrigger, useTrigger } from 'fraxel'
 
 const onEnemyKilled = createTrigger<[enemyId: number]>()
 
@@ -89,7 +89,7 @@ The `Trigger` class provides the underlying pub/sub mechanism.
 | `emit` | `(...args: T) => void` | Call all connected listeners with the given arguments. |
 
 ```tsx
-import { createTrigger } from 'fraxel/hooks'
+import { createTrigger } from 'fraxel'
 
 const trigger = createTrigger<[number]>()
 

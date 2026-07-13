@@ -1,6 +1,6 @@
 ---
-title: "Fraxel JSX Runtime: Elements, Nodes, and No Virtual DOM"
-sidebarTitle: "JSX Runtime"
+title: 'Fraxel JSX Runtime: Elements, Nodes, and No Virtual DOM'
+sidebarTitle: 'JSX Runtime'
 description: "How jsxImportSource wires up, how FraxelElement is created, intrinsic element mapping, function component resolution, and why there's no Virtual DOM."
 ---
 
@@ -23,8 +23,8 @@ The compiler then rewrites every JSX file to import from `fraxel/jsx-runtime`. T
 
 ```ts
 // packages/fraxel/src/jsx-runtime.ts
-export const jsx  = jsxFunc   // single child
-export const jsxs = jsxFunc   // multiple children (static array)
+export const jsx = jsxFunc // single child
+export const jsxs = jsxFunc // multiple children (static array)
 export const Fragment = FragmentComponent
 ```
 
@@ -44,15 +44,18 @@ export function jsx<T extends Fraxel.Type>(
 
 That's the entire function. It creates a plain object — a **`FraxelElement`** — with two fields:
 
-| Field | Type | Description |
-|---|---|---|
-| `type` | `string \| function` | An intrinsic name like `'sprite'`, or a component function |
-| `props` | `object` | All JSX attributes, plus `children` |
+| Field   | Type                 | Description                                                |
+| ------- | -------------------- | ---------------------------------------------------------- |
+| `type`  | `string \| function` | An intrinsic name like `'sprite'`, or a component function |
+| `props` | `object`             | All JSX attributes, plus `children`                        |
 
 There is no `key` field, no fiber, no reconciler. `FraxelElement` is purely a description consumed once by `renderToNodes`.
 
 <Note>
-Because JSX is evaluated eagerly and only once during scene construction (not on every frame), there is no diffing step. Reactive updates go through signals, not re-rendering. See [Reactivity Internals](/guides/reactivity-internals).
+  Because JSX is evaluated eagerly and only once during scene construction (not
+  on every frame), there is no diffing step. Reactive updates go through
+  signals, not re-rendering. See [Reactivity
+  Internals](/guides/reactivity-internals).
 </Note>
 
 ## `Fragment`
@@ -72,28 +75,28 @@ When `type` is a string (e.g. `'sprite'`, `'transform'`), `renderToNodes` checks
 ```ts
 export function isIntrinsicElement(obj: any): obj is PrimaryNode {
   if (typeof obj !== 'string') return false
-  if (!(obj in Nodes))         return false
+  if (!(obj in Nodes)) return false
   return true
 }
 ```
 
 The `Nodes` registry is a plain object populated as each node module is imported (e.g. `Nodes.sprite = Sprite`). The intrinsic element names correspond exactly to the `PrimaryNode` enum values:
 
-| JSX tag | `PrimaryNode` enum | Node class |
-|---|---|---|
-| `<transform>` | `PrimaryNode.Transform` | `Transform` |
-| `<sprite>` | `PrimaryNode.Sprite` | `Sprite` |
-| `<collider>` | `PrimaryNode.Collider` | `Collider` |
-| `<camera>` | `PrimaryNode.Camera` | `Camera` |
-| `<rigid-body>` | `PrimaryNode.RigidBody` | `RigidBody` |
-| `<animation-player>` | `PrimaryNode.AnimationPlayer` | `AnimationPlayer` |
-| `<text>` | `PrimaryNode.Text` | `Text` |
-| `<audio-player>` | `PrimaryNode.AudioPlayer` | `AudioPlayer` |
-| `<clickable>` | `PrimaryNode.Clickable` | `Clickable` |
-| `<ray-cast>` | `PrimaryNode.RayCast` | `RayCast` |
-| `<geometry>` | `PrimaryNode.Geometry` | `Geometry` |
-| `<timer>` | `PrimaryNode.Timer` | `Timer` |
-| `<group>` | `PrimaryNode.Group` | `Group` |
+| JSX tag       | `PrimaryNode` enum            | Node class        |
+| ------------- | ----------------------------- | ----------------- |
+| `<transform>` | `PrimaryNode.Transform`       | `Transform`       |
+| `<sprite>`    | `PrimaryNode.Sprite`          | `Sprite`          |
+| `<collider>`  | `PrimaryNode.Collider`        | `Collider`        |
+| `<camera>`    | `PrimaryNode.Camera`          | `Camera`          |
+| `<body>`      | `PrimaryNode.RigidBody`       | `RigidBody`       |
+| `<animator>`  | `PrimaryNode.AnimationPlayer` | `AnimationPlayer` |
+| `<text>`      | `PrimaryNode.Text`            | `Text`            |
+| `<audio>`     | `PrimaryNode.AudioPlayer`     | `AudioPlayer`     |
+| `<clickable>` | `PrimaryNode.Clickable`       | `Clickable`       |
+| `<raycast>`   | `PrimaryNode.RayCast`         | `RayCast`         |
+| `<geometry>`  | `PrimaryNode.Geometry`        | `Geometry`        |
+| `<timer>`     | `PrimaryNode.Timer`           | `Timer`           |
+| `<group>`     | `PrimaryNode.Group`           | `Group`           |
 
 ### Rendering an Intrinsic Element
 

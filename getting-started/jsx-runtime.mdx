@@ -1,6 +1,6 @@
 ---
-title: "Understanding the Fraxel JSX Runtime — Not React"
-sidebarTitle: "JSX Runtime"
+title: 'Understanding the Fraxel JSX Runtime — Not React'
+sidebarTitle: 'JSX Runtime'
 description: "How Fraxel's JSX runtime works: intrinsic elements map directly to engine nodes, auto-computed props track signals, and components compose scenes."
 ---
 
@@ -25,28 +25,30 @@ const el = jsx('sprite', { textureId: PLAYER, position: [80, 50] })
 Fraxel's `jsx` function looks at the tag name — `'sprite'` in this case — and creates the corresponding `Sprite` engine node with the provided props. No DOM, no virtual DOM, no diffing.
 
 <Note>
-  The `fraxel/jsx-runtime` module is consumed automatically by the TypeScript compiler. You never import it directly in your game code. This is the same pattern React uses — `jsxImportSource` just points to a different package.
+  The `fraxel/jsx-runtime` module is consumed automatically by the TypeScript
+  compiler. You never import it directly in your game code. This is the same
+  pattern React uses — `jsxImportSource` just points to a different package.
 </Note>
 
 ## Intrinsic elements
 
 Intrinsic elements are lowercase JSX tags that map directly to built-in engine node types. TypeScript knows their prop types through Fraxel's type declarations.
 
-| JSX tag | Engine node | What it does |
-|---|---|---|
-| `<transform>` | `Transform` | Positional container for child nodes |
-| `<group>` | `Group` | Logical container with no spatial position |
-| `<sprite>` | `Sprite` | Renders a texture to the canvas |
-| `<text>` | `Text` | Renders a string to the canvas |
-| `<geometry>` | `Geometry` | Draws rectangles, circles, or capsules |
-| `<collider>` | `Collider` | Detects overlaps with other colliders |
-| `<ray-cast>` | `RayCast` | Projects a ray to find colliders |
-| `<rigid-body>` | `RigidBody` | Applies physics simulation |
-| `<animation-player>` | `AnimationPlayer` | Plays frame-based sprite animations |
-| `<audio-player>` | `AudioPlayer` | Plays a decoded audio buffer |
-| `<camera>` | `Camera` | Controls the canvas viewport |
-| `<clickable>` | `Clickable` | Detects pointer events within an area |
-| `<timer>` | `Timer` | Counts time and fires events |
+| JSX tag       | Engine node       | What it does                               |
+| ------------- | ----------------- | ------------------------------------------ |
+| `<transform>` | `Transform`       | Positional container for child nodes       |
+| `<group>`     | `Group`           | Logical container with no spatial position |
+| `<sprite>`    | `Sprite`          | Renders a texture to the canvas            |
+| `<text>`      | `Text`            | Renders a string to the canvas             |
+| `<geometry>`  | `Geometry`        | Draws rectangles, circles, or capsules     |
+| `<collider>`  | `Collider`        | Detects overlaps with other colliders      |
+| `<raycast>`   | `RayCast`         | Projects a ray to find colliders           |
+| `<body>`      | `RigidBody`       | Applies physics simulation                 |
+| `<animator>`  | `AnimationPlayer` | Plays frame-based sprite animations        |
+| `<audio>`     | `AudioPlayer`     | Plays a decoded audio buffer               |
+| `<camera>`    | `Camera`          | Controls the canvas viewport               |
+| `<clickable>` | `Clickable`       | Detects pointer events within an area      |
+| `<timer>`     | `Timer`           | Counts time and fires events               |
 
 ## Function components
 
@@ -64,7 +66,11 @@ function Enemy({ position, health }: EnemyProps) {
   return (
     <transform position={position}>
       <sprite textureId={ENEMY_TEX} brightness={() => health / 100} />
-      <collider shape={shapes.circle(16)} group={['enemy']} collidesWith={['projectile']} />
+      <collider
+        shape={shapes.circle(16)}
+        group={['enemy']}
+        collidesWith={['projectile']}
+      />
     </transform>
   )
 }
@@ -87,7 +93,7 @@ When Fraxel processes `<Enemy position={[100, 50]} health={80} />`, it calls `En
 The most powerful feature of Fraxel's JSX runtime is **auto-computed props**. Any prop that accepts a `SignalGetter` or an inline arrow function is automatically re-evaluated when its signal dependencies change.
 
 ```tsx
-import { useSignal } from 'fraxel/hooks'
+import { useSignal } from 'fraxel'
 import { shapes } from 'fraxel'
 
 function HealthBar() {
@@ -116,7 +122,9 @@ const [brightness, setBrightness] = useSignal(1)
 ```
 
 <Tip>
-  Prefer passing the getter directly (`brightness={brightness}`) when you only need the raw signal value. Use an arrow function (`brightness={() => brightness() * 2}`) when you need to transform or combine signals.
+  Prefer passing the getter directly (`brightness={brightness}`) when you only
+  need the raw signal value. Use an arrow function (`brightness=
+  {() => brightness() * 2}`) when you need to transform or combine signals.
 </Tip>
 
 ## The `ref` prop
@@ -124,7 +132,7 @@ const [brightness, setBrightness] = useSignal(1)
 Use the `ref` prop to bind a JSX element to a `NodeReference` created by a node-specific hook (like `useSprite`, `useTransform`). This gives you imperative access to the underlying engine node inside event handlers.
 
 ```tsx
-import { useSprite, useTrigger } from 'fraxel/hooks'
+import { useSprite, useTrigger } from 'fraxel'
 
 function Player() {
   const sprite = useSprite()
@@ -154,7 +162,7 @@ Pass child nodes between opening and closing tags. They become child nodes in th
 Use `Fragment` (or the shorthand `<>...</>`) to return multiple nodes from a component without a wrapper node:
 
 ```tsx
-import { Fragment } from 'fraxel/jsx'
+import { Fragment } from 'fraxel'
 
 function Enemies() {
   return (
@@ -172,8 +180,8 @@ function Enemies() {
 Use the `<List>` component to render a reactive array. It performs keyed reconciliation — when items are added or removed, only the affected nodes are created or destroyed.
 
 ```tsx
-import { List } from 'fraxel/jsx'
-import { useSignal } from 'fraxel/hooks'
+import { List } from 'fraxel'
+import { useSignal } from 'fraxel'
 
 function EnemyList() {
   const [enemies, setEnemies] = useSignal([

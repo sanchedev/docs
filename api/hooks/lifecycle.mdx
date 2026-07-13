@@ -21,7 +21,7 @@ useEffect(fn: () => void | (() => void)): void
 </ParamField>
 
 ```tsx
-import { useSignal, useEffect } from 'fraxel/hooks'
+import { useSignal, useEffect } from 'fraxel'
 
 function Tracker() {
   const [x, setX] = useSignal(0)
@@ -66,7 +66,7 @@ useMount(fn: () => void | (() => void)): void
 </ParamField>
 
 ```tsx
-import { useMount } from 'fraxel/hooks'
+import { useMount } from 'fraxel'
 
 function BackgroundMusic() {
   const audio = new AudioContext()

@@ -1,0 +1,223 @@
+---
+title: '<tilemap> — Tile-based level rendering with chunked collisions'
+sidebarTitle: '<tilemap>'
+description: 'Render tile-based levels from a string map with per-tile textures and optional static or trigger-only collision bodies.'
+---
+
+Use `<tilemap>` to render tile-based levels from a compact string map. Each character in the map corresponds to a tile definition in a `TileSet`, which specifies the texture, source rectangle, and optional collision shape. Collisions are automatically chunked into static `RigidBody`s for efficient broadphase performance.
+
+```tsx
+import { TileSet, TileMap } from 'fraxel'
+import { shapes } from 'fraxel'
+
+const tileSet = new TileSet({
+  0: null,
+  '#': {
+    textureId: WALL,
+    sourceSize: [16, 16],
+    collision: {
+      shape: shapes.rectangle(16, 16),
+      group: ['wall'],
+      collidesWith: ['player'],
+    },
+  },
+})
+
+function Level() {
+  return (
+    <TileMap
+      tileSet={tileSet}
+      tileSize={16}
+      map={['######', '#    #', '# ## #', '######']}
+    />
+  )
+}
+```
+
+## TileSet
+
+The `TileSet` class maps single-character keys to tile definitions. Import it from `'fraxel'`.
+
+```ts
+import { TileSet } from 'fraxel'
+
+const tileSet = new TileSet({
+  '0': null, // empty tile
+  '#': { textureId: WALL, sourceSize: [16, 16] }, // solid wall
+  '.': { textureId: FLOOR, sourceSize: [16, 16] }, // floor
+})
+```
+
+### Tile definition
+
+| Property     | Type               | Description                                                          |
+| ------------ | ------------------ | -------------------------------------------------------------------- |
+| `textureId`  | `symbol`           | Texture loaded via `loadTexture`.                                    |
+| `sourceSize` | `[number, number]` | Width and height of the source rectangle in the texture (in pixels). |
+| `collision`  | `TileCollision`    | Optional collision configuration.                                    |
+
+### TileCollision
+
+| Property       | Type       | Default | Description                                                                                                                                                          |
+| -------------- | ---------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `shape`        | `Shape`    | —       | Collision shape. Use `shapes.rectangle(tileSize, tileSize)` for grid-aligned tiles.                                                                                  |
+| `group`        | `string[]` | —       | Collision groups the tile belongs to.                                                                                                                                |
+| `collidesWith` | `string[]` | —       | Groups the tile detects overlaps with.                                                                                                                               |
+| `static`       | `boolean`  | `true`  | When `true`, tiles register in a chunked static `RigidBody` for efficient broadphase. When `false`, the collider is standalone (triggers only, no physics response). |
+
+## Props
+
+<ParamField path='tileSet' type='TileSet' required>
+  The `TileSet` instance that maps characters to tile definitions.
+</ParamField>
+
+<ParamField path='tileSize' type='number' required>
+  Size of each tile in pixels. Both width and height use this value (square
+  tiles).
+</ParamField>
+
+<ParamField path='map' type='string[]' required>
+  Array of strings, one per row. All rows must have the same length. Each
+  character must exist as a key in the `TileSet` (or be `0` for empty tiles).
+</ParamField>
+
+<ParamField path='position' type='Reactive<VectorLike>'>
+  Position of the tile map's top-left corner. Defaults to `[0, 0]`.
+</ParamField>
+
+<ParamField path='zIndex' type='number'>
+  Draw order relative to siblings. Defaults to `0`.
+</ParamField>
+
+<ParamField path='gameMode' type='GameMode'>
+  Controls how this node behaves when the game is paused. Defaults to
+  `GameMode.INHERIT`.
+</ParamField>
+
+<ParamField path='ref' type='NodeReference<PrimaryNode.TileMap>'>
+  Attach a node reference to access the instance imperatively.
+</ParamField>
+
+## Validation errors
+
+The `TileSet` and `TileMap` validate their inputs at construction time and throw descriptive errors:
+
+| Error                      | Cause                                                              |
+| -------------------------- | ------------------------------------------------------------------ |
+| `InvalidTileSetError`      | A key in the `TileSet` is not a single character.                  |
+| `InvalidMapRowLengthError` | Rows in the `map` array have different lengths.                    |
+| `InvalidTileKeyError`      | A character in the `map` does not exist as a key in the `TileSet`. |
+
+<Warning>
+  Validation runs when the `TileMap` node is created. Double-check that every
+  character in your map strings has a corresponding entry in the `TileSet`.
+</Warning>
+
+## Collision behavior
+
+- **`static: true`** (default) — All tiles with the same collision config are merged into chunked static `RigidBody`s. This is efficient for solid walls and floors that never move.
+- **`static: false`** — Each tile gets its own standalone `<collider>`. Useful for trigger zones (e.g., damage tiles, checkpoints) where you need `colliderEntered` events without physics response.
+
+```tsx
+// Trigger-only hazard tile — no physics push, just events
+const tileSet = new TileSet({
+  X: {
+    textureId: LAVA,
+    sourceSize: [16, 16],
+    collision: {
+      shape: shapes.rectangle(16, 16),
+      group: ['hazard'],
+      collidesWith: ['player'],
+      static: false, // standalone collider, triggers only
+    },
+  },
+})
+```
+
+<CodeGroup>
+
+```tsx Basic tile map
+import { TileSet, TileMap } from 'fraxel'
+import { shapes } from 'fraxel'
+
+const WALL = await loadTexture('/assets/wall.png')
+const FLOOR = await loadTexture('/assets/floor.png')
+
+const tileSet = new TileSet({
+  0: null,
+  '#': {
+    textureId: WALL,
+    sourceSize: [16, 16],
+    collision: {
+      shape: shapes.rectangle(16, 16),
+      group: ['wall'],
+      collidesWith: ['player'],
+    },
+  },
+  '.': { textureId: FLOOR, sourceSize: [16, 16] },
+})
+
+function Level() {
+  return (
+    <TileMap
+      tileSet={tileSet}
+      tileSize={16}
+      map={[
+        '########',
+        '#......#',
+        '#......#',
+        '#..##..#',
+        '#......#',
+        '########',
+      ]}
+    />
+  )
+}
+```
+
+```tsx Tile map with hazards
+import { TileSet, TileMap } from 'fraxel'
+import { shapes } from 'fraxel'
+
+const tileSet = new TileSet({
+  0: null,
+  '#': {
+    textureId: WALL,
+    sourceSize: [16, 16],
+    collision: {
+      shape: shapes.rectangle(16, 16),
+      group: ['wall'],
+      collidesWith: ['player'],
+    },
+  },
+  '~': {
+    textureId: WATER,
+    sourceSize: [16, 16],
+    collision: {
+      shape: shapes.rectangle(16, 16),
+      group: ['hazard'],
+      collidesWith: ['player'],
+      static: false,
+    },
+  },
+})
+
+function Level() {
+  return (
+    <TileMap
+      tileSet={tileSet}
+      tileSize={16}
+      map={['########', '#~~~~~~#', '#......#', '#~~~~~~#', '########']}
+    />
+  )
+}
+```
+
+</CodeGroup>
+
+## Related
+
+- [Collision Groups guide](/guides/collision-groups) — collision groups, shapes, and overlap detection
+- [`<collider>`](/api/nodes/collider) — individual collision detection node
+- [`<body>`](/api/nodes/body) — physics simulation
+- [`<sprite>`](/api/nodes/sprite) — render a single texture

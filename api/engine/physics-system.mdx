@@ -1,10 +1,10 @@
 ---
-title: "PhysicsSystem and Shapes — Fraxel Engine API Reference"
-sidebarTitle: "PhysicsSystem"
+title: 'PhysicsSystem and Shapes — Fraxel Engine API Reference'
+sidebarTitle: 'PhysicsSystem'
 description: "Reference for Fraxel's PhysicsSystem: gravity configuration, collision shape factories, and the spatial-hash broadphase CollisionSystem."
 ---
 
-The physics system integrates gravity, velocity, forces, and impulses for every `RigidBody` node in the active scene. It also manages collision detection and response across all registered colliders. Both `PhysicsSystem` and `CollisionSystem` are static singletons — they are updated automatically each frame by the game loop and require no manual setup beyond attaching `<rigid-body>` and `<collider>` nodes in your JSX.
+The physics system integrates gravity, velocity, forces, and impulses for every `RigidBody` node in the active scene. It also manages collision detection and response across all registered colliders. Both `PhysicsSystem` and `CollisionSystem` are static singletons — they are updated automatically each frame by the game loop and require no manual setup beyond attaching `<body>` and `<collider>` nodes in your JSX.
 
 ---
 
@@ -40,7 +40,8 @@ PhysicsSystem.gravity = vector2(200, 0)
 ```
 
 <Note>
-`PhysicsSystem.gravity` is a live `Vector2`. Setting a new `vector2(...)` replaces both components atomically.
+  `PhysicsSystem.gravity` is a live `Vector2`. Setting a new `vector2(...)`
+  replaces both components atomically.
 </Note>
 
 ---
@@ -74,16 +75,28 @@ Creates an axis-aligned rectangular collision shape.
 shapes.rectangle(width: number, height: number): RectangleShape
 ```
 
-<ParamField path="width" type="number" required>
+<ParamField path='width' type='number' required>
   Width of the rectangle in pixels.
 </ParamField>
-<ParamField path="height" type="number" required>
+<ParamField path='height' type='number' required>
   Height of the rectangle in pixels.
 </ParamField>
 
 ```tsx
-<collider shape={shapes.rectangle(32, 16)} group={['player']} collidesWith={['ground']} />
+<collider
+  shape={shapes.rectangle(32, 16)}
+  group={['player']}
+  collidesWith={['ground']}
+/>
 ```
+
+<Note>
+  As of v0.1.0-alpha.6, rectangle collision shapes rotate around the node's
+  position (matching canvas rendering) instead of the rectangle's geometric
+  center. This eliminates position offsets between visual and collision shapes
+  at non-zero rotation angles. The fix applies to all rectangle collision pairs
+  (rect-rect, rect-circle, rect-capsule).
+</Note>
 
 ---
 
@@ -95,12 +108,16 @@ Creates a circular collision shape.
 shapes.circle(radius: number): CircleShape
 ```
 
-<ParamField path="radius" type="number" required>
+<ParamField path='radius' type='number' required>
   Radius of the circle in pixels.
 </ParamField>
 
 ```tsx
-<collider shape={shapes.circle(8)} group={['projectile']} collidesWith={['enemy']} />
+<collider
+  shape={shapes.circle(8)}
+  group={['projectile']}
+  collidesWith={['enemy']}
+/>
 ```
 
 ---
@@ -117,13 +134,14 @@ shapes.capsule(
 ): CapsuleShape
 ```
 
-<ParamField path="length" type="number" required>
-  Total tip-to-tip dimension including the caps. Must be `≥ radius * 2`. When `length === radius * 2`, the capsule degenerates to a circle.
+<ParamField path='length' type='number' required>
+  Total tip-to-tip dimension including the caps. Must be `≥ radius * 2`. When
+  `length === radius * 2`, the capsule degenerates to a circle.
 </ParamField>
-<ParamField path="radius" type="number" required>
+<ParamField path='radius' type='number' required>
   Radius of the semicircular end caps.
 </ParamField>
-<ParamField path="direction" type="'vertical' | 'horizontal'">
+<ParamField path='direction' type="'vertical' | 'horizontal'">
   Orientation of the capsule. Defaults to `'vertical'` (tall capsule).
 </ParamField>
 
@@ -148,7 +166,7 @@ All shapes are plain objects discriminated by a `type` field. Use the `type` pro
 ```ts
 interface RectangleShape {
   type: 'rectangle'
-  size: Vector2   // width = size.x, height = size.y
+  size: Vector2 // width = size.x, height = size.y
 }
 ```
 
@@ -165,9 +183,9 @@ interface CircleShape {
 
 ```ts
 interface CapsuleShape {
-  type:      'capsule'
-  length:    number                    // tip-to-tip (including caps)
-  radius:    number                    // semicircle radius
+  type: 'capsule'
+  length: number // tip-to-tip (including caps)
+  radius: number // semicircle radius
   direction: 'vertical' | 'horizontal'
 }
 ```
@@ -183,9 +201,12 @@ import type { Shape } from 'fraxel'
 
 function describeShape(shape: Shape): string {
   switch (shape.type) {
-    case 'rectangle': return `${shape.size.x}×${shape.size.y} box`
-    case 'circle':    return `circle r=${shape.radius}`
-    case 'capsule':   return `capsule l=${shape.length} r=${shape.radius}`
+    case 'rectangle':
+      return `${shape.size.x}×${shape.size.y} box`
+    case 'circle':
+      return `circle r=${shape.radius}`
+    case 'capsule':
+      return `capsule l=${shape.length} r=${shape.radius}`
   }
 }
 ```
@@ -195,14 +216,14 @@ function describeShape(shape: Shape): string {
 ## Complete Physics Example
 
 ```tsx
-import { useRigidBody, useAction, useActionAxis, useEffect } from 'fraxel/hooks'
+import { useRigidBody, useAction, useActionAxis, useEffect } from 'fraxel'
 import { PhysicsSystem, Input, shapes, vector2 } from 'fraxel'
 
 // Custom gravity for a floaty platformer
 PhysicsSystem.gravity = vector2(0, 600)
 
-const Jump  = Input.createAction({ key: ' ' })
-const Left  = Input.createAction({ key: 'ArrowLeft' })
+const Jump = Input.createAction({ key: ' ' })
+const Left = Input.createAction({ key: 'ArrowLeft' })
 const Right = Input.createAction({ key: 'ArrowRight' })
 
 function Player() {
@@ -212,33 +233,33 @@ function Player() {
 
   useEffect(() => {
     body.setVelocity([axis() * 140, body.node.velocity.y])
-    if (justPressed() && body.isGrounded()) {
+    if (justPressed()) {
       body.applyImpulse([0, -340])
     }
   })
 
   return (
-    <rigid-body ref={body} mass={1} friction={0.05}>
+    <body ref={body} mass={1} friction={0.05}>
       <sprite textureId={PLAYER} />
       <collider
         shape={shapes.capsule(24, 6)}
         group={['player']}
         collidesWith={['ground', 'enemy']}
       />
-    </rigid-body>
+    </body>
   )
 }
 
 function Platform() {
   return (
-    <rigid-body position={[0, 140]} isStatic>
+    <body position={[0, 140]} isStatic>
       <sprite textureId={PLATFORM} />
       <collider
         shape={shapes.rectangle(200, 16)}
         group={['ground']}
         collidesWith={['player']}
       />
-    </rigid-body>
+    </body>
   )
 }
 ```

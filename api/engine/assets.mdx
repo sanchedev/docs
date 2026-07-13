@@ -1,6 +1,6 @@
 ---
-title: "Asset Pipeline — Fraxel Game Engine API Reference"
-sidebarTitle: "Assets"
+title: 'Asset Pipeline — Fraxel Game Engine API Reference'
+sidebarTitle: 'Assets'
 description: "Reference for Fraxel's asset pipeline: loadTexture, loadSound, loadBatch, loadBatchAsset, unloadTexture, unloadSound, and progress tracking."
 ---
 
@@ -16,8 +16,9 @@ Loads an image from a URL and registers it with the renderer.
 loadTexture(url: string): Promise<symbol>
 ```
 
-<ParamField path="url" type="string" required>
-  Absolute or root-relative URL to the image file. Supported formats depend on the browser (PNG, JPEG, WebP, SVG).
+<ParamField path='url' type='string' required>
+  Absolute or root-relative URL to the image file. Supported formats depend on
+  the browser (PNG, JPEG, WebP, SVG).
 </ParamField>
 
 **Returns** `Promise<symbol>` — resolves to a stable `symbol` ID unique to that URL. Identical URLs always resolve to the same `symbol`.
@@ -26,7 +27,7 @@ loadTexture(url: string): Promise<symbol>
 import { loadTexture } from 'fraxel'
 
 const PLAYER = await loadTexture('/assets/sprites/player.png')
-const ENEMY  = await loadTexture('/assets/sprites/enemy.png')
+const ENEMY = await loadTexture('/assets/sprites/enemy.png')
 
 // Later in JSX:
 // <sprite textureId={PLAYER} />
@@ -42,8 +43,9 @@ Loads an audio file from a URL and decodes it into an audio buffer.
 loadSound(url: string): Promise<symbol>
 ```
 
-<ParamField path="url" type="string" required>
-  Absolute or root-relative URL to the audio file. Supported formats depend on the browser (MP3, OGG, WAV, AAC).
+<ParamField path='url' type='string' required>
+  Absolute or root-relative URL to the audio file. Supported formats depend on
+  the browser (MP3, OGG, WAV, AAC).
 </ParamField>
 
 **Returns** `Promise<symbol>` — resolves to a stable `symbol` ID for the audio buffer.
@@ -52,10 +54,10 @@ loadSound(url: string): Promise<symbol>
 import { loadSound } from 'fraxel'
 
 const SHOOT = await loadSound('/assets/sounds/shoot.ogg')
-const JUMP  = await loadSound('/assets/sounds/jump.mp3')
+const JUMP = await loadSound('/assets/sounds/jump.mp3')
 
 // Later in JSX:
-// <audio-player soundId={SHOOT} />
+// <audio soundId={SHOOT} />
 ```
 
 ---
@@ -71,11 +73,12 @@ loadBatch<T>(
 ): Promise<T[]>
 ```
 
-<ParamField path="loaders" type="(() => Promise<T>)[]" required>
+<ParamField path='loaders' type='(() => Promise<T>)[]' required>
   Array of loader functions. Each is called immediately and runs concurrently.
 </ParamField>
-<ParamField path="options" type="LoaderOptions">
-  Optional progress and error configuration. See [`LoaderOptions`](#loaderoptions).
+<ParamField path='options' type='LoaderOptions'>
+  Optional progress and error configuration. See
+  [`LoaderOptions`](#loaderoptions).
 </ParamField>
 
 **Returns** `Promise<T[]>` — resolves with results in the **same order** as the input loaders, regardless of completion order.
@@ -113,13 +116,13 @@ loadBatchAsset(
 ): Promise<symbol[]>
 ```
 
-<ParamField path="type" type="'texture' | 'sound'" required>
+<ParamField path='type' type="'texture' | 'sound'" required>
   Which loader to use for all URLs in the batch.
 </ParamField>
-<ParamField path="urls" type="string[]" required>
+<ParamField path='urls' type='string[]' required>
   Array of URLs to load.
 </ParamField>
-<ParamField path="options" type="LoaderOptions">
+<ParamField path='options' type='LoaderOptions'>
   Optional progress callback.
 </ParamField>
 
@@ -153,7 +156,7 @@ Retrieves a previously loaded `Texture` by its symbol ID.
 getTexture(id: symbol): Texture
 ```
 
-<ParamField path="id" type="symbol" required>
+<ParamField path='id' type='symbol' required>
   The `symbol` returned by `loadTexture`.
 </ParamField>
 
@@ -169,7 +172,7 @@ Retrieves the decoded `AudioBuffer` for a previously loaded sound by its symbol 
 getSound(id: symbol): AudioBuffer
 ```
 
-<ParamField path="id" type="symbol" required>
+<ParamField path='id' type='symbol' required>
   The `symbol` returned by `loadSound`.
 </ParamField>
 
@@ -191,11 +194,11 @@ class Texture {
 }
 ```
 
-| Property | Type | Description |
-|---|---|---|
-| `image` | `HTMLImageElement` | The underlying loaded image element. |
-| `width` | `number` | Texture width in pixels. |
-| `height` | `number` | Texture height in pixels. |
+| Property | Type               | Description                          |
+| -------- | ------------------ | ------------------------------------ |
+| `image`  | `HTMLImageElement` | The underlying loaded image element. |
+| `width`  | `number`           | Texture width in pixels.             |
+| `height` | `number`           | Texture height in pixels.            |
 
 ---
 
@@ -207,7 +210,7 @@ Frees the GPU and memory resources associated with a texture ID.
 unloadTexture(id: symbol): void
 ```
 
-<ParamField path="id" type="symbol" required>
+<ParamField path='id' type='symbol' required>
   The `symbol` returned by `loadTexture`.
 </ParamField>
 
@@ -221,7 +224,7 @@ Frees the audio buffer associated with a sound ID.
 unloadSound(id: symbol): void
 ```
 
-<ParamField path="id" type="symbol" required>
+<ParamField path='id' type='symbol' required>
   The `symbol` returned by `loadSound`.
 </ParamField>
 
@@ -245,8 +248,9 @@ interface LoaderOptions {
 }
 ```
 
-<ParamField path="onProgress" type="(loaded: number, total: number) => void">
-  Called once for each asset that finishes loading. `loaded` is the number completed so far; `total` is the total requested. Useful for progress bars.
+<ParamField path='onProgress' type='(loaded: number, total: number) => void'>
+  Called once for each asset that finishes loading. `loaded` is the number
+  completed so far; `total` is the total requested. Useful for progress bars.
 </ParamField>
 
 ---
@@ -298,9 +302,9 @@ export async function preload(onProgress: (p: number) => void) {
 import { loadBatchAsset } from 'fraxel'
 
 const [BG, BOSS, FLOOR] = await loadBatchAsset('texture', [
-  '/assets/level2/bg.png',
-  '/assets/level2/boss.png',
-  '/assets/level2/floor.png',
+'/assets/level2/bg.png',
+'/assets/level2/boss.png',
+'/assets/level2/floor.png',
 ])
 
 export default function Level2() {
@@ -314,5 +318,7 @@ export default function Level2() {
 </CodeGroup>
 
 <Note>
-`await` at module top level requires your bundler to support top-level `await` (Vite, esbuild ≥ 0.14, Webpack 5 with `experiments.topLevelAwait`). Alternatively, wrap the `await` inside an async scene component function.
+  `await` at module top level requires your bundler to support top-level `await`
+  (Vite, esbuild ≥ 0.14, Webpack 5 with `experiments.topLevelAwait`).
+  Alternatively, wrap the `await` inside an async scene component function.
 </Note>

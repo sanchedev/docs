@@ -1,7 +1,7 @@
 ---
-title: "FraxelScript: Separating Game Logic from Rendering"
-sidebarTitle: "FraxelScript"
-description: "Separate game logic from JSX in Fraxel using FraxelScript. Learn setup(), connect(), this.me, and how to call script methods from other components."
+title: 'FraxelScript: Separating Game Logic from Rendering'
+sidebarTitle: 'FraxelScript'
+description: 'Separate game logic from JSX in Fraxel using FraxelScript. Learn setup(), connect(), this.me, and how to call script methods from other components.'
 ---
 
 As your game grows, mixing rendering and logic inside the same JSX component becomes unwieldy. A 200-line component handling physics, AI, health, and animations is hard to read and harder to test. Fraxel's `FraxelScript` class is the answer: attach a script to any node and move the logic into a clean, class-based object that lives outside the JSX tree.
@@ -95,13 +95,15 @@ class EnemyScript extends FraxelScript<PrimaryNode.RigidBody> {
   }
 
   destroy() {
-    this.me.destroy() // remove the rigid-body node from the scene
+    this.me.destroy() // remove the body node from the scene
   }
 }
 ```
 
 <Warning>
-  Accessing `this.me` before `init()` is called throws `NodeNotInitializedError`. Don't access it in the constructor — only in `setup()` and methods called after the node has started.
+  Accessing `this.me` before `init()` is called throws
+  `NodeNotInitializedError`. Don't access it in the constructor — only in
+  `setup()` and methods called after the node has started.
 </Warning>
 
 ## `connect(eventName, callback)`
@@ -131,7 +133,7 @@ There are two ways to call methods on a script from another component.
 **`node.script(ScriptClass)`** — access the script attached to a node via the `ref.script()` method. The script is available once the node has started:
 
 ```tsx hud.tsx
-import { useTransform } from 'fraxel/hooks'
+import { useTransform } from 'fraxel'
 
 function HUD({ playerRef }: { playerRef: NodeReference }) {
   const player = useTransform()
@@ -150,7 +152,7 @@ function HUD({ playerRef }: { playerRef: NodeReference }) {
 **`getParentScript(node, ScriptClass)`** — use this inside event callbacks when you encounter a node dynamically and want to retrieve its parent's script. It walks up `node.parent.script` and returns it only if it matches the given class:
 
 ```tsx projectile.tsx
-import { useCollider, useTrigger } from 'fraxel/hooks'
+import { useCollider, useTrigger } from 'fraxel'
 import { shapes, getParentScript } from 'fraxel'
 import { EnemyScript } from './enemy-script.js'
 
@@ -164,7 +166,7 @@ function Projectile() {
   })
 
   return (
-    <rigid-body useGravity={false}>
+    <body useGravity={false}>
       <sprite textureId={BULLET} sourceSize={[8, 4]} />
       <collider
         ref={collider}
@@ -172,7 +174,7 @@ function Projectile() {
         group={['bullet']}
         collidesWith={['enemy']}
       />
-    </rigid-body>
+    </body>
   )
 }
 ```
@@ -210,7 +212,9 @@ export class EnemyScript extends FraxelScript<PrimaryNode.RigidBody> {
 
   #patrol(delta: number) {
     const move = this.speed * this.direction * delta
-    this.me.physicsBody.setVelocity(vector2(this.speed * this.direction, this.me.physicsBody.velocity.y))
+    this.me.physicsBody.setVelocity(
+      vector2(this.speed * this.direction, this.me.physicsBody.velocity.y),
+    )
 
     this.#traveled += Math.abs(move)
     if (this.#traveled >= this.patrolRange) {
@@ -236,32 +240,31 @@ const enemyScript = new EnemyScript()
 
 function Enemy({ position }: { position: [number, number] }) {
   return (
-    <rigid-body
-      script={enemyScript}
-      position={position}
-      friction={0.8}
-    >
+    <body script={enemyScript} position={position} friction={0.8}>
       <sprite textureId={ENEMY} sourceSize={[32, 48]} displaySize={[64, 96]} />
       <collider
         shape={shapes.rectangle(32, 48)}
         group={['enemy']}
         collidesWith={['ground', 'bullet', 'player']}
       />
-    </rigid-body>
+    </body>
   )
 }
 ```
 
 <Tip>
-  For spawning multiple enemies with independent scripts, create a new script instance per enemy: `script={new EnemyScript()}`. Scripts hold per-instance state, so sharing one instance between nodes will cause them to share `health`, `direction`, etc.
+  For spawning multiple enemies with independent scripts, create a new script
+  instance per enemy: `script={new EnemyScript()}`. Scripts hold per-instance
+  state, so sharing one instance between nodes will cause them to share
+  `health`, `direction`, etc.
 </Tip>
 
 ## When to Use Scripts vs Hooks
 
-| Scenario | Recommended approach |
-|----------|---------------------|
-| Simple state (score, health) | `useSignal` in a component |
-| Complex behavior (AI, state machines) | `FraxelScript` class |
-| Cross-component method calls | `FraxelScript` + `node.script()` |
-| Event-driven cleanup logic | `useMount` return function |
-| Shared global state | `Signal` class at module scope |
+| Scenario                              | Recommended approach             |
+| ------------------------------------- | -------------------------------- |
+| Simple state (score, health)          | `useSignal` in a component       |
+| Complex behavior (AI, state machines) | `FraxelScript` class             |
+| Cross-component method calls          | `FraxelScript` + `node.script()` |
+| Event-driven cleanup logic            | `useMount` return function       |
+| Shared global state                   | `Signal` class at module scope   |

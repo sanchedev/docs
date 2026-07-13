@@ -140,9 +140,6 @@ Both events also fire on the hit collider (via `CollisionEmitter.emitRaycastEnte
 The physics integration loop:
 
 <Steps>
-  <Step title="Clear grounded state">
-    All bodies have `isGrounded = false` at the start of each frame.
-  </Step>
   <Step title="Integrate velocity">
     For each non-static, gravity-enabled body:
     ```
@@ -155,7 +152,6 @@ The physics integration loop:
     1. Verify group match.
     2. Call `computeOverlap` to get the overlap vector and contact normal.
     3. Call `resolveCollision` to separate the bodies and apply impulse responses.
-    4. If the normal points downward (`normal.y < 0`), set `body.isGrounded = true`.
   </Step>
 </Steps>
 

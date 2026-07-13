@@ -21,6 +21,7 @@
             "group": "Introduction",
             "pages": [
               "getting-started/introduction",
+              "getting-started/quickstart",
               "getting-started/installation",
               "getting-started/first-game",
               "getting-started/project-structure"
@@ -117,7 +118,9 @@
               "api/nodes/clickable",
               "api/nodes/timer",
               "api/nodes/ray-cast",
-              "api/nodes/group"
+              "api/nodes/group",
+              "api/nodes/tilemap",
+              "api/nodes/view"
             ]
           },
           {
@@ -140,7 +143,8 @@
               "api/engine/input",
               "api/engine/physics-system",
               "api/engine/assets",
-              "api/engine/math"
+              "api/engine/math",
+              "api/engine/vite-plugin"
             ]
           },
           {

@@ -1,7 +1,7 @@
 ---
-title: "Tweening and Easing in Fraxel: Smooth Property Animation"
-sidebarTitle: "Tweening"
-description: "Animate node properties in Fraxel with tween(), tweenValue(), sequence(), and parallel(). Reference all 12 easing functions with usage examples."
+title: 'Tweening and Easing in Fraxel: Smooth Property Animation'
+sidebarTitle: 'Tweening'
+description: 'Animate node properties in Fraxel with tween(), tweenValue(), sequence(), and parallel(). Reference all 12 easing functions with usage examples.'
 ---
 
 Not every animation needs a sprite sheet. Moving a UI element into view, fading out a particle, bouncing a coin into place — these are smooth interpolations of a single numeric property over time. Fraxel's `tween()` function handles all of this: give it a target object, a property name, a start value, an end value, a duration, and an easing function, and it drives the animation for you.
@@ -9,7 +9,7 @@ Not every animation needs a sprite sheet. Moving a UI element into view, fading 
 ## Your First Tween
 
 ```tsx coin-pop.tsx
-import { useMount, useSprite } from 'fraxel/hooks'
+import { useMount, useSprite } from 'fraxel'
 import { tween, easeOutBounce } from 'fraxel'
 
 const COIN = await loadTexture('/assets/coin.png')
@@ -37,35 +37,38 @@ The tween starts the moment `useMount` runs (when the node is ready), modifying 
 
 ## `tween()` Options
 
-<ParamField path="target" type="T" required>
-  The object whose property will be animated. Can be a node, a plain object, or any mutable reference.
+<ParamField path='target' type='T' required>
+  The object whose property will be animated. Can be a node, a plain object, or
+  any mutable reference.
 </ParamField>
 
-<ParamField path="prop" type="keyof T" required>
-  The property name on the target to interpolate. Must be a writable numeric property.
+<ParamField path='prop' type='keyof T' required>
+  The property name on the target to interpolate. Must be a writable numeric
+  property.
 </ParamField>
 
-<ParamField path="from" type="number" required>
-  The start value. The property is set to this immediately when the tween begins.
+<ParamField path='from' type='number' required>
+  The start value. The property is set to this immediately when the tween
+  begins.
 </ParamField>
 
-<ParamField path="to" type="number" required>
+<ParamField path='to' type='number' required>
   The end value. The property reaches this when `progress === 1`.
 </ParamField>
 
-<ParamField path="duration" type="number" required>
+<ParamField path='duration' type='number' required>
   Duration in seconds.
 </ParamField>
 
-<ParamField path="easing" type="EasingFn" default="linear">
+<ParamField path='easing' type='EasingFn' default='linear'>
   The easing function. Import from `fraxel`. See the table below.
 </ParamField>
 
-<ParamField path="onUpdate" type="(value: number) => void">
+<ParamField path='onUpdate' type='(value: number) => void'>
   Called every frame with the current interpolated value.
 </ParamField>
 
-<ParamField path="onComplete" type="() => void">
+<ParamField path='onComplete' type='() => void'>
   Called once when the tween finishes (when `progress` reaches `1`).
 </ParamField>
 
@@ -82,17 +85,17 @@ const t = tween({
   duration: 1,
 })
 
-t.pause()       // Freeze the tween in place
-t.resume()      // Continue from where it paused
-t.stop()        // Stop and reset progress to 0
-t.isPlaying     // boolean — true if currently running
-t.progress      // number 0 to 1 — how far through the tween
+t.pause() // Freeze the tween in place
+t.resume() // Continue from where it paused
+t.stop() // Stop and reset progress to 0
+t.isPlaying // boolean — true if currently running
+t.progress // number 0 to 1 — how far through the tween
 ```
 
 Store the controller in a `let` variable to pause/resume from other events:
 
 ```tsx
-import { useMount, useSprite } from 'fraxel/hooks'
+import { useMount, useSprite } from 'fraxel'
 import { tween } from 'fraxel'
 
 function ScrollingBG() {
@@ -144,28 +147,34 @@ Import any easing function from `fraxel`:
 ```tsx
 import {
   linear,
-  easeInQuad, easeOutQuad, easeInOutQuad,
-  easeInCubic, easeOutCubic, easeInOutCubic,
-  easeBackOut, easeBackInOut,
-  easeOutBounce, easeInBounce,
+  easeInQuad,
+  easeOutQuad,
+  easeInOutQuad,
+  easeInCubic,
+  easeOutCubic,
+  easeInOutCubic,
+  easeBackOut,
+  easeBackInOut,
+  easeOutBounce,
+  easeInBounce,
   easeOutElastic,
 } from 'fraxel'
 ```
 
-| Function | Character | Best for |
-|----------|-----------|---------|
-| `linear` | Constant speed | Progress bars, scrolling backgrounds |
-| `easeInQuad` | Slow start → fast | Objects falling, accelerating |
-| `easeOutQuad` | Fast start → slow | UI elements sliding in, landing |
-| `easeInOutQuad` | Slow → fast → slow | Smooth UI transitions |
-| `easeInCubic` | Slow start, steeper | More dramatic acceleration |
-| `easeOutCubic` | Fast start, steeper decel | Crisp UI entrances |
-| `easeInOutCubic` | Smooth S-curve | Character movements |
-| `easeBackOut` | Overshoot then settle | Playful UI pops, badges |
-| `easeBackInOut` | Overshoot both ends | Bouncy dialogues |
-| `easeOutBounce` | Bounces at end | Objects landing, coins dropping |
-| `easeInBounce` | Bounces at start | Unusual — inverted bounce |
-| `easeOutElastic` | Spring-like overshoot | Rubber-band effects, spring buttons |
+| Function         | Character                 | Best for                             |
+| ---------------- | ------------------------- | ------------------------------------ |
+| `linear`         | Constant speed            | Progress bars, scrolling backgrounds |
+| `easeInQuad`     | Slow start → fast         | Objects falling, accelerating        |
+| `easeOutQuad`    | Fast start → slow         | UI elements sliding in, landing      |
+| `easeInOutQuad`  | Slow → fast → slow        | Smooth UI transitions                |
+| `easeInCubic`    | Slow start, steeper       | More dramatic acceleration           |
+| `easeOutCubic`   | Fast start, steeper decel | Crisp UI entrances                   |
+| `easeInOutCubic` | Smooth S-curve            | Character movements                  |
+| `easeBackOut`    | Overshoot then settle     | Playful UI pops, badges              |
+| `easeBackInOut`  | Overshoot both ends       | Bouncy dialogues                     |
+| `easeOutBounce`  | Bounces at end            | Objects landing, coins dropping      |
+| `easeInBounce`   | Bounces at start          | Unusual — inverted bounce            |
+| `easeOutElastic` | Spring-like overshoot     | Rubber-band effects, spring buttons  |
 
 ## Composing Tweens
 
@@ -225,7 +234,7 @@ parallel([
 The canonical pattern for entry animations is to start the tween inside `useMount`, which runs once when the node is ready:
 
 ```tsx power-up.tsx
-import { useMount, useSprite } from 'fraxel/hooks'
+import { useMount, useSprite } from 'fraxel'
 import { tween, sequence, easeOutBounce, easeInQuad } from 'fraxel'
 
 function PowerUp() {
@@ -262,15 +271,30 @@ function PowerUp() {
     ])
   })
 
-  return <sprite ref={sprite} textureId={POWERUP} displaySize={[24, 24]} opacity={0} />
+  return (
+    <sprite
+      ref={sprite}
+      textureId={POWERUP}
+      displaySize={[24, 24]}
+      opacity={0}
+    />
+  )
 }
 ```
 
 ## Complete Example: Coin Pop-In Animation
 
 ```tsx coin.tsx
-import { useMount, useSprite } from 'fraxel/hooks'
-import { loadTexture, tween, parallel, sequence, easeOutElastic, easeOutBounce, easeInQuad } from 'fraxel'
+import { useMount, useSprite } from 'fraxel'
+import {
+  loadTexture,
+  tween,
+  parallel,
+  sequence,
+  easeOutElastic,
+  easeOutBounce,
+  easeInQuad,
+} from 'fraxel'
 
 const COIN = await loadTexture('/assets/coin.png')
 
@@ -280,7 +304,13 @@ function Coin({ x, y }: { x: number; y: number }) {
   useMount(() => {
     // Phase 1: pop in (scale up + fade in simultaneously)
     parallel([
-      tween({ target: sprite.node, prop: 'opacity', from: 0, to: 1, duration: 0.2 }),
+      tween({
+        target: sprite.node,
+        prop: 'opacity',
+        from: 0,
+        to: 1,
+        duration: 0.2,
+      }),
       tween({
         target: sprite.node,
         prop: 'displaySize.x',
@@ -315,5 +345,5 @@ function Coin({ x, y }: { x: number; y: number }) {
 ```
 
 <Tip>
-  For animating sprite frame sequences (walk cycles, attacks), use `<animation-player>` instead of tweens. See [Animation](/guides/animation). Tweens are best for continuous property interpolations like position, opacity, scale, and color.
+  For animating sprite frame sequences (walk cycles, attacks), use `<animator>` instead of tweens. See [Animation](/guides/animation). Tweens are best for continuous property interpolations like position, opacity, scale, and color.
 </Tip>

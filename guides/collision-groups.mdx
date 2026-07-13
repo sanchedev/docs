@@ -1,7 +1,7 @@
 ---
-title: "Collision Groups and Detection in Fraxel"
-sidebarTitle: "Collision Groups"
-description: "Filter collisions in Fraxel with group and collidesWith arrays. Handle colliderEntered/Exited events, cast rays, and use useCollider and useRayCast hooks."
+title: 'Collision Groups and Detection in Fraxel'
+sidebarTitle: 'Collision Groups'
+description: 'Filter collisions in Fraxel with group and collidesWith arrays. Handle colliderEntered/Exited events, cast rays, and use useCollider and useRayCast hooks.'
 ---
 
 In any game with more than a handful of objects, you need fine-grained control over which things collide with which. A bullet should hit enemies but pass through other bullets. A player's feet should land on platforms but not clip through enemies. Fraxel solves this with collision **groups** — string labels that let pairs of colliders opt in or out of each other's detection.
@@ -30,16 +30,16 @@ A collision is tested **only** when both sides have overlapping membership in ea
 
 When two colliders match, three events fire on **both** nodes in the pair:
 
-| Event | When |
-|-------|------|
-| `colliderEntered` | The first frame two colliders overlap |
-| `collided` | Every frame while two colliders remain overlapping |
-| `colliderExited` | The first frame two colliders stop overlapping |
+| Event             | When                                               |
+| ----------------- | -------------------------------------------------- |
+| `colliderEntered` | The first frame two colliders overlap              |
+| `collided`        | Every frame while two colliders remain overlapping |
+| `colliderExited`  | The first frame two colliders stop overlapping     |
 
 Use `useTrigger` to subscribe:
 
 ```tsx enemy.tsx
-import { useCollider, useTrigger } from 'fraxel/hooks'
+import { useCollider, useTrigger } from 'fraxel'
 import { shapes } from 'fraxel'
 
 function Enemy() {
@@ -72,7 +72,7 @@ function Enemy() {
 `useCollider` wraps `<collider>` with reactive state — a `colliding` boolean and the `other` collider currently overlapping:
 
 ```tsx player.tsx
-import { useCollider, useWhen } from 'fraxel/hooks'
+import { useCollider, useWhen } from 'fraxel'
 import { shapes } from 'fraxel'
 
 function Player() {
@@ -95,18 +95,18 @@ function Player() {
 }
 ```
 
-| Property | Type | Description |
-|----------|------|-------------|
-| `collider` | `useCollider` return | Use `collider.colliding()` for overlap state |
-| `collider.colliding()` | `SignalGetter<boolean>` | `true` while overlapping another collider |
-| `collider.other()` | `SignalGetter<Collider \| null>` | The other collider in the current pair |
+| Property               | Type                             | Description                                  |
+| ---------------------- | -------------------------------- | -------------------------------------------- |
+| `collider`             | `useCollider` return             | Use `collider.colliding()` for overlap state |
+| `collider.colliding()` | `SignalGetter<boolean>`          | `true` while overlapping another collider    |
+| `collider.other()`     | `SignalGetter<Collider \| null>` | The other collider in the current pair       |
 
 ## Ray Casting
 
-A `<ray-cast>` projects an invisible ray from its position in a given direction, and reports any colliders it intersects. This is useful for line-of-sight checks, ground detection, and trigger zones:
+A `<raycast>` projects an invisible ray from its position in a given direction, and reports any colliders it intersects. This is useful for line-of-sight checks, ground detection, and trigger zones:
 
 ```tsx enemy-detector.tsx
-import { useRayCast, useTrigger } from 'fraxel/hooks'
+import { useRayCast, useTrigger } from 'fraxel'
 
 function EnemyDetector() {
   const ray = useRayCast()
@@ -120,24 +120,26 @@ function EnemyDetector() {
   })
 
   // Shoot 200px to the right, only detect 'enemy' group
-  return <ray-cast ref={ray} direction={[200, 0]} collidesWith={['enemy']} />
+  return <raycast ref={ray} direction={[200, 0]} collidesWith={['enemy']} />
 }
 ```
 
 ### Ray Cast Props
 
-<ParamField path="direction" type="VectorLike" required>
-  A vector defining the ray's reach and direction. The magnitude is the ray length in pixels. `[200, 0]` = 200px to the right.
+<ParamField path='direction' type='VectorLike' required>
+  A vector defining the ray's reach and direction. The magnitude is the ray
+  length in pixels. `[200, 0]` = 200px to the right.
 </ParamField>
 
-<ParamField path="collidesWith" type="string[]" required>
-  Group labels the ray should detect. Only colliders belonging to these groups are reported.
+<ParamField path='collidesWith' type='string[]' required>
+  Group labels the ray should detect. Only colliders belonging to these groups
+  are reported.
 </ParamField>
 
 ### `useRayCast` Derived Hook
 
 ```tsx
-import { useRayCast, useWhen } from 'fraxel/hooks'
+import { useRayCast, useWhen } from 'fraxel'
 
 function GuardAI() {
   const ray = useRayCast()
@@ -147,7 +149,7 @@ function GuardAI() {
 
   return (
     <transform>
-      <ray-cast ref={ray} direction={[150, 0]} collidesWith={['player']} />
+      <raycast ref={ray} direction={[150, 0]} collidesWith={['player']} />
       {/* Alert sprite appears/disappears reactively */}
       <sprite textureId={ALERT_ICON} opacity={alertVisibility} />
     </transform>
@@ -155,18 +157,18 @@ function GuardAI() {
 }
 ```
 
-| Property | Type | Description |
-|----------|------|-------------|
-| `ray` | `useRayCast` return | Use `ray.detected()` for hit state |
-| `ray.detected()` | `SignalGetter<boolean>` | `true` while the ray hits a collider |
-| `ray.collider()` | `SignalGetter<Collider \| null>` | The currently detected collider |
+| Property         | Type                             | Description                          |
+| ---------------- | -------------------------------- | ------------------------------------ |
+| `ray`            | `useRayCast` return              | Use `ray.detected()` for hit state   |
+| `ray.detected()` | `SignalGetter<boolean>`          | `true` while the ray hits a collider |
+| `ray.collider()` | `SignalGetter<Collider \| null>` | The currently detected collider      |
 
 ## Example: Bullet Hits Enemy but Not Other Bullets
 
 Here's a complete shooter scenario showing group filtering in action:
 
 ```tsx shooter-example.tsx
-import { useCollider, useRigidBody, useTrigger } from 'fraxel/hooks'
+import { useCollider, useRigidBody, useTrigger } from 'fraxel'
 import { loadTexture, shapes } from 'fraxel'
 
 const BULLET_TEX = await loadTexture('/assets/bullet.png')
@@ -184,15 +186,15 @@ function Bullet({ position }: { position: [number, number] }) {
   })
 
   return (
-    <rigid-body ref={body} position={position} useGravity={false}>
+    <body ref={body} position={position} useGravity={false}>
       <sprite textureId={BULLET_TEX} sourceSize={[8, 4]} />
       <collider
         ref={collider}
         shape={shapes.rectangle(8, 4)}
         group={['bullet']}
-        collidesWith={['enemy']}   // ← bullets never collide with each other
+        collidesWith={['enemy']} // ← bullets never collide with each other
       />
-    </rigid-body>
+    </body>
   )
 }
 
@@ -205,7 +207,7 @@ function Enemy({ position }: { position: [number, number] }) {
   })
 
   return (
-    <rigid-body position={position} isStatic>
+    <body position={position} isStatic>
       <sprite textureId={ENEMY_TEX} sourceSize={[32, 48]} />
       <collider
         ref={collider}
@@ -213,15 +215,18 @@ function Enemy({ position }: { position: [number, number] }) {
         group={['enemy']}
         collidesWith={['bullet', 'player']}
       />
-    </rigid-body>
+    </body>
   )
 }
 ```
 
 <Warning>
-  Group labels are case-sensitive strings. `'Enemy'` and `'enemy'` are different groups. Establish a naming convention early and stick to it.
+  Group labels are case-sensitive strings. `'Enemy'` and `'enemy'` are different
+  groups. Establish a naming convention early and stick to it.
 </Warning>
 
 <Tip>
-  For physics-driven collision response (bouncing, sliding), see [Physics](/guides/physics). Collision groups control **detection and events** — physics handles the **response**.
+  For physics-driven collision response (bouncing, sliding), see
+  [Physics](/guides/physics). Collision groups control **detection and events**
+  — physics handles the **response**.
 </Tip>

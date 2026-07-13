@@ -1,6 +1,6 @@
 ---
-title: "Input Hooks API Reference — Fraxel Game Engine"
-sidebarTitle: "Input"
+title: 'Input Hooks API Reference — Fraxel Game Engine'
+sidebarTitle: 'Input'
 description: "Reference for Fraxel's input hooks: useAction and useActionAxis for reactive input handling."
 ---
 
@@ -20,19 +20,19 @@ useAction(action: symbol): {
 }
 ```
 
-<ParamField path="action" type="symbol" required>
+<ParamField path='action' type='symbol' required>
   An action symbol created with `Input.createAction()`.
 </ParamField>
 
-| Property | Type | Description |
-|---|---|---|
-| `pressed` | `SignalGetter<boolean>` | `true` while the action key is held down. |
-| `justPressed` | `SignalGetter<boolean>` | `true` only on the first frame the key is pressed. |
+| Property        | Type                    | Description                                         |
+| --------------- | ----------------------- | --------------------------------------------------- |
+| `pressed`       | `SignalGetter<boolean>` | `true` while the action key is held down.           |
+| `justPressed`   | `SignalGetter<boolean>` | `true` only on the first frame the key is pressed.  |
 | `justUnpressed` | `SignalGetter<boolean>` | `true` only on the first frame the key is released. |
 
 ```tsx
 import { Input } from 'fraxel'
-import { useAction, useEffect, useRigidBody } from 'fraxel/hooks'
+import { useAction, useEffect, useRigidBody } from 'fraxel'
 
 const Jump = Input.createAction({ key: ' ' })
 
@@ -46,7 +46,7 @@ function Player() {
     }
   })
 
-  return <rigid-body ref={body} />
+  return <body ref={body} />
 }
 ```
 
@@ -60,10 +60,10 @@ Returns a reactive axis value derived from two opposing input actions. Updates e
 useActionAxis(negative: symbol, positive: symbol): SignalGetter<number>
 ```
 
-<ParamField path="negative" type="symbol" required>
+<ParamField path='negative' type='symbol' required>
   Action that maps to `-1` (e.g. move left).
 </ParamField>
-<ParamField path="positive" type="symbol" required>
+<ParamField path='positive' type='symbol' required>
   Action that maps to `+1` (e.g. move right).
 </ParamField>
 
@@ -71,9 +71,9 @@ useActionAxis(negative: symbol, positive: symbol): SignalGetter<number>
 
 ```tsx
 import { Input } from 'fraxel'
-import { useActionAxis, useRigidBody } from 'fraxel/hooks'
+import { useActionAxis, useRigidBody } from 'fraxel'
 
-const MoveLeft  = Input.createAction({ key: 'a' })
+const MoveLeft = Input.createAction({ key: 'a' })
 const MoveRight = Input.createAction({ key: 'd' })
 
 function Player() {
@@ -84,7 +84,7 @@ function Player() {
     body.node.velocity.x = axis() * 180
   })
 
-  return <rigid-body ref={body} />
+  return <body ref={body} />
 }
 ```
 

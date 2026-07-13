@@ -10,14 +10,14 @@ The `Game` class is the static singleton that owns the canvas, drives the game l
 
 ## createGame
 
-The recommended way to bootstrap a Fraxel application. Parses a `<Game>` JSX tree, sets up the engine, registers all `<Scene>` children, loads the default scene, and returns `GameControls`.
+The recommended way to bootstrap a Fraxel application. Parses a `<GameRoot>` JSX tree, sets up the engine, registers all `<SceneRoot>` children, loads the default scene, and returns `GameControls`.
 
 ```ts
 createGame(jsx: Fraxel.Node, root: HTMLElement): GameControls
 ```
 
 <ParamField path="jsx" type="Fraxel.Node" required>
-  A `<Game>` element containing one or more `<Scene>` children.
+  A `<GameRoot>` element containing one or more `<SceneRoot>` children.
 </ParamField>
 <ParamField path="root" type="HTMLElement" required>
   The DOM element that will become the parent of the generated `<canvas>`. Must not be `null`.
@@ -27,18 +27,18 @@ createGame(jsx: Fraxel.Node, root: HTMLElement): GameControls
 
 **Throws:**
 - `MissingGameRootError` — `root` is `null` or `undefined`.
-- `InvalidGameElementError` — the top-level JSX element is not `<Game>`.
-- `MissingSceneError` — a child element is not `<Scene>`.
+- `InvalidGameElementError` — the top-level JSX element is not `<GameRoot>`.
+- `MissingSceneError` — a child element is not `<SceneRoot>`.
 - `InvalidSceneComponentError` — the scene component did not return exactly one root node.
 
 ```tsx
-import { createGame, Game, Scene } from 'fraxel/jsx'
+import { createGame, GameRoot, SceneRoot } from 'fraxel'
 
 const game = createGame(
-  <Game width={320} height={180} defaultScene="main">
-    <Scene name="main"  component={() => import('./scenes/main.js')} />
-    <Scene name="menu"  component={() => import('./scenes/menu.js')} />
-  </Game>,
+  <GameRoot width={320} height={180} defaultScene="main">
+    <SceneRoot name="main"  component={() => import('./scenes/main.js')} />
+    <SceneRoot name="menu"  component={() => import('./scenes/menu.js')} />
+  </GameRoot>,
   document.querySelector('#root')!
 )
 
@@ -46,7 +46,7 @@ game.play()
 ```
 
 <Note>
-`createGame` automatically calls `Game.setup()`, registers all scenes with `Game.sceneManager`, and loads `defaultScene`. You do not need to call `Game.setup()` separately.
+`createGame` automatically calls `Game.setup()`, registers all scenes with `SceneManager`, and loads `defaultScene`. You do not need to call `Game.setup()` separately.
 </Note>
 
 ---
@@ -60,10 +60,6 @@ interface GameControls {
   play():                          void
   pause():                         void
   destroy():                       void
-  changeScene(name: string):       Promise<void>
-  preloadScene(name: string):      Promise<() => void>
-  getSize():                       Vector2
-  paused:                          SignalGetter<boolean>
 }
 ```
 
@@ -75,11 +71,11 @@ interface GameControls {
 | `destroy()` | `() => void` | Stops the loop, tears down the current scene, destroys the input system, and releases all resources. |
 | `changeScene(name)` | `(name: string) => Promise<void>` | Destroys the current scene, loads the named scene, and resolves when the transition is complete. |
 | `preloadScene(name)` | `(name: string) => Promise<() => void>` | Loads a scene in the background without switching to it. Resolves with a function you can call later to perform the instant switch. |
-| `getSize()` | `() => Vector2` | Returns a `Vector2` with the canvas's logical pixel dimensions (as configured in `<Game width height>`). |
+| `getSize()` | `() => Vector2` | Returns a `Vector2` with the canvas's logical pixel dimensions (as configured in `<GameRoot width height>`). |
 
 <CodeGroup>
 ```ts Basic lifecycle
-const game = createGame(<Game ...>, root)
+const game = createGame(<GameRoot ...>, root)
 
 game.play()
 
@@ -87,14 +83,14 @@ game.play()
 window.addEventListener('unload', () => game.destroy())
 ```
 ```ts Scene transitions
-const game = createGame(<Game ...>, root)
+const game = createGame(<GameRoot ...>, root)
 game.play()
 
 // Switch immediately
-await game.changeScene('level-2')
+await SceneManager.changeScene('level-2')
 
 // Or preload first, then switch instantly
-const activate = await game.preloadScene('boss-fight')
+const activate = await SceneManager.preloadScene('boss-fight')
 // ... show a loading bar, then:
 activate()
 ```
@@ -132,6 +128,9 @@ Game.setup(options: SetupOptions): void
 <ParamField path="options.theme" type="Theme">
   Custom render theme. Defaults to `new Theme()`.
 </ParamField>
+<ParamField path="options.pixelated" type="boolean">
+  When `true`, disables canvas image rendering — sets `imageSmoothingEnabled = false` on the canvas context. Use for pixel-art games to prevent blurry upscaling of sprite textures. Defaults to `false`.
+</ParamField>
 
 ```ts
 import { Game } from 'fraxel'
@@ -141,6 +140,7 @@ Game.setup({
   height: 270,
   root:   document.querySelector('#root')!,
   testOptions: { showColliders: true },
+  pixelated: true,
 })
 ```
 
@@ -152,12 +152,28 @@ Starts the animation-frame loop. Throws `EngineNotSetupError` if called before `
 Game.play(): void
 ```
 
+### Game.resume
+
+Resume the loop. The game changes mode `PLAYING`.
+
+```ts
+Game.resume(): void
+```
+
 ### Game.pause
+
+Pauses the loop. The game changes mode `PAUSED`.
+
+```ts
+Game.pause(): void
+```
+
+### Game.stop
 
 Pauses the loop. The canvas freezes on the last rendered frame.
 
 ```ts
-Game.pause(): void
+Game.stop(): void
 ```
 
 ### Game.destroy
@@ -168,23 +184,21 @@ Cancels the animation frame, tears down input listeners, destroys the active sce
 Game.destroy(): void
 ```
 
-### Game.sceneManager
+### Game.isRunning
 
-Read-only reference to the `SceneManager` singleton that tracks all registered scenes.
+A signal of the current game status mode (`true` / `false`). If it is `true` that is because the game was initialized and it is playing. If it is `false` that means the game is frreze or was destroyed.
 
 ```ts
-Game.sceneManager: SceneManager
+Game.isRunning: SignalGetter<boolean>
 ```
 
-| Method | Description |
-|---|---|
-| `addScene(name, scene)` | Register a named `Scene`. |
-| `setScene(name)` | Switch to the named scene. Returns `Promise<void>`. |
-| `preloadScene(name)` | Load scene assets without switching. Returns `Promise<() => void>`. |
-| `currentScene` | The name of the active scene, or `null`. Read-only. |
-| `currentNode` | The root `Node` of the active scene, or `null`. |
+### Game.isPaused
 
----
+A signal of the current pause mode (`true` / `false`).
+
+```ts
+Game.isPaused: SignalGetter<boolean>
+```
 
 ## Game.blurred
 
@@ -207,11 +221,19 @@ Game.blurred.on(() => {
 The game auto-pauses on blur and resumes when the player calls `game.play()` again. You can hook into `Game.blurred` to show a pause screen.
 </Note>
 
+## Game.focused
+
+An `Event` that fires whenever the browser window is focus. The game automatically continue when this fires.
+
+```ts
+Game.focused: Event<[], 'focus'>
+```
+
 ---
 
 ## TestOptions
 
-Debug rendering options passed to `Game.setup` or `<Game testOptions={...}>`.
+Debug rendering options passed to `Game.setup` or `<GameRoot testOptions={...}>`.
 
 ```ts
 interface TestOptions {

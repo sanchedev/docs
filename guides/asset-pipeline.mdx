@@ -1,7 +1,7 @@
 ---
-title: "Fraxel Asset Pipeline: Loading Textures and Sounds"
-sidebarTitle: "Asset Pipeline"
-description: "Load and cache textures and sounds in Fraxel using loadTexture, loadSound, loadBatch, and loadBatchAsset with progress callbacks to avoid frame drops."
+title: 'Fraxel Asset Pipeline: Loading Textures and Sounds'
+sidebarTitle: 'Asset Pipeline'
+description: 'Load and cache textures and sounds in Fraxel using loadTexture, loadSound, loadBatch, and loadBatchAsset with progress callbacks to avoid frame drops.'
 ---
 
 Every texture and sound your game uses needs to be fetched from the server and decoded before it can be displayed or played. If you load assets on demand — right when a sprite first appears — you'll see frame drops and pop-in. Fraxel's asset pipeline solves this with an upfront loading system that deduplicates requests and tracks progress, so you can show a loading screen while everything prepares.
@@ -47,7 +47,7 @@ const SHOOT_SFX = await loadSound('/assets/shoot.ogg')
 const BG_MUSIC = await loadSound('/assets/music.mp3')
 ```
 
-See [Audio Playback](/guides/audio-playback) for using sound IDs with `<audio-player>`.
+See [Audio Playback](/guides/audio-playback) for using sound IDs with `<audio>`.
 
 ## Batch Loading with Progress
 
@@ -99,18 +99,18 @@ const [jump, land] = await loadBatchAsset('sound', [
 
 ## Full API Reference
 
-| Function | Returns | Description |
-|----------|---------|-------------|
-| `loadTexture(url)` | `Promise<symbol>` | Fetch and decode an image |
-| `loadSound(url)` | `Promise<symbol>` | Fetch and decode an audio buffer |
-| `loadBatch(loaders, options?)` | `Promise<T[]>` | Load multiple assets in parallel with progress |
-| `loadBatchAsset(type, urls, options?)` | `Promise<symbol[]>` | Typed parallel loading for same-type assets |
-| `unloadTexture(id)` | `void` | Release texture memory |
-| `unloadSound(id)` | `void` | Release audio buffer memory |
+| Function                               | Returns             | Description                                    |
+| -------------------------------------- | ------------------- | ---------------------------------------------- |
+| `loadTexture(url)`                     | `Promise<symbol>`   | Fetch and decode an image                      |
+| `loadSound(url)`                       | `Promise<symbol>`   | Fetch and decode an audio buffer               |
+| `loadBatch(loaders, options?)`         | `Promise<T[]>`      | Load multiple assets in parallel with progress |
+| `loadBatchAsset(type, urls, options?)` | `Promise<symbol[]>` | Typed parallel loading for same-type assets    |
+| `unloadTexture(id)`                    | `void`              | Release texture memory                         |
+| `unloadSound(id)`                      | `void`              | Release audio buffer memory                    |
 
 ### `loadBatch` Options
 
-<ParamField path="onProgress" type="(loaded: number, total: number) => void">
+<ParamField path='onProgress' type='(loaded: number, total: number) => void'>
   Called each time an asset finishes loading. Use to update a progress bar.
 </ParamField>
 
@@ -131,13 +131,15 @@ useMount(() => {
 ```
 
 <Warning>
-  Don't unload shared assets like a player sprite while they're still in use by other scenes. Keep a reference count or only unload truly scene-specific assets.
+  Don't unload shared assets like a player sprite while they're still in use by
+  other scenes. Keep a reference count or only unload truly scene-specific
+  assets.
 </Warning>
 
 ## Complete Preloader Example with Progress Bar
 
 ```tsx loading-scene.tsx
-import { useSignal, useComputed, useMount, useScene } from 'fraxel/hooks'
+import { useSignal, useComputed, useMount, useScene } from 'fraxel'
 import { loadBatch, loadTexture, loadSound, shapes } from 'fraxel'
 
 const BAR_MAX_WIDTH = 200
@@ -184,8 +186,13 @@ function LoadingScene() {
       {/* Title */}
       <text
         position={[240, 100]}
-        text="SPACE SHOOTER"
-        style={{ fontSize: 28, foregroundColor: '#ffffff', textAlign: 'center', fontFamily: 'monospace' }}
+        text='SPACE SHOOTER'
+        style={{
+          fontSize: 28,
+          foregroundColor: '#ffffff',
+          textAlign: 'center',
+          fontFamily: 'monospace',
+        }}
       />
 
       {/* Progress bar background */}
@@ -208,7 +215,12 @@ function LoadingScene() {
       <text
         position={[240, 185]}
         text={status}
-        style={{ fontSize: 12, foregroundColor: '#aaaaaa', textAlign: 'center', fontFamily: 'monospace' }}
+        style={{
+          fontSize: 12,
+          foregroundColor: '#aaaaaa',
+          textAlign: 'center',
+          fontFamily: 'monospace',
+        }}
       />
     </transform>
   )
@@ -216,5 +228,7 @@ function LoadingScene() {
 ```
 
 <Tip>
-  For large games, split assets into groups by scene and use `loadBatch` inside each scene's `load` function. See [Scenes](/guides/scenes) for the per-scene loading pattern.
+  For large games, split assets into groups by scene and use `loadBatch` inside
+  each scene's `load` function. See [Scenes](/guides/scenes) for the per-scene
+  loading pattern.
 </Tip>

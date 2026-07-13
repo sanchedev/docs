@@ -7,7 +7,7 @@ description: "Count up to a duration and fire a timeout event. Drive cooldowns, 
 Use `<timer>` to measure elapsed time without visual output. It increments an internal counter by `delta` each frame and fires `timeout` when the counter reaches `duration`. Use `autoPlay` to start immediately, or call `play()` imperatively. The counter can be paused, resumed, and reset. `duration` accepts a reactive `SignalGetter<number>` so you can change the interval at runtime.
 
 ```tsx
-import { useTimer, useTrigger } from 'fraxel/hooks'
+import { useTimer, useTrigger } from 'fraxel'
 
 function RespawnDelay() {
   const timer = useTimer()
@@ -82,7 +82,7 @@ function RespawnDelay() {
 <CodeGroup>
 
 ```tsx Repeating spawn interval
-import { useTimer, useTrigger } from 'fraxel/hooks'
+import { useTimer, useTrigger } from 'fraxel'
 
 function EnemySpawner() {
   const timer = useTimer()
@@ -98,7 +98,7 @@ function EnemySpawner() {
 ```
 
 ```tsx Cooldown bar driven by timeChanged
-import { useTimer, useTrigger, useSignal } from 'fraxel/hooks'
+import { useTimer, useTrigger, useSignal } from 'fraxel'
 import { shapes } from 'fraxel'
 
 function AbilityButton() {

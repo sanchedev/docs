@@ -1,6 +1,6 @@
 ---
-title: "Reactive State in Fraxel — Signals & Hooks Guide"
-sidebarTitle: "Signals"
+title: 'Reactive State in Fraxel — Signals & Hooks Guide'
+sidebarTitle: 'Signals'
 description: "Master Fraxel's reactive state system: useSignal, useComputed, useEffect, auto-computed JSX props, and the Signal class for advanced use cases."
 ---
 
@@ -13,7 +13,7 @@ This approach comes from fine-grained reactivity systems like Solid.js and Vue's
 `useSignal(initialValue)` creates a reactive value. It returns a tuple of `[getter, setter]`.
 
 ```tsx
-import { useSignal } from 'fraxel/hooks'
+import { useSignal } from 'fraxel'
 import { shapes } from 'fraxel'
 
 function HealthBar() {
@@ -38,7 +38,9 @@ function HealthBar() {
 The getter (`health`) is a **function you call** — `health()` — not a plain value. This allows Fraxel to track which computations depend on the signal. The setter (`setHealth`) accepts a new value and notifies all dependents.
 
 <Note>
-  If you set a signal to the same value it already holds, no notification is dispatched. Fraxel skips the update entirely, so you can safely call `setHealth(health())` without causing unnecessary work.
+  If you set a signal to the same value it already holds, no notification is
+  dispatched. Fraxel skips the update entirely, so you can safely call
+  `setHealth(health())` without causing unnecessary work.
 </Note>
 
 ## Auto-computed props
@@ -47,14 +49,16 @@ The most ergonomic way to use signals in Fraxel is as **auto-computed props** �
 
 ```tsx
 const [opacity, setOpacity] = useSignal(1)
-const [tint, setTint] = useSignal<[number, number, number, number]>([1, 1, 1, 1])
+const [tint, setTint] = useSignal<[number, number, number, number]>([
+  1, 1, 1, 1,
+])
 
 return (
   <sprite
     textureId={TEX}
-    opacity={opacity}               // Pass the getter directly
-    modulate={() => tint()}         // Or wrap in an arrow function
-    brightness={() => opacity() * 1.2}  // Combine signals
+    opacity={opacity} // Pass the getter directly
+    modulate={() => tint()} // Or wrap in an arrow function
+    brightness={() => opacity() * 1.2} // Combine signals
   />
 )
 ```
@@ -66,7 +70,7 @@ Fraxel calls the function once to get the initial value and to record which sign
 `useComputed(fn)` creates a read-only signal whose value is derived from other signals. Use it when you need a computed value in multiple places.
 
 ```tsx
-import { useSignal, useComputed } from 'fraxel/hooks'
+import { useSignal, useComputed } from 'fraxel'
 import { shapes } from 'fraxel'
 
 function CooldownIndicator() {
@@ -75,16 +79,18 @@ function CooldownIndicator() {
 
   // Automatically recomputes when elapsed changes
   const progress = useComputed(() => Math.min(elapsed() / DURATION, 1))
-  const isReady  = useComputed(() => progress() >= 1)
+  const isReady = useComputed(() => progress() >= 1)
 
   return (
     <transform>
       <geometry
         shape={shapes.rectangle(50, 6)}
-        fillColor={() => isReady() ? [0, 1, 0, 1] : [progress(), 0, 0, 1]}
+        fillColor={() => (isReady() ? [0, 1, 0, 1] : [progress(), 0, 0, 1])}
       />
       <text
-        text={() => isReady() ? 'READY' : `${(DURATION - elapsed()).toFixed(1)}s`}
+        text={() =>
+          isReady() ? 'READY' : `${(DURATION - elapsed()).toFixed(1)}s`
+        }
         style={{ foregroundColor: '#fff', fontSize: 10 }}
       />
     </transform>
@@ -99,7 +105,7 @@ function CooldownIndicator() {
 `useEffect(fn)` runs a function whenever any of the signals it reads change. It also runs once when the component starts. Use it to trigger imperative side effects — playing a sound, calling a method on a node — in response to signal changes.
 
 ```tsx
-import { useSignal, useEffect, useAudio } from 'fraxel/hooks'
+import { useSignal, useEffect, useAudio } from 'fraxel'
 
 function Player() {
   const audio = useAudio()
@@ -114,8 +120,8 @@ function Player() {
 
   return (
     <transform>
-      <sprite textureId={PLAYER_TEX} grayscale={() => dead() ? 1 : 0} />
-      <audio-player ref={audio} soundId={DEATH_SFX} />
+      <sprite textureId={PLAYER_TEX} grayscale={() => (dead() ? 1 : 0)} />
+      <audio ref={audio} soundId={DEATH_SFX} />
     </transform>
   )
 }
@@ -146,7 +152,7 @@ setZ(3)
 `useMount(fn)` runs a function once when the component's root node enters the scene. It is equivalent to subscribing to the `started` lifecycle event. Any cleanup function you return from `useMount` runs when the node is destroyed.
 
 ```tsx
-import { useMount, useAudio } from 'fraxel/hooks'
+import { useMount, useAudio } from 'fraxel'
 
 function MusicPlayer() {
   const audio = useAudio()
@@ -159,7 +165,7 @@ function MusicPlayer() {
     }
   })
 
-  return <audio-player ref={audio} soundId={BG_MUSIC} loop volume={0.4} />
+  return <audio ref={audio} soundId={BG_MUSIC} loop volume={0.4} />
 }
 ```
 
@@ -172,14 +178,14 @@ For common patterns, Fraxel provides higher-level hooks built on top of `useSign
 Returns a reactive boolean that flips between `true` and `false` based on two opposing triggers.
 
 ```tsx
-import { useCondition, useClickable } from 'fraxel/hooks'
+import { useCondition, useClickable } from 'fraxel'
 
 function Button() {
   const clickable = useClickable()
   const hovered = useCondition(clickable.mouseEntered, clickable.mouseExited)
 
   return (
-    <sprite textureId={BTN_TEX} brightness={() => hovered() ? 1.2 : 1}>
+    <sprite textureId={BTN_TEX} brightness={() => (hovered() ? 1.2 : 1)}>
       <clickable ref={clickable} size={[64, 24]} />
     </sprite>
   )
@@ -189,7 +195,7 @@ function Button() {
 ### `useWhen` — conditional value
 
 ```tsx
-import { useCondition, useWhen, useClickable } from 'fraxel/hooks'
+import { useCondition, useWhen, useClickable } from 'fraxel'
 
 function Button() {
   const clickable = useClickable()
@@ -207,7 +213,7 @@ function Button() {
 ### `useMatch` — value mapping
 
 ```tsx
-import { useSignal, useMatch } from 'fraxel/hooks'
+import { useSignal, useMatch } from 'fraxel'
 
 type State = 'idle' | 'walk' | 'jump'
 const [state, setState] = useSignal<State>('idle')
@@ -218,15 +224,15 @@ const animName = useMatch(state, {
   jump: 'jump-arc',
 })
 
-return <animation-player currentAnim={animName} />
+return <animator currentAnim={animName} />
 ```
 
 ## Reactive state outside components
 
-For state that lives outside a component — global game state, singletons, or utility modules — use `createSignal` and `signalSetterFrom` from `fraxel/hooks`.
+For state that lives outside a component — global game state, singletons, or utility modules — use `createSignal` and `signalSetterFrom` from `'fraxel'`.
 
 ```tsx src/state.ts
-import { createSignal, signalSetterFrom } from 'fraxel/hooks'
+import { createSignal, signalSetterFrom } from 'fraxel'
 
 export const score = createSignal(0)
 export const setScore = signalSetterFrom(score)
@@ -257,13 +263,14 @@ function ScoreDisplay() {
 <Warning>
   `createSignal` is prone to API changes. The recommended approach for module-level signals is still to instantiate `Signal` directly and access its `.getter` and `.setter`:
 
-  ```ts
-  import { Signal } from 'fraxel'
+```ts
+import { Signal } from 'fraxel'
 
-  const scoreSignal = new Signal(0)
-  export const score = scoreSignal.getter
-  export const setScore = scoreSignal.setter
-  ```
+const scoreSignal = new Signal(0)
+export const score = scoreSignal.getter
+export const setScore = scoreSignal.setter
+```
+
 </Warning>
 
 ### Cleanup

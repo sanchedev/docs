@@ -1,7 +1,7 @@
 ---
-title: "Sprite Sheet Animation and the AnimationPlayer in Fraxel"
-sidebarTitle: "Animation"
-description: "Animate sprites in Fraxel using sprite sheets, AnimationPlayer, reactive currentAnim, and the useAnimation hook. Includes frame-based and tween animation."
+title: 'Sprite Sheet Animation and the AnimationPlayer in Fraxel'
+sidebarTitle: 'Animation'
+description: 'Animate sprites in Fraxel using sprite sheets, AnimationPlayer, reactive currentAnim, and the useAnimation hook. Includes frame-based and tween animation.'
 ---
 
 Static sprites make a game feel lifeless. Animation is how you signal state — a character walking, an enemy attacking, a coin spinning. Fraxel's animation system is built around sprite sheets: a single image containing every frame of an animation, sliced automatically at runtime.
@@ -22,7 +22,7 @@ First, load your sprite sheet texture. Then use `animationFromSheet` to build a 
 
 ```tsx player.tsx
 import { loadTexture, animationFromSheet } from 'fraxel'
-import { useSprite } from 'fraxel/hooks'
+import { useSprite } from 'fraxel'
 
 const IDLE_SHEET = await loadTexture('/assets/player-idle.png') // 4 columns × 1 row
 const WALK_SHEET = await loadTexture('/assets/player-walk.png') // 4 columns × 2 rows
@@ -33,7 +33,7 @@ function Player() {
   return (
     <transform>
       <sprite ref={sprite} sourceSize={[32, 32]} displaySize={[64, 64]} />
-      <animation-player
+      <animator
         animations={() => ({
           idle: animationFromSheet(sprite, IDLE_SHEET, {
             columns: 4,
@@ -48,7 +48,7 @@ function Player() {
             loop: true,
           }),
         })}
-        currentAnim="idle"
+        currentAnim='idle'
       />
     </transform>
   )
@@ -56,51 +56,63 @@ function Player() {
 ```
 
 <Note>
-  The `animations` prop takes a **function** — not an object directly. The engine calls it after the node starts, ensuring the `sprite` ref is populated before keyframes are built.
+  The `animations` prop takes a **function** — not an object directly. The
+  engine calls it after the node starts, ensuring the `sprite` ref is populated
+  before keyframes are built.
 </Note>
 
 ## `animationFromSheet` Parameters
 
-<ParamField path="sprite" type="Sprite | NodeReference<PrimaryNode.Sprite>">
-  The sprite instance (or ref) whose `margin` and `sourceSize` will be mutated each frame.
+<ParamField path='sprite' type='Sprite | NodeReference<PrimaryNode.Sprite>'>
+  The sprite instance (or ref) whose `margin` and `sourceSize` will be mutated
+  each frame.
 </ParamField>
 
-<ParamField path="textureId" type="symbol | null | undefined">
-  The texture to display. Pass `null` to keep the current texture unchanged between animations.
+<ParamField path='textureId' type='symbol | null | undefined'>
+  The texture to display. Pass `null` to keep the current texture unchanged
+  between animations.
 </ParamField>
 
-<ParamField path="columns" type="number" default="1">
+<ParamField path='columns' type='number' default='1'>
   Number of columns in the sprite sheet grid.
 </ParamField>
 
-<ParamField path="rows" type="number" default="1">
+<ParamField path='rows' type='number' default='1'>
   Number of rows in the sprite sheet grid.
 </ParamField>
 
-<ParamField path="range" type="[number, number]">
-  Optional `[from, to]` tuple (0-indexed, inclusive) to select a subset of frames. Useful when multiple animations share one texture.
+<ParamField path='range' type='[number, number]'>
+  Optional `[from, to]` tuple (0-indexed, inclusive) to select a subset of
+  frames. Useful when multiple animations share one texture.
 </ParamField>
 
-<ParamField path="duration" type="number" required>
-  Total animation duration in seconds. FPS is calculated as `(columns × rows) / duration`.
+<ParamField path='duration' type='number' required>
+  Total animation duration in seconds. FPS is calculated as `(columns × rows) /
+  duration`.
 </ParamField>
 
-<ParamField path="loop" type="boolean" default="false">
+<ParamField path='loop' type='boolean' default='false'>
   Whether the animation loops after the last frame.
 </ParamField>
 
-## `<animation-player>` Props
+## `<animator>` Props
 
-<ParamField path="animations" type="Reactive<Record<string, Animation>>" required>
-  An object or a factory function returning a named map of animations. Called once on start.
+<ParamField
+  path='animations'
+  type='Reactive<Record<string, Animation>>'
+  required>
+  An object or a factory function returning a named map of animations. Called
+  once on start.
 </ParamField>
 
-<ParamField path="currentAnim" type="Reactive<string>">
-  The animation to play. Pass a `SignalGetter` for reactive, automatic switching.
+<ParamField path='currentAnim' type='Reactive<string>'>
+  The animation to play. Pass a `SignalGetter` for reactive, automatic
+  switching.
 </ParamField>
 
-<ParamField path="destroyOnEnd" type="boolean" default="false">
-  Destroy the node when the current (non-looping) animation ends. Great for one-shot effects.
+<ParamField path='destroyOnEnd' type='boolean' default='false'>
+  Destroy the node when the current (non-looping) animation ends. Great for
+  one-shot effects.
 </ParamField>
 
 ## Switching Animations Reactively
@@ -108,7 +120,7 @@ function Player() {
 Pass a `SignalGetter<string>` as `currentAnim` and the player will switch automatically whenever your signal changes. Combine with `useComputed` to derive the animation name from game state:
 
 ```tsx player.tsx
-import { useSignal, useComputed, useSprite } from 'fraxel/hooks'
+import { useSignal, useComputed, useSprite } from 'fraxel'
 
 function Player() {
   const sprite = useSprite()
@@ -119,7 +131,7 @@ function Player() {
   return (
     <transform>
       <sprite ref={sprite} sourceSize={[32, 32]} displaySize={[64, 64]} />
-      <animation-player
+      <animator
         animations={() => ({ idle: idleAnim, walk: walkAnim })}
         currentAnim={currentAnim}
       />
@@ -131,7 +143,7 @@ function Player() {
 For multi-state characters, `useMatch` reads like a switch expression:
 
 ```tsx player.tsx
-import { useMatch, useSignal, useSprite } from 'fraxel/hooks'
+import { useMatch, useSignal, useSprite } from 'fraxel'
 
 function Player() {
   const sprite = useSprite()
@@ -146,7 +158,7 @@ function Player() {
   return (
     <transform>
       <sprite ref={sprite} sourceSize={[32, 32]} displaySize={[64, 64]} />
-      <animation-player
+      <animator
         animations={() => ({ idle: idleAnim, walk: walkAnim, jump: jumpAnim })}
         currentAnim={currentAnim}
       />
@@ -160,7 +172,7 @@ function Player() {
 `useAnimation` wraps `AnimationPlayer` with reactive state and control methods:
 
 ```tsx player.tsx
-import { useAnimation, useSprite } from 'fraxel/hooks'
+import { useAnimation, useSprite } from 'fraxel'
 
 function Enemy() {
   const sprite = useSprite()
@@ -176,26 +188,30 @@ function Enemy() {
   return (
     <transform>
       <sprite ref={sprite} sourceSize={[32, 32]} displaySize={[64, 64]} />
-      <animation-player
+      <animator
         ref={anim}
-        animations={() => ({ idle: idleAnim, attack: attackAnim, death: deathAnim })}
-        currentAnim="idle"
+        animations={() => ({
+          idle: idleAnim,
+          attack: attackAnim,
+          death: deathAnim,
+        })}
+        currentAnim='idle'
       />
     </transform>
   )
 }
 ```
 
-| Property | Type | Description |
-|----------|------|-------------|
-| `node` | `AnimationPlayer` | wrapped node |
-| `signal` | `SignalGetter<AnimationPlayer \| null>` | node as a signal |
-| `animName` | `SignalGetter<string>` | Current animation name |
-| `frameIndex` | `SignalGetter<number>` | Current frame index |
-| `ended` | `SignalGetter<boolean>` | `true` when the current animation ends |
-| `play(name?)` | `(string) => void` | Play a named animation immediately |
-| `stop()` | `() => void` | Stop the current animation |
-| `setNext(name?)` | `(string) => void` | Queue the next animation |
+| Property         | Type                                    | Description                            |
+| ---------------- | --------------------------------------- | -------------------------------------- |
+| `node`           | `AnimationPlayer`                       | wrapped node                           |
+| `signal`         | `SignalGetter<AnimationPlayer \| null>` | node as a signal                       |
+| `animName`       | `SignalGetter<string>`                  | Current animation name                 |
+| `frameIndex`     | `SignalGetter<number>`                  | Current frame index                    |
+| `ended`          | `SignalGetter<boolean>`                 | `true` when the current animation ends |
+| `play(name?)`    | `(string) => void`                      | Play a named animation immediately     |
+| `stop()`         | `() => void`                            | Stop the current animation             |
+| `setNext(name?)` | `(string) => void`                      | Queue the next animation               |
 
 ## Manual Keyframes with `keyframesFromSheet`
 
@@ -223,7 +239,7 @@ const walk = { keyframes: walkFrames, fps: 10, loop: true }
 Not everything needs frame-by-frame artwork. Use `tween()` for smooth property animations — fading, scaling, bouncing. See [Tweening](/guides/tweening) for the full API.
 
 ```tsx coin-pop.tsx
-import { useMount, useSprite } from 'fraxel/hooks'
+import { useMount, useSprite } from 'fraxel'
 import { tween, easeOutBounce } from 'fraxel'
 
 function CoinPop() {

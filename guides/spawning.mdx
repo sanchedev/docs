@@ -1,7 +1,7 @@
 ---
-title: "Dynamic Spawning in Fraxel"
-sidebarTitle: "Spawning"
-description: "Dynamically spawn and destroy game objects in Fraxel using container.node.spawn(), useTrigger, and the reactive List component. Build enemies, projectiles, and pickups."
+title: 'Dynamic Spawning in Fraxel'
+sidebarTitle: 'Spawning'
+description: 'Dynamically spawn and destroy game objects in Fraxel using container.node.spawn(), useTrigger, and the reactive List component. Build enemies, projectiles, and pickups.'
 ---
 
 Not every game object exists from the start. Enemies spawn as you progress, projectiles are created on each shot, pickups appear when a chest opens. Fraxel's `container.node.spawn()` method lets you add new nodes to the scene at runtime from any JSX component, giving you full control over when objects are created and destroyed.
@@ -15,7 +15,7 @@ The JSX tree you write in a component is rendered once when the node starts. Spa
 The `spawn()` method on a container node takes any JSX element and adds it as a child of that container at runtime:
 
 ```tsx Spawner.tsx
-import { useTransform, useClickable, useTrigger } from 'fraxel/hooks'
+import { useTransform, useClickable, useTrigger } from 'fraxel'
 
 function Spawner() {
   const container = useTransform()
@@ -38,7 +38,9 @@ function Spawner() {
 The spawned node is rendered and started immediately. It behaves identically to a node declared statically in JSX.
 
 <Note>
-  Always pass a ref to the **container** node, not to the children you want to spawn. The container is the parent that newly spawned nodes will be attached to.
+  Always pass a ref to the **container** node, not to the children you want to
+  spawn. The container is the parent that newly spawned nodes will be attached
+  to.
 </Note>
 
 ## Destroying Nodes
@@ -46,7 +48,7 @@ The spawned node is rendered and started immediately. It behaves identically to 
 Call `.destroy()` on any node to remove it from the scene and clean up all its listeners:
 
 ```tsx bullet.tsx
-import { useRigidBody, useCollider, useTrigger } from 'fraxel/hooks'
+import { useRigidBody, useCollider, useTrigger } from 'fraxel'
 import { shapes } from 'fraxel'
 
 function Bullet({ position }: { position: [number, number] }) {
@@ -59,7 +61,7 @@ function Bullet({ position }: { position: [number, number] }) {
   })
 
   return (
-    <rigid-body ref={body} position={position} useGravity={false}>
+    <body ref={body} position={position} useGravity={false}>
       <sprite textureId={BULLET} sourceSize={[8, 4]} />
       <collider
         ref={collider}
@@ -67,7 +69,7 @@ function Bullet({ position }: { position: [number, number] }) {
         group={['bullet']}
         collidesWith={['enemy', 'wall']}
       />
-    </rigid-body>
+    </body>
   )
 }
 ```
@@ -77,7 +79,7 @@ function Bullet({ position }: { position: [number, number] }) {
 When two components need to communicate — for example, a child component tells a parent to spawn something — avoid prop drilling. Use `createTrigger` and `useTrigger` instead:
 
 ```tsx triggers.ts
-import { createTrigger } from 'fraxel/hooks'
+import { createTrigger } from 'fraxel'
 
 // Define triggers at module scope, shared between components
 export const onFireBullet = createTrigger<[{ x: number; y: number }]>()
@@ -85,7 +87,7 @@ export const onEnemyDied = createTrigger<[]>()
 ```
 
 ```tsx gun.tsx
-import { useAction, useEffect } from 'fraxel/hooks'
+import { useAction, useEffect } from 'fraxel'
 import { Input } from 'fraxel'
 import { onFireBullet } from './triggers.js'
 
@@ -103,7 +105,7 @@ function Gun() {
 ```
 
 ```tsx game-scene.tsx
-import { useTransform, useTrigger } from 'fraxel/hooks'
+import { useTransform, useTrigger } from 'fraxel'
 import { onFireBullet } from './triggers.js'
 
 function GameScene() {
@@ -125,11 +127,11 @@ function GameScene() {
 
 ## Reactive Arrays with `List`
 
-When you have a signal that holds an array of data and you want to render a node for each item, use the `List` component from `fraxel/jsx`. It performs efficient keyed reconciliation — only adding and removing nodes when items are added or removed:
+When you have a signal that holds an array of data and you want to render a node for each item, use the `List` component from `'fraxel'`. It performs efficient keyed reconciliation — only adding and removing nodes when items are added or removed:
 
 ```tsx enemy-list.tsx
-import { List } from 'fraxel/jsx'
-import { useSignal } from 'fraxel/hooks'
+import { List } from 'fraxel'
+import { useSignal } from 'fraxel'
 
 interface EnemyData {
   id: number
@@ -164,21 +166,28 @@ function EnemyManager() {
 
 `List` props:
 
-| Prop | Description |
-|------|-------------|
-| `array` | `SignalGetter<T[]>` — the reactive data array |
-| `itemKey` | `(item, index, arr) => string \| symbol` — unique key per item |
-| `children` | `(item, index, arr) => Node` — render function for each item |
-| `empty` | Optional fallback element when the array is empty |
+| Prop       | Description                                                    |
+| ---------- | -------------------------------------------------------------- |
+| `array`    | `SignalGetter<T[]>` — the reactive data array                  |
+| `itemKey`  | `(item, index, arr) => string \| symbol` — unique key per item |
+| `children` | `(item, index, arr) => Node` — render function for each item   |
+| `empty`    | Optional fallback element when the array is empty              |
 
 ## Complete Shooter Example
 
 Here's a full shooter combining `spawn()`, `useTrigger`, and bullet destruction:
 
 ```tsx shooter-game.tsx
-import { useTransform, useRigidBody, useCollider, useTrigger, useAction, useEffect } from 'fraxel/hooks'
+import {
+  useTransform,
+  useRigidBody,
+  useCollider,
+  useTrigger,
+  useAction,
+  useEffect,
+} from 'fraxel'
 import { loadTexture, Input, shapes } from 'fraxel'
-import { createTrigger } from 'fraxel/hooks'
+import { createTrigger } from 'fraxel'
 
 const PLAYER_TEX = await loadTexture('/assets/player.png')
 const BULLET_TEX = await loadTexture('/assets/bullet.png')
@@ -199,7 +208,11 @@ function Player() {
 
   return (
     <transform ref={body} position={[100, 200]}>
-      <sprite textureId={PLAYER_TEX} sourceSize={[32, 48]} displaySize={[32, 48]} />
+      <sprite
+        textureId={PLAYER_TEX}
+        sourceSize={[32, 48]}
+        displaySize={[32, 48]}
+      />
     </transform>
   )
 }
@@ -213,7 +226,7 @@ function Bullet({ x, y }: { x: number; y: number }) {
   })
 
   return (
-    <rigid-body ref={body} position={[x, y]} useGravity={false}>
+    <body ref={body} position={[x, y]} useGravity={false}>
       <sprite textureId={BULLET_TEX} sourceSize={[8, 4]} />
       <collider
         ref={collider}
@@ -221,7 +234,7 @@ function Bullet({ x, y }: { x: number; y: number }) {
         group={['bullet']}
         collidesWith={['enemy']}
       />
-    </rigid-body>
+    </body>
   )
 }
 

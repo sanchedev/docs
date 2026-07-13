@@ -1,6 +1,6 @@
 ---
-title: "Signals and Reactivity in Fraxel: The Complete Guide"
-sidebarTitle: "Signals"
+title: 'Signals and Reactivity in Fraxel: The Complete Guide'
+sidebarTitle: 'Signals'
 description: "Understand Fraxel's reactivity model: useSignal, useComputed, useEffect, auto-computed JSX props, the Signal class, and useMatch and useWhen patterns."
 ---
 
@@ -12,18 +12,18 @@ A **signal** is a reactive container for a single value. When you change a signa
 
 There are three reactive primitives:
 
-| Primitive | Description |
-|-----------|-------------|
-| `useSignal` | Raw mutable state — a readable/writable value pair |
+| Primitive     | Description                                                         |
+| ------------- | ------------------------------------------------------------------- |
+| `useSignal`   | Raw mutable state — a readable/writable value pair                  |
 | `useComputed` | Derived, read-only value that recalculates when dependencies change |
-| `useEffect` | Side effect that runs when any accessed signals change |
+| `useEffect`   | Side effect that runs when any accessed signals change              |
 
 ## `useSignal`
 
 `useSignal` returns a `[getter, setter]` tuple. The getter is a zero-argument function — calling it returns the current value and registers the caller as a dependency:
 
 ```tsx health-tracker.tsx
-import { useSignal, useEffect } from 'fraxel/hooks'
+import { useSignal, useEffect } from 'fraxel'
 
 function HealthTracker() {
   const [health, setHealth] = useSignal(100)
@@ -50,7 +50,9 @@ function HealthTracker() {
 ```
 
 <Note>
-  Always call the getter as a function — `health()` — not as a value. Writing `health` (without parentheses) gives you the function reference, not the current value.
+  Always call the getter as a function — `health()` — not as a value. Writing
+  `health` (without parentheses) gives you the function reference, not the
+  current value.
 </Note>
 
 ## `useComputed`
@@ -58,7 +60,7 @@ function HealthTracker() {
 `useComputed` creates a derived, read-only signal. Its value is recalculated whenever any signal read inside the callback changes:
 
 ```tsx cooldown-bar.tsx
-import { useSignal, useComputed } from 'fraxel/hooks'
+import { useSignal, useComputed } from 'fraxel'
 
 function CooldownBar() {
   const [elapsed, setElapsed] = useSignal(0)
@@ -91,7 +93,7 @@ function CooldownBar() {
 `useEffect` subscribes to any signals read during its execution and re-runs when they change. Re-executions are **batched** — if multiple signals change in the same synchronous block, the effect runs only once after all changes settle (via `queueMicrotask`):
 
 ```tsx
-import { useSignal, useEffect } from 'fraxel/hooks'
+import { useSignal, useEffect } from 'fraxel'
 
 function GameState() {
   const [x, setX] = useSignal(0)
@@ -119,7 +121,7 @@ The effect also runs once when the node starts (the initial execution), and clea
 Any JSX prop that accepts `Reactive<T>` can receive a zero-argument function (a `SignalGetter<T>`). The engine reads this function each frame. This means you can make any prop reactive without calling `useComputed` explicitly:
 
 ```tsx
-import { useSignal } from 'fraxel/hooks'
+import { useSignal } from 'fraxel'
 
 function Enemy() {
   const [health, setHealth] = useSignal(100)
@@ -140,10 +142,10 @@ This avoids creating intermediate `useComputed` signals when you only need the v
 
 ## Reactive state outside components
 
-For reactive state that lives outside a component — global game state, shared scores, event buses — use `createSignal` and `signalSetterFrom` from `fraxel/hooks`:
+For reactive state that lives outside a component — global game state, shared scores, event buses — use `createSignal` and `signalSetterFrom` from `'fraxel'`:
 
 ```tsx game-state.ts
-import { createSignal, signalSetterFrom } from 'fraxel/hooks'
+import { createSignal, signalSetterFrom } from 'fraxel'
 
 export const score = createSignal(0)
 export const setScore = signalSetterFrom(score)
@@ -157,14 +159,14 @@ score.signal.setter(score() + 100)
 score.signal.value = score() + 100
 ```
 
-| Pattern | Description |
-|---------|-------------|
-| `createSignal(initial)` | Creates a `SignalGetter<T>` — callable getter with dependency tracking |
-| `signalSetterFrom(getter)` | Extracts a standalone `SignalSetter<T>` from a getter |
-| `getter()` | Returns current value and registers as dependency |
-| `getter.signal.value = val` | Updates the value via the underlying `Signal` |
-| `getter.signal.setter(val)` | Updates the value via the `Signal`'s setter |
-| `setter(val)` | Updates the value and notifies dependents |
+| Pattern                     | Description                                                            |
+| --------------------------- | ---------------------------------------------------------------------- |
+| `createSignal(initial)`     | Creates a `SignalGetter<T>` — callable getter with dependency tracking |
+| `signalSetterFrom(getter)`  | Extracts a standalone `SignalSetter<T>` from a getter                  |
+| `getter()`                  | Returns current value and registers as dependency                      |
+| `getter.signal.value = val` | Updates the value via the underlying `Signal`                          |
+| `getter.signal.setter(val)` | Updates the value via the `Signal`'s setter                            |
+| `setter(val)`               | Updates the value and notifies dependents                              |
 
 Since `score` is a `SignalGetter<number>`, you can pass it directly as a JSX auto-computed prop:
 
@@ -184,13 +186,14 @@ function ScoreDisplay() {
 <Warning>
   `createSignal` is prone to API changes. The recommended approach for module-level signals is still to instantiate `Signal` directly and access its `.getter` and `.setter`:
 
-  ```ts
-  import { Signal } from 'fraxel'
+```ts
+import { Signal } from 'fraxel'
 
-  const scoreSignal = new Signal(0)
-  export const score = scoreSignal.getter
-  export const setScore = scoreSignal.setter
-  ```
+const scoreSignal = new Signal(0)
+export const score = scoreSignal.getter
+export const setScore = scoreSignal.setter
+```
+
 </Warning>
 
 ### Cleanup
@@ -208,7 +211,7 @@ Inside components, `useSignal` handles cleanup automatically via the node's `des
 Map a signal's current string value to another value, like a switch expression:
 
 ```tsx
-import { useSignal, useMatch } from 'fraxel/hooks'
+import { useSignal, useMatch } from 'fraxel'
 
 function Player() {
   const [state, setState] = useSignal<'idle' | 'walk' | 'jump' | 'attack'>('idle')
@@ -224,7 +227,7 @@ function Player() {
   return (
     <transform>
       <sprite ref={sprite} sourceSize={[32, 48]} />
-      <animation-player
+      <animator
         animations={() => ({ ... })}
         currentAnim={currentAnim}
       />
@@ -238,11 +241,11 @@ function Player() {
 Toggle between two values based on a boolean signal:
 
 ```tsx
-import { useCondition, useWhen, useClickable } from 'fraxel/hooks'
+import { useCondition, useWhen, useClickable } from 'fraxel'
 
 function Button() {
   const clickable = useClickable()
-  const isHovered = useCondition(clickable, 'mouseEntered', 'mouseExited')
+  const isHovered = useCondition(clickable.mouseEntered, clickable.mouseExited)
 
   // brightness is 1.2 when hovered, 1.0 otherwise
   const brightness = useWhen(isHovered, 1.2, 1.0)
@@ -268,5 +271,7 @@ JSX prop getters → read during next draw call
 ```
 
 <Tip>
-  For most reactive UI patterns, `useSignal` + inline getter functions in JSX props is all you need. Reach for `useComputed` when the derived value is expensive or used in multiple places.
+  For most reactive UI patterns, `useSignal` + inline getter functions in JSX
+  props is all you need. Reach for `useComputed` when the derived value is
+  expensive or used in multiple places.
 </Tip>

@@ -7,7 +7,7 @@ description: "Render styled text on the canvas with reactive content. Supports f
 Use `<text>` to render a string directly onto the canvas using `ctx.fillText()`. Pass a plain string or a reactive `SignalGetter<string>` to `text` — the node re-draws automatically whenever the signal changes, making it the simplest way to display live game data like scores, timers, or dialogue. Style the text with a `Partial<TextStyle>` — any property you omit falls back to the engine default.
 
 ```tsx
-import { useText, useSignal } from 'fraxel/hooks'
+import { useText, useSignal } from 'fraxel'
 
 function ScoreLabel() {
   const label = useText()
@@ -93,7 +93,7 @@ function ScoreLabel() {
 <CodeGroup>
 
 ```tsx Countdown timer label
-import { useTimer } from 'fraxel/hooks'
+import { useTimer } from 'fraxel'
 
 function CountdownLabel() {
   const timer = useTimer()

@@ -1,7 +1,7 @@
 ---
-title: "Loading and Displaying Sprites with Textures in Fraxel"
-sidebarTitle: "Sprites"
-description: "Learn how to load textures and display them as sprites in Fraxel using JSX. Covers textureId, sourceSize, displaySize, flipping, and visual filters."
+title: 'Loading and Displaying Sprites with Textures in Fraxel'
+sidebarTitle: 'Sprites'
+description: 'Learn how to load textures and display them as sprites in Fraxel using JSX. Covers textureId, sourceSize, displaySize, flipping, and visual filters.'
 ---
 
 Every visible game object in Fraxel starts with a texture on the canvas. The `<sprite>` node is your primary tool for displaying images — from a simple background to a sliced frame on a sprite sheet. Before anything appears on screen, you need to load a texture file and hand its symbol ID to the sprite.
@@ -18,7 +18,9 @@ export const BACKGROUND = await loadTexture('/assets/background.png')
 ```
 
 <Note>
-  Load textures at the module's top level (outside components) so they're ready before your game renders. For large batches, use [`loadBatch`](/guides/asset-pipeline) with a progress callback.
+  Load textures at the module's top level (outside components) so they're ready
+  before your game renders. For large batches, use
+  [`loadBatch`](/guides/asset-pipeline) with a progress callback.
 </Note>
 
 ## Your First Sprite
@@ -62,7 +64,7 @@ function Player() {
   return (
     <sprite
       textureId={WALK_SHEET}
-      margin={[0, 0]}       // top-left of first frame
+      margin={[0, 0]} // top-left of first frame
       sourceSize={[32, 32]} // each frame is 32×32 px
       displaySize={[64, 64]} // render at 2× scale
     />
@@ -70,35 +72,39 @@ function Player() {
 }
 ```
 
-For animated sheets, `margin` is updated each frame by `<animation-player>`. See [Animation](/guides/animation) for the full workflow.
+For animated sheets, `margin` is updated each frame by `<animator>`. See [Animation](/guides/animation) for the full workflow.
 
 ## All Sprite Props
 
-<ParamField path="textureId" type="Reactive<symbol>">
-  The texture symbol returned by `loadTexture()`. Can be a `SignalGetter` for dynamic texture swapping.
+<ParamField path='textureId' type='Reactive<symbol>'>
+  The texture symbol returned by `loadTexture()`. Can be a `SignalGetter` for
+  dynamic texture swapping.
 </ParamField>
 
-<ParamField path="margin" type="Reactive<VectorLike>" default="[0, 0]">
-  Pixel offset into the texture. Used by the animation system to select sprite sheet frames.
+<ParamField path='margin' type='Reactive<VectorLike>' default='[0, 0]'>
+  Pixel offset into the texture. Used by the animation system to select sprite
+  sheet frames.
 </ParamField>
 
-<ParamField path="sourceSize" type="Reactive<VectorLike>">
-  Width and height of the region to sample from the texture. Defaults to the full texture size.
+<ParamField path='sourceSize' type='Reactive<VectorLike>'>
+  Width and height of the region to sample from the texture. Defaults to the
+  full texture size.
 </ParamField>
 
-<ParamField path="displaySize" type="Reactive<VectorLike>">
-  Rendered size on the canvas. Defaults to `sourceSize`. Use this to scale a sprite without modifying the crop.
+<ParamField path='displaySize' type='Reactive<VectorLike>'>
+  Rendered size on the canvas. Defaults to `sourceSize`. Use this to scale a
+  sprite without modifying the crop.
 </ParamField>
 
-<ParamField path="flipX" type="Reactive<boolean>" default="false">
+<ParamField path='flipX' type='Reactive<boolean>' default='false'>
   Mirrors the sprite horizontally. Useful for characters facing left or right.
 </ParamField>
 
-<ParamField path="flipY" type="Reactive<boolean>" default="false">
+<ParamField path='flipY' type='Reactive<boolean>' default='false'>
   Mirrors the sprite vertically.
 </ParamField>
 
-<ParamField path="opacity" type="Reactive<number>" default="1">
+<ParamField path='opacity' type='Reactive<number>' default='1'>
   Overall transparency. `0` is fully transparent, `1` is fully opaque.
 </ParamField>
 
@@ -106,22 +112,22 @@ For animated sheets, `margin` is updated each frame by `<animation-player>`. See
 
 Sprites support a rich set of CSS-like visual filters. All filter props accept a static number, a `Color` tuple, or a reactive `SignalGetter` for live updates. See [Filters](/guides/filters) for patterns like damage flashes and death effects.
 
-| Prop | Range | Description |
-|------|-------|-------------|
-| `brightness` | `0–2+` | `0` = black, `1` = normal, `2` = white |
-| `grayscale` | `0–1` | `0` = full color, `1` = fully gray |
-| `modulate` | `Color` | RGBA tint multiplied over the sprite |
-| `contrast` | `0–2+` | `0` = flat gray, `1` = normal |
-| `saturate` | `0–2+` | `0` = desaturated, `1` = normal |
-| `hueRotate` | degrees | Rotates all hue values |
-| `invert` | `0–1` | `0` = normal, `1` = fully inverted |
+| Prop         | Range   | Description                            |
+| ------------ | ------- | -------------------------------------- |
+| `brightness` | `0–2+`  | `0` = black, `1` = normal, `2` = white |
+| `grayscale`  | `0–1`   | `0` = full color, `1` = fully gray     |
+| `modulate`   | `Color` | RGBA tint multiplied over the sprite   |
+| `contrast`   | `0–2+`  | `0` = flat gray, `1` = normal          |
+| `saturate`   | `0–2+`  | `0` = desaturated, `1` = normal        |
+| `hueRotate`  | degrees | Rotates all hue values                 |
+| `invert`     | `0–1`   | `0` = normal, `1` = fully inverted     |
 
 ## Reactive Props
 
 Any prop that accepts `Reactive<T>` can receive a `SignalGetter<T>` — a zero-argument function that returns the current value. The engine re-reads it every frame:
 
 ```tsx player.tsx
-import { useSignal } from 'fraxel/hooks'
+import { useSignal } from 'fraxel'
 import { PLAYER, PLAYER_HIT } from './assets.js'
 
 function Player() {
@@ -139,7 +145,7 @@ function Player() {
 Here's a complete player component with a sprite sheet slice, 2× display scale, and a hit-flash effect driven by a tween:
 
 ```tsx player.tsx
-import { useSprite, useCollider, useTrigger } from 'fraxel/hooks'
+import { useSprite, useCollider, useTrigger } from 'fraxel'
 import { loadTexture, shapes, tween } from 'fraxel'
 
 const PLAYER_SHEET = await loadTexture('/assets/player-sheet.png')
@@ -167,12 +173,17 @@ function Player() {
         sourceSize={[32, 32]}
         displaySize={[64, 64]}
       />
-      <collider ref={collider} shape={shapes.rectangle(32, 32)} group={['player']} collidesWith={['enemy']} />
+      <collider
+        ref={collider}
+        shape={shapes.rectangle(32, 32)}
+        group={['player']}
+        collidesWith={['enemy']}
+      />
     </transform>
   )
 }
 ```
 
 <Tip>
-  For animated sprites, hand the `<sprite>` ref to `animationFromSheet` and wrap it in an `<animation-player>`. See [Animation](/guides/animation).
+  For animated sprites, hand the `<sprite>` ref to `animationFromSheet` and wrap it in an `<animator>`. See [Animation](/guides/animation).
 </Tip>

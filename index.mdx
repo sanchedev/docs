@@ -1,48 +1,66 @@
 ---
-title: "Fraxel: JSX-Powered 2D Game Engine for the Browser"
-sidebarTitle: "Home"
-description: "Fraxel is a modern 2D game engine for the browser. Build games with JSX, fine-grained reactivity, and a custom canvas runtime — no React required."
+title: 'Fraxel: JSX-Powered 2D Game Engine for the Browser'
+sidebarTitle: 'Home'
+description: 'Fraxel is a modern 2D game engine for the browser. Build games with JSX, fine-grained reactivity, and a custom canvas runtime — no React required.'
 ---
 
 Fraxel lets you build 2D browser games using familiar JSX syntax compiled directly into engine nodes — no Virtual DOM, no React overhead. If you know TypeScript and have ever written a React component, you already understand 80% of Fraxel's mental model.
 
 <CardGroup cols={2}>
-  <Card title="Quick Start" icon="rocket" href="/getting-started/installation">
+  <Card title='Quick Start' icon='rocket' href='/getting-started/installation'>
     Install Fraxel and have a game running in under five minutes.
   </Card>
-  <Card title="Your First Game" icon="gamepad" href="/getting-started/first-game">
+  <Card
+    title='Your First Game'
+    icon='gamepad'
+    href='/getting-started/first-game'>
     Walk through building a complete interactive scene from scratch.
   </Card>
-  <Card title="Guides" icon="book-open" href="/guides/sprites">
+  <Card title='Guides' icon='book-open' href='/guides/sprites'>
     In-depth guides for rendering, physics, animation, audio, and more.
   </Card>
-  <Card title="API Reference" icon="code" href="/api/nodes/transform">
+  <Card title='API Reference' icon='code' href='/api/nodes/transform'>
     Complete reference for every node, hook, and engine utility.
   </Card>
 </CardGroup>
 
 ## What makes Fraxel different
 
-Fraxel is not a wrapper around an existing engine or a React renderer for canvas. JSX elements like `<sprite>`, `<collider>`, and `<rigid-body>` compile directly into engine node instances. The result is a declarative, component-driven authoring experience that runs at native canvas speed.
+Fraxel is not a wrapper around an existing engine or a React renderer for canvas. JSX elements like `<sprite>`, `<collider>`, and `<body>` compile directly into engine node instances. The result is a declarative, component-driven authoring experience that runs at native canvas speed.
 
 <CardGroup cols={3}>
-  <Card title="JSX Without React" icon="atom" href="/getting-started/jsx-runtime">
-    Write your scene graph with JSX. No Virtual DOM, no reconciler overhead — elements map one-to-one to engine nodes.
+  <Card
+    title='JSX Without React'
+    icon='atom'
+    href='/getting-started/jsx-runtime'>
+    Write your scene graph with JSX. No Virtual DOM, no reconciler overhead —
+    elements map one-to-one to engine nodes.
   </Card>
-  <Card title="Fine-Grained Reactivity" icon="bolt" href="/guides/signals-reactivity">
-    `useSignal` tracks dependencies automatically. Only the canvas properties that actually changed get updated each frame.
+  <Card
+    title='Fine-Grained Reactivity'
+    icon='bolt'
+    href='/guides/signals-reactivity'>
+    `useSignal` tracks dependencies automatically. Only the canvas properties
+    that actually changed get updated each frame.
   </Card>
-  <Card title="Physics & Collisions" icon="circle-dot" href="/guides/physics">
-    Built-in rigid body physics, rectangle/circle/capsule shapes, spatial hash broadphase, and raycast support.
+  <Card title='Physics & Collisions' icon='circle-dot' href='/guides/physics'>
+    Built-in rigid body physics, rectangle/circle/capsule shapes, spatial hash
+    broadphase, and raycast support.
   </Card>
-  <Card title="Sprite Animation" icon="film" href="/guides/animation">
-    Sprite sheet animation with reactive `currentAnim` switching and a tween engine with 12 easing functions.
+  <Card title='Sprite Animation' icon='film' href='/guides/animation'>
+    Sprite sheet animation with reactive `currentAnim` switching and a tween
+    engine with 12 easing functions.
   </Card>
-  <Card title="Camera System" icon="video" href="/guides/camera">
-    Viewport control with zoom, smoothing, screen shake, world limits, and coordinate conversion helpers.
+  <Card title='Camera System' icon='video' href='/guides/camera'>
+    Viewport control with zoom, smoothing, screen shake, world limits, and
+    coordinate conversion helpers.
   </Card>
-  <Card title="TypeScript-First" icon="shield-check" href="/getting-started/introduction">
-    Built from the ground up for strict TypeScript. Every hook, node prop, and event callback is fully typed.
+  <Card
+    title='TypeScript-First'
+    icon='shield-check'
+    href='/getting-started/introduction'>
+    Built from the ground up for strict TypeScript. Every hook, node prop, and
+    event callback is fully typed.
   </Card>
 </CardGroup>
 
@@ -55,6 +73,7 @@ Fraxel is not a wrapper around an existing engine or a React renderer for canvas
     ```bash
     npm install fraxel
     ```
+
   </Step>
   <Step title="Configure the JSX runtime">
     Tell TypeScript to use Fraxel's JSX transform in `tsconfig.json`.
@@ -67,12 +86,13 @@ Fraxel is not a wrapper around an existing engine or a React renderer for canvas
       }
     }
     ```
+
   </Step>
   <Step title="Write your first scene">
     Create a `main.tsx` file, load a texture, define a scene, and start the game loop.
 
     ```tsx main.tsx
-    import { createGame, Game, Scene } from 'fraxel/jsx'
+    import { createGame, GameRoot, SceneRoot } from 'fraxel'
     import { loadTexture } from 'fraxel'
 
     const PLAYER = await loadTexture('/assets/player.png')
@@ -80,20 +100,21 @@ Fraxel is not a wrapper around an existing engine or a React renderer for canvas
     const scene = () => <sprite textureId={PLAYER} position={[80, 50]} />
 
     const game = createGame(
-      <Game width={320} height={180} defaultScene="main">
-        <Scene name="main" component={scene} />
-      </Game>,
+      <GameRoot width={320} height={180} defaultScene="main">
+        <SceneRoot name="main" component={scene} />
+      </GameRoot>,
       document.querySelector('#root')!,
     )
 
     game.play()
     ```
+
   </Step>
   <Step title="Add reactivity">
     Use `useSignal` to create reactive state. Pass a signal getter directly as a JSX prop — Fraxel tracks the dependency automatically.
 
     ```tsx
-    import { useSignal } from 'fraxel/hooks'
+    import { useSignal } from 'fraxel'
 
     function Player() {
       const [health, setHealth] = useSignal(100)
@@ -107,9 +128,11 @@ Fraxel is not a wrapper around an existing engine or a React renderer for canvas
       )
     }
     ```
+
   </Step>
 </Steps>
 
 <Note>
-  Fraxel is in active development (v0.1.0-alpha.4b). The API is stable for the documented surface but minor breaking changes may occur before v1.0.
+  Fraxel is in active development (v0.1.0-alpha.6b). The API is stable for the
+  documented surface but minor breaking changes may occur before v1.0.
 </Note>

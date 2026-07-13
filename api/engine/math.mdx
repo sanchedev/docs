@@ -61,6 +61,9 @@ const e = new Vector2(a)             // copy of a
 | `lerp(to: VectorLike, weight: number)` | Linearly interpolates this vector toward `to` by `weight` (0–1). |
 | `apply(fn: (coord, axis) => number)` | Transforms each component with a callback. |
 | `normalize()` | Scales to unit length; no-op if the vector is zero. |
+| `rotate(angle: number)` | Rotates this vector by `angle` degrees in place. |
+| `min(v: VectorLike)` | Clamps each component to the minimum of this vector and `v`. |
+| `max(v: VectorLike)` | Clamps each component to the maximum of this vector and `v`. |
 
 #### Non-mutating (returns a new `Vector2`)
 
@@ -72,6 +75,7 @@ const e = new Vector2(a)             // copy of a
 | `toDivided(v: VectorLike)` | Returns `this / v` component-wise. |
 | `toLerped(to: VectorLike, weight: number)` | Returns interpolation between `this` and `to`. |
 | `toApplied(fn: (coord, axis) => number)` | Returns a new vector with the callback applied to each component. |
+| `toRotated(angle: number)` | Returns a new vector rotated by `angle` degrees. |
 | `clone()` | Returns an independent copy of this vector. |
 
 #### Other methods

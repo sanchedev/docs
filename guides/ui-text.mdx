@@ -11,7 +11,7 @@ Every game needs a heads-up display: a score counter, a health bar, a timer, a d
 The `<text>` node calls the canvas `fillText()` API. Pass a string or a reactive `SignalGetter<string>` as the `text` prop, and style it with a `TextStyle` object:
 
 ```tsx score-label.tsx
-import { useSignal } from 'fraxel/hooks'
+import { useSignal } from 'fraxel'
 
 function ScoreLabel() {
   const [score] = useSignal(0)
@@ -85,7 +85,7 @@ Colors use the `Color` type: a `[r, g, b, a]` tuple with values from `0` to `1`.
 Combine a background rectangle with a reactive foreground bar to display a health meter:
 
 ```tsx health-bar.tsx
-import { useSignal, useComputed } from 'fraxel/hooks'
+import { useSignal, useComputed } from 'fraxel'
 import { shapes } from 'fraxel'
 
 const MAX_HEALTH = 100
@@ -147,7 +147,7 @@ function HUD() {
 ## Full HUD Example
 
 ```tsx game-hud.tsx
-import { useSignal, useComputed } from 'fraxel/hooks'
+import { useSignal, useComputed } from 'fraxel'
 import { shapes } from 'fraxel'
 
 function GameHUD() {

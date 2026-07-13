@@ -1,6 +1,6 @@
 ---
-title: "Node Hooks API Reference — Fraxel Game Engine"
-sidebarTitle: "Node"
+title: 'Node Hooks API Reference — Fraxel Game Engine'
+sidebarTitle: 'Node'
 description: "Reference for Fraxel's node-specific hooks: useSprite, useCollider, useRigidBody, and more for typed node references."
 ---
 
@@ -12,16 +12,16 @@ Node hooks create typed references to specific node types. Each hook returns a `
 
 All node-specific hooks return a type-specific reference that extends the base `NodeReference<T>`. The base provides:
 
-| Property | Type | Description |
-|---|---|---|
-| `node` | `T` | The live node instance. Throws `NodeNotInitializedError` if accessed before mount. |
-| `signal` | `SignalGetter<T \| null>` | Reactive getter for the node instance. Returns `null` before mount and after destroy. |
-| `started` | `Trigger<[]>` | Fires when the node starts. |
-| `updated` | `Trigger<[delta: number]>` | Fires every frame with the delta time. |
-| `drawed` | `Trigger<[delta: number]>` | Fires every frame when the node is drawn. |
-| `destroyed` | `Trigger<[]>` | Fires when the node is destroyed. |
-| `script` | `<K>(scriptClass: K, noTrack?: boolean): InstanceType<K> \| undefined` | Access the attached `FraxelScript` instance by passing the script class constructor. |
-| `spawn` | `(jsx: Fraxel.Node) => void` | Dynamically append a child node. |
+| Property    | Type                                                                   | Description                                                                           |
+| ----------- | ---------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| `node`      | `T`                                                                    | The live node instance. Throws `NodeNotInitializedError` if accessed before mount.    |
+| `signal`    | `SignalGetter<T \| null>`                                              | Reactive getter for the node instance. Returns `null` before mount and after destroy. |
+| `started`   | `Trigger<[]>`                                                          | Fires when the node starts.                                                           |
+| `updated`   | `Trigger<[delta: number]>`                                             | Fires every frame with the delta time.                                                |
+| `drawed`    | `Trigger<[delta: number]>`                                             | Fires every frame when the node is drawn.                                             |
+| `destroyed` | `Trigger<[]>`                                                          | Fires when the node is destroyed.                                                     |
+| `script`    | `<K>(scriptClass: K, noTrack?: boolean): InstanceType<K> \| undefined` | Access the attached `FraxelScript` instance by passing the script class constructor.  |
+| `spawn`     | `(jsx: Fraxel.Node) => void`                                           | Dynamically append a child node.                                                      |
 
 ---
 
@@ -34,7 +34,7 @@ useTransform(): TransformReference
 ```
 
 ```tsx
-import { useTransform } from 'fraxel/hooks'
+import { useTransform } from 'fraxel'
 
 function Player() {
   const container = useTransform()
@@ -62,7 +62,7 @@ useSprite(): SpriteReference
 ```
 
 ```tsx
-import { useSprite } from 'fraxel/hooks'
+import { useSprite } from 'fraxel'
 
 function Avatar() {
   const sprite = useSprite()
@@ -86,7 +86,7 @@ useText(): TextReference
 ```
 
 ```tsx
-import { useText } from 'fraxel/hooks'
+import { useText } from 'fraxel'
 
 function ScoreLabel() {
   const text = useText()
@@ -116,7 +116,7 @@ useGeometry(): GeometryReference
 ```
 
 ```tsx
-import { useGeometry } from 'fraxel/hooks'
+import { useGeometry } from 'fraxel'
 
 function HealthBar() {
   const bar = useGeometry()
@@ -143,7 +143,7 @@ useCollider(): ColliderReference
 ```
 
 ```tsx
-import { useCollider, useEffect } from 'fraxel/hooks'
+import { useCollider, useEffect } from 'fraxel'
 import { shapes } from 'fraxel'
 
 function Enemy() {
@@ -175,7 +175,7 @@ useRigidBody(): RigidBodyReference
 ```
 
 ```tsx
-import { useRigidBody, useAction, useEffect } from 'fraxel/hooks'
+import { useRigidBody, useAction, useEffect } from 'fraxel'
 import { Input } from 'fraxel'
 
 const Jump = Input.createAction({ key: ' ' })
@@ -190,7 +190,7 @@ function Player() {
     }
   })
 
-  return <rigid-body ref={body} />
+  return <body ref={body} />
 }
 ```
 
@@ -205,7 +205,7 @@ useCamera(): CameraReference
 ```
 
 ```tsx
-import { useCamera } from 'fraxel/hooks'
+import { useCamera } from 'fraxel'
 
 function FollowCamera() {
   const camera = useCamera()
@@ -229,7 +229,7 @@ useClickable(): ClickableReference
 ```
 
 ```tsx
-import { useClickable, useTrigger, useEffect } from 'fraxel/hooks'
+import { useClickable, useTrigger, useEffect } from 'fraxel'
 
 function Button() {
   const clickable = useClickable()
@@ -242,9 +242,7 @@ function Button() {
     console.log('Button is interactive')
   })
 
-  return (
-    <clickable ref={clickable} size={[120, 40]} />
-  )
+  return <clickable ref={clickable} size={[120, 40]} />
 }
 ```
 
@@ -259,7 +257,7 @@ useRayCast(): RayCastReference
 ```
 
 ```tsx
-import { useRayCast } from 'fraxel/hooks'
+import { useRayCast } from 'fraxel'
 
 function VisionRay() {
   const ray = useRayCast()
@@ -269,7 +267,7 @@ function VisionRay() {
     if (hit) console.log('Hit:', hit.node)
   })
 
-  return <ray-cast ref={ray} direction={[1, 0]} maxDistance={200} />
+  return <raycast ref={ray} direction={[1, 0]} maxDistance={200} />
 }
 ```
 
@@ -284,7 +282,7 @@ useAnimation(): AnimationReference
 ```
 
 ```tsx
-import { useAnimation } from 'fraxel/hooks'
+import { useAnimation } from 'fraxel'
 
 function WalkCycle() {
   const anim = useAnimation()
@@ -293,7 +291,7 @@ function WalkCycle() {
     anim.node.play('walk')
   })
 
-  return <animation-player ref={anim} animations={walkAnimations} />
+  return <animator ref={anim} animations={walkAnimations} />
 }
 ```
 
@@ -308,7 +306,7 @@ useAudio(): AudioReference
 ```
 
 ```tsx
-import { useAudio, useEffect } from 'fraxel/hooks'
+import { useAudio, useEffect } from 'fraxel'
 
 function SoundEffect() {
   const audio = useAudio()
@@ -317,7 +315,7 @@ function SoundEffect() {
     audio.play()
   })
 
-  return <audio-player ref={audio} src={EXPLOSION_SOUND} />
+  return <audio ref={audio} src={EXPLOSION_SOUND} />
 }
 ```
 
@@ -332,7 +330,7 @@ useTimer(): TimerReference
 ```
 
 ```tsx
-import { useTimer, useEffect } from 'fraxel/hooks'
+import { useTimer, useEffect } from 'fraxel'
 
 function Cooldown() {
   const timer = useTimer()
@@ -359,7 +357,7 @@ useGroup(): GroupReference
 ```
 
 ```tsx
-import { useGroup } from 'fraxel/hooks'
+import { useGroup } from 'fraxel'
 
 function EnemySpawner() {
   const group = useGroup()

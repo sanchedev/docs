@@ -23,7 +23,7 @@ createContext<T>(defaultValue: T): ContextCreated<T>
 **Returns** `ContextCreated<T>` — an object with a `Provider` component.
 
 ```tsx
-import { createContext } from 'fraxel/hooks'
+import { createContext } from 'fraxel'
 
 const DifficultyCtx = createContext<'easy' | 'hard'>('easy')
 ```
@@ -45,7 +45,7 @@ useContext<T>(ctx: ContextCreated<T>): T
 **Returns** `T` — the current context value, or the default value if no `Provider` is found.
 
 ```tsx
-import { createContext, useContext } from 'fraxel/hooks'
+import { createContext, useContext } from 'fraxel'
 
 const ThemeCtx = createContext<'light' | 'dark'>('light')
 
@@ -80,7 +80,7 @@ The `Provider` component wraps a subtree that should receive the context value.
 ## Complete Example
 
 ```tsx
-import { createContext, useContext } from 'fraxel/hooks'
+import { createContext, useContext } from 'fraxel'
 
 // Create context with default value
 const GameLevelCtx = createContext<number>(1)

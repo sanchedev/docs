@@ -7,7 +7,7 @@ description: "Organize child nodes without spatial positioning. Use <group> for 
 Use `<group>` to organize child nodes without adding spatial positioning. Unlike `<transform>`, a `<group>` does not manage position, rotation, or scale — it purely serves as a logical grouping mechanism. Useful for batch-destroying, applying `deltaIncrease` to a subset of nodes, or attaching a script to a collection of nodes.
 
 ```tsx
-import { useGroup } from 'fraxel/hooks'
+import { useGroup } from 'fraxel'
 
 function EnemySpawner() {
   const enemies = useGroup()

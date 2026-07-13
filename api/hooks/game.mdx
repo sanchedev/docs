@@ -8,6 +8,40 @@ Game hooks provide control over the game loop and scene management from inside c
 
 ---
 
+## useGame
+
+Returns reactive access to the game's pause state and imperative play/pause controls.
+
+```ts
+useGame(): { play }
+```
+
+**Returns** `PausedControllers`:
+
+| Property | Type | Description |
+|---|---|---|
+| `play` | `() => void` | Start or restart the game loop. |
+| `stop` | `() => void` | Freezes the game loop. |
+| `destroy` | `() => void` | Destroys the game and unmount all nodes. |
+| `blurred` | `Trigger<[]>` | Fires whenever the browser window loses focus. |
+| `focused` | `Trigger<[]>` | Fires whenever the browser window won focus. |
+
+```tsx
+import { useGame, useTrigger } from 'fraxel'
+import { Input } from 'fraxel'
+
+function GameController() {
+  const { play, stop, blurred, focused } = useGame()
+
+  useTrigger(blurred, () => { console.log('lost focus') })
+  useTrigger(focused, () => { console.log('won focus') })
+
+  return <clickable onClick={() => stop()} size={[64, 32]} />
+}
+```
+
+---
+
 ## usePaused
 
 Returns reactive access to the game's pause state and imperative play/pause controls.
@@ -25,7 +59,7 @@ usePaused(): { paused: SignalGetter<boolean>, play: () => void, pause: () => voi
 | `pause` | `() => void` | Pauses the game loop. |
 
 ```tsx
-import { usePaused, useEffect } from 'fraxel/hooks'
+import { usePaused, useEffect } from 'fraxel'
 import { Input } from 'fraxel'
 
 const Pause = Input.createAction({ key: 'p' })
@@ -50,19 +84,19 @@ function PauseManager() {
 Returns imperative access to the scene manager for switching and preloading scenes.
 
 ```ts
-useScene(): { current: string, change: (sceneName: string | null) => Promise<void>, preload: (scene: string) => Promise<() => void> }
+useScene(): { getCurrent: () => string, change: (sceneName: string | null) => Promise<void>, preload: (scene: string) => Promise<() => void> }
 ```
 
 **Returns** `SceneControllers`:
 
 | Property | Type | Description |
 |---|---|---|
-| `current` | `string` | The name of the currently active scene. |
+| `getCurrent` | `() => string` | Returns the name of the currently active scene. |
 | `change` | `(sceneName: string \| null) => Promise<void>` | Destroys the current scene and loads the named one. Pass `null` to unload without switching. |
 | `preload` | `(scene: string) => Promise<() => void>` | Preloads a scene in the background. Returns a function to perform the instant switch. |
 
 ```tsx
-import { useScene, useEffect } from 'fraxel/hooks'
+import { useScene, useEffect } from 'fraxel'
 import { Input } from 'fraxel'
 
 const Restart = Input.createAction({ key: 'r' })
@@ -87,7 +121,7 @@ function GameOver() {
 Use the `spawn(jsx)` method on any node reference to dynamically append child nodes at runtime. This is the recommended way to spawn entities from within a component.
 
 ```tsx
-import { useTransform, useClickable, useTrigger } from 'fraxel/hooks'
+import { useTransform, useClickable, useTrigger } from 'fraxel'
 
 function Spawner() {
   const container = useTransform()

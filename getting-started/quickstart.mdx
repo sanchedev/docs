@@ -1,0 +1,154 @@
+---
+title: 'Quickstart — Create a Fraxel Game in Seconds'
+sidebarTitle: 'Quickstart'
+description: 'Scaffold a new Fraxel game with Vite, the Fraxel plugin, and TypeScript pre-configured using create-fraxel.'
+---
+
+The fastest way to start building a game with Fraxel is the `create-fraxel` CLI. It scaffolds a Vite project with TypeScript, the `@fraxel/vite-plugin` plugin, and a minimal game ready to run — no manual configuration needed.
+
+## Scaffold a project
+
+<CodeGroup>
+
+```bash npm
+npx create-fraxel my-game
+```
+
+```bash pnpm
+pnpm create fraxel my-game
+```
+
+```bash yarn
+yarn create fraxel my-game
+```
+
+</CodeGroup>
+
+The CLI will guide you through:
+
+- **Choose a template** — `Empty`, `Platformer`, or `Top-down`
+- **Install dependencies?** — optionally run `npm install` automatically
+
+```
+┌  🎮 create-fraxel
+│
+◇  Choose a template
+│  Empty
+│
+◇  Install dependencies?
+│  No
+│
+◇  Creating project...
+│
+└  ✨ Project ready!
+
+cd my-game
+npm install
+npm run dev
+```
+
+The CLI creates a `my-game/` directory with the following structure:
+
+```
+my-game/
+├── src/
+│   ├── main.tsx
+│   ├── scenes/
+│   │   └── main.tsx
+│   └─── style.css
+├── index.html
+├── package.json
+├── tsconfig.json
+└── vite.config.ts
+```
+
+## What the template includes
+
+**Vite + Fraxel plugin** — `vite.config.ts` comes pre-configured with `@fraxel/vite-plugin`. You do not need to set `esbuild.jsxImportSource` or any JSX options manually — the plugin handles it.
+
+```ts vite.config.ts
+import { defineConfig } from 'vite'
+import { fraxel } from '@fraxel/vite-plugin'
+
+export default defineConfig({
+  plugins: [fraxel()],
+})
+```
+
+**TypeScript configured** — `tsconfig.json` includes the Fraxel JSX settings and client types for asset imports:
+
+```json tsconfig.json
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "strict": true,
+    "jsx": "react-jsx",
+    "jsxImportSource": "fraxel",
+    "types": ["@fraxel/vite-plugin/client"]
+  }
+}
+```
+
+**Asset imports** — with the plugin, you can import sprites and sounds directly as ES modules. The import resolves to a Fraxel texture or sound symbol at build time:
+
+```tsx src/scenes/main.tsx
+import PLAYER from '../assets/sprites/player.png'
+
+export function MainScene() {
+  return (
+    <transform>
+      <sprite textureId={PLAYER} />
+    </transform>
+  )
+}
+```
+
+The plugin detects the file extension (`.png`, `.jpg`, `.mp3`, etc.) and calls `loadTexture` or `loadSound` automatically. The imported value is a `symbol` that you pass directly to node props.
+
+**Supported asset formats:**
+
+| Type     | Extensions                                                                                |
+| -------- | ----------------------------------------------------------------------------------------- |
+| Textures | `.png`, `.jpg`, `.jpeg`, `.gif`, `.svg`, `.webp`, `.avif`, `.bmp`, `.ico`, `.cur`, `.jxl` |
+| Sounds   | `.ogg`, `.mp3`, `.wav`, `.flac`, `.aac`, `.opus`, `.m4a`                                  |
+
+## Run the dev server
+
+<CodeGroup>
+
+```bash npm
+cd my-game && npm run dev
+```
+
+```bash pnpm
+cd my-game && pnpm dev
+```
+
+```bash yarn
+cd my-game && yarn dev
+```
+
+</CodeGroup>
+
+Vite starts a dev server with hot module replacement. When you edit a Fraxel component file, the changes appear in the browser without a full page reload.
+
+## Importing assets from `public/`
+
+The template also supports the traditional approach of loading assets from `public/` with URL strings. This is useful for dynamically constructed paths or assets loaded at runtime:
+
+```ts
+import { loadTexture } from 'fraxel'
+
+const texture = await loadTexture('/assets/sprites/player.png')
+```
+
+Both patterns work in the same project. Use direct imports for static assets you know at build time, and `loadTexture`/`loadSound` for runtime URLs.
+
+## Next steps
+
+- **[Installation](/getting-started/installation)** — manual setup without the CLI
+- **[First Game](/getting-started/first-game)** — build a complete platformer step by step
+- **[Project Structure](/getting-started/project-structure)** — recommended layout for larger games
+- **[Vite Plugin Reference](/api/engine/vite-plugin)** — all plugin options and features

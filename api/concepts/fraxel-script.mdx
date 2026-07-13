@@ -1,7 +1,7 @@
 ---
-title: "FraxelScript API Reference — Fraxel Game Engine"
-sidebarTitle: "FraxelScript"
-description: "Reference for FraxelScript: separating game logic from rendering with type-safe event subscriptions and node access."
+title: 'FraxelScript API Reference — Fraxel Game Engine'
+sidebarTitle: 'FraxelScript'
+description: 'Reference for FraxelScript: separating game logic from rendering with type-safe event subscriptions and node access.'
 ---
 
 `FraxelScript` is an abstract class that separates game logic from rendering. Attach a script to any node via the `script` prop to run logic independently of the JSX component tree.
@@ -65,7 +65,9 @@ get me(): NodeInstances[T]
 ```
 
 <Warning>
-Accessing `this.me` before `init()` is called throws `NodeNotInitializedError`. Don't access it in the constructor — only in `setup()` and methods called after the node has started.
+  Accessing `this.me` before `init()` is called throws
+  `NodeNotInitializedError`. Don't access it in the constructor — only in
+  `setup()` and methods called after the node has started.
 </Warning>
 
 ---
@@ -88,10 +90,10 @@ The `connect` method subscribes to a node event by name. Provides type-safe even
 connect<K extends keyof NodeEvent<NodeInstances[T]>>(ev: K, func: EventFrom<T, K>['exampleFun']): void
 ```
 
-<ParamField path="ev" type="string" required>
+<ParamField path='ev' type='string' required>
   The event name to subscribe to (e.g. `'started'`, `'destroyed'`, `'updated'`).
 </ParamField>
-<ParamField path="func" type="function" required>
+<ParamField path='func' type='function' required>
   The callback to invoke when the event fires.
 </ParamField>
 
@@ -148,7 +150,7 @@ There are two ways to call methods on a script from another component.
 **`ref.script(ScriptClass)`** — call it on any node reference to retrieve the attached script instance. Returns the script if attached, or `undefined`:
 
 ```tsx hud.tsx
-import { useSprite, useEffect } from 'fraxel/hooks'
+import { useSprite, useEffect } from 'fraxel'
 
 function HUD({ playerRef }: { playerRef: SpriteReference }) {
   useEffect(() => {
@@ -175,7 +177,7 @@ function HUD({ playerRef }: { playerRef: SpriteReference }) {
 **`getParentScript(node, ScriptClass)`** — use this inside event callbacks when you encounter a node dynamically and want to retrieve its parent's script:
 
 ```tsx projectile.tsx
-import { useCollider } from 'fraxel/hooks'
+import { useCollider } from 'fraxel'
 import { shapes, getParentScript } from 'fraxel'
 import { EnemyScript } from './enemy-script.js'
 
@@ -188,7 +190,7 @@ function Projectile() {
   })
 
   return (
-    <rigid-body useGravity={false}>
+    <body useGravity={false}>
       <sprite textureId={BULLET} sourceSize={[8, 4]} />
       <collider
         ref={collider}
@@ -196,7 +198,7 @@ function Projectile() {
         group={['bullet']}
         collidesWith={['enemy']}
       />
-    </rigid-body>
+    </body>
   )
 }
 ```
@@ -205,13 +207,13 @@ function Projectile() {
 
 ## When to Use Scripts vs Hooks
 
-| Scenario | Recommended approach |
-|----------|---------------------|
-| Simple state (score, health) | `useSignal` in a component |
-| Complex behavior (AI, state machines) | `FraxelScript` class |
-| Cross-component method calls | `FraxelScript` + `ref.script(ScriptClass)` |
-| Event-driven cleanup logic | `useMount` return function |
-| Shared global state | `Signal` class at module scope |
+| Scenario                              | Recommended approach                       |
+| ------------------------------------- | ------------------------------------------ |
+| Simple state (score, health)          | `useSignal` in a component                 |
+| Complex behavior (AI, state machines) | `FraxelScript` class                       |
+| Cross-component method calls          | `FraxelScript` + `ref.script(ScriptClass)` |
+| Event-driven cleanup logic            | `useMount` return function                 |
+| Shared global state                   | `Signal` class at module scope             |
 
 ---
 
@@ -224,7 +226,7 @@ Inside a `FraxelScript` class, use `createSignal` and `signalSetterFrom` instead
 Creates a reactive signal outside of hooks. Returns a `SignalGetter<T>`.
 
 ```ts
-import { createSignal } from 'fraxel/hooks'
+import { createSignal } from 'fraxel'
 
 class PlayerScript extends FraxelScript<PrimaryNode.Transform> {
   health = createSignal(100)
@@ -240,7 +242,7 @@ class PlayerScript extends FraxelScript<PrimaryNode.Transform> {
 Extracts a `SignalSetter<T>` from a `SignalGetter<T>`. Useful when you want a separate setter reference.
 
 ```ts
-import { createSignal, signalSetterFrom } from 'fraxel/hooks'
+import { createSignal, signalSetterFrom } from 'fraxel'
 
 class PlayerScript extends FraxelScript<PrimaryNode.Transform> {
   health = createSignal(100)
@@ -253,7 +255,10 @@ class PlayerScript extends FraxelScript<PrimaryNode.Transform> {
 ```
 
 <Tip>
-For spawning multiple enemies with independent scripts, create a new script instance per enemy: `script={new EnemyScript()}`. Scripts hold per-instance state, so sharing one instance between nodes will cause them to share `health`, `direction`, etc.
+  For spawning multiple enemies with independent scripts, create a new script
+  instance per enemy: `script={new EnemyScript()}`. Scripts hold per-instance
+  state, so sharing one instance between nodes will cause them to share
+  `health`, `direction`, etc.
 </Tip>
 
 ## Related

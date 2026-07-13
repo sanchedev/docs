@@ -1,13 +1,13 @@
 ---
-title: "<sprite> — Texture rendering node with visual filters"
-sidebarTitle: "<sprite>"
-description: "Render a loaded texture in the game world with sprite-sheet slicing, display scaling, flip, and visual filters including tint and opacity."
+title: '<sprite> — Texture rendering node with visual filters'
+sidebarTitle: '<sprite>'
+description: 'Render a loaded texture in the game world with sprite-sheet slicing, display scaling, flip, and visual filters including tint and opacity.'
 ---
 
 Use `<sprite>` to display a texture loaded with `loadTexture()`. It supports sprite-sheet slicing via `margin` and `sourceSize`, independent display scaling via `displaySize`, horizontal/vertical flipping, and a full suite of visual filters (brightness, grayscale, tint, contrast, saturation, hue rotation, inversion, and opacity). All filter props accept reactive `SignalGetter` values for frame-by-frame control without re-rendering the scene tree.
 
 ```tsx
-import { useSprite } from 'fraxel/hooks'
+import { useSprite } from 'fraxel'
 import { loadTexture } from 'fraxel'
 
 const PLAYER_TEX = await loadTexture('/assets/player.png')
@@ -37,13 +37,14 @@ function Player() {
   a reactive `SignalGetter<symbol>` to swap textures at runtime (e.g. for
   animation).
 
-  ```tsx
-  const TEX = await loadTexture('/assets/ball.png')
-  <sprite textureId={TEX} />
-  ```
+```tsx
+const TEX = await loadTexture('/assets/ball.png')
+<sprite textureId={TEX} />
+```
+
 </ParamField>
 
-<ParamField path="position" type="Reactive<VectorLike>">
+<ParamField path='position' type='Reactive<VectorLike>'>
   Position of the sprite relative to its parent node. Defaults to `[0, 0]`.
 </ParamField>
 
@@ -51,27 +52,30 @@ function Player() {
   Pixel offset into the source texture before sampling. Use this to select a
   specific frame in a sprite sheet. Defaults to `[0, 0]`.
 
-  ```tsx
-  {/* Second frame of a 16 px-wide sheet */}
-  <sprite textureId={SHEET} margin={[16, 0]} sourceSize={[16, 16]} />
-  ```
+```tsx
+{
+  /* Second frame of a 16 px-wide sheet */
+}
+;<sprite textureId={SHEET} margin={[16, 0]} sourceSize={[16, 16]} />
+```
+
 </ParamField>
 
-<ParamField path="sourceSize" type="Reactive<VectorLike>">
+<ParamField path='sourceSize' type='Reactive<VectorLike>'>
   The pixel region of the source texture to draw. Defaults to the full texture
   size. Used together with `margin` for sprite-sheet slicing.
 </ParamField>
 
-<ParamField path="displaySize" type="Reactive<VectorLike>">
+<ParamField path='displaySize' type='Reactive<VectorLike>'>
   The on-screen rendered size. Defaults to `sourceSize`. Use this to scale up a
   16×16 sprite to 64×64 without changing the sampled region.
 </ParamField>
 
-<ParamField path="flipX" type="Reactive<boolean>">
+<ParamField path='flipX' type='Reactive<boolean>'>
   Mirror the sprite horizontally. Defaults to `false`.
 </ParamField>
 
-<ParamField path="flipY" type="Reactive<boolean>">
+<ParamField path='flipY' type='Reactive<boolean>'>
   Mirror the sprite vertically. Defaults to `false`.
 </ParamField>
 
@@ -81,11 +85,11 @@ All filter props are optional and accept a plain number **or** a reactive
 `SignalGetter<number>`. Filters are composed via `ctx.filter` in the canvas
 pipeline. `modulate` additionally uses `globalCompositeOperation: 'multiply'`.
 
-<ParamField path="brightness" type="Reactive<number>">
+<ParamField path='brightness' type='Reactive<number>'>
   Adjust luminosity. `0` = black, `1` = normal (default), `2` = fully white.
 </ParamField>
 
-<ParamField path="grayscale" type="Reactive<number>">
+<ParamField path='grayscale' type='Reactive<number>'>
   Desaturate the sprite. `0` = full color (default), `1` = fully grayscale.
 </ParamField>
 
@@ -93,35 +97,38 @@ pipeline. `modulate` additionally uses `globalCompositeOperation: 'multiply'`.
   RGBA tint applied via multiply blending. `Color` is `[r, g, b, a]` with each
   channel `0–1`. Default is `[1, 1, 1, 1]` (no tint).
 
-  ```tsx
-  {/* Warm orange tint */}
-  <sprite textureId={TEX} modulate={[1, 0.5, 0, 1]} />
-  ```
+```tsx
+{
+  /* Warm orange tint */
+}
+;<sprite textureId={TEX} modulate={[1, 0.5, 0, 1]} />
+```
+
 </ParamField>
 
-<ParamField path="contrast" type="Reactive<number>">
+<ParamField path='contrast' type='Reactive<number>'>
   Adjust contrast. `0` = flat grey, `1` = normal (default), `2` = double
   contrast.
 </ParamField>
 
-<ParamField path="saturate" type="Reactive<number>">
+<ParamField path='saturate' type='Reactive<number>'>
   Adjust color saturation. `0` = desaturated, `1` = normal (default).
 </ParamField>
 
-<ParamField path="hueRotate" type="Reactive<number>">
+<ParamField path='hueRotate' type='Reactive<number>'>
   Rotate the hue wheel in degrees. `0` = no rotation (default), `360` = full
   cycle.
 </ParamField>
 
-<ParamField path="invert" type="Reactive<number>">
+<ParamField path='invert' type='Reactive<number>'>
   Invert colors. `0` = normal (default), `1` = fully inverted.
 </ParamField>
 
-<ParamField path="opacity" type="Reactive<number>">
+<ParamField path='opacity' type='Reactive<number>'>
   Overall transparency. `0` = fully transparent, `1` = fully opaque (default).
 </ParamField>
 
-<ParamField path="gameMode" type="GameMode">
+<ParamField path='gameMode' type='GameMode'>
   Controls how this node behaves when the game is paused. Defaults to
   `GameMode.INHERIT`. Use `GameMode.ALWAYS` for nodes that should keep updating
   while paused.
@@ -129,25 +136,25 @@ pipeline. `modulate` additionally uses `globalCompositeOperation: 'multiply'`.
 
 ## Computed properties
 
-| Property | Type | Description |
-|---|---|---|
-| `globalPosition` | `Vector2` | Absolute world-space position. |
-| `getTexture()` | `Texture \| undefined` | Returns the resolved `Texture` object after the node starts. |
+| Property         | Type                   | Description                                                  |
+| ---------------- | ---------------------- | ------------------------------------------------------------ |
+| `globalPosition` | `Vector2`              | Absolute world-space position.                               |
+| `getTexture()`   | `Texture \| undefined` | Returns the resolved `Texture` object after the node starts. |
 
 ## Events
 
-| Event name | Callback | Description |
-|---|---|---|
-| `started` | `() => void` | Fires once after `start()`. |
-| `updated` | `(delta: number) => void` | Fires every frame during update. |
-| `drawed` | `(delta: number) => void` | Fires every frame when the node is being drawn. |
-| `destroyed` | `() => void` | Fires on removal from the scene. |
-| `zIndexChanged` | `(zIndex: number) => void` | Fires when the node's `zIndex` value changes. |
+| Event name      | Callback                   | Description                                     |
+| --------------- | -------------------------- | ----------------------------------------------- |
+| `started`       | `() => void`               | Fires once after `start()`.                     |
+| `updated`       | `(delta: number) => void`  | Fires every frame during update.                |
+| `drawed`        | `(delta: number) => void`  | Fires every frame when the node is being drawn. |
+| `destroyed`     | `() => void`               | Fires on removal from the scene.                |
+| `zIndexChanged` | `(zIndex: number) => void` | Fires when the node's `zIndex` value changes.   |
 
 <CodeGroup>
 
 ```tsx Reactive filter (damage flash)
-import { useSignal, useSprite } from 'fraxel/hooks'
+import { useSignal, useSprite } from 'fraxel'
 
 function Enemy() {
   const sprite = useSprite()
@@ -159,11 +166,7 @@ function Enemy() {
   }
 
   return (
-    <sprite
-      ref={sprite}
-      textureId={ENEMY_TEX}
-      brightness={flashBrightness}
-    />
+    <sprite ref={sprite} textureId={ENEMY_TEX} brightness={flashBrightness} />
   )
 }
 ```
@@ -191,7 +194,7 @@ const WALK_SHEET = await loadTexture('/assets/walk.png')
 </Note>
 
 <Tip>
-  For animated sprites, prefer [`<animation-player>`](/api/nodes/animation-player)
+  For animated sprites, prefer [`<animator>`](/api/nodes/animator)
   over manually swapping `textureId`. It handles frame timing, looping, and
   reactive animation switching automatically.
 </Tip>
@@ -199,6 +202,6 @@ const WALK_SHEET = await loadTexture('/assets/walk.png')
 ## Related
 
 - [Sprite Filters guide](/guides/filters) — full filter reference with examples
-- [`<animation-player>`](/api/nodes/animation-player) — frame animation for sprites
+- [`<animator>`](/api/nodes/animator) — frame animation for sprites
 - [`<geometry>`](/api/nodes/geometry) — render shapes without a texture
 - [`loadTexture`](/api/engine/assets) — load and cache textures

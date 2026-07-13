@@ -1,6 +1,6 @@
 ---
-title: "Derived Hooks API Reference — Fraxel Game Engine"
-sidebarTitle: "Derived Hooks"
+title: 'Derived Hooks API Reference — Fraxel Game Engine'
+sidebarTitle: 'Derived Hooks'
 description: "Reference for Fraxel's derived hooks: useCondition, useMatch, useWhen, and useSize for reactive derived values."
 ---
 
@@ -16,22 +16,22 @@ Creates a reactive boolean that toggles between `true` and `false` based on two 
 useCondition(agreeTrigger: Trigger<any>, disagreeTrigger: Trigger<any>, defaultValue?: boolean): SignalGetter<boolean>
 ```
 
-<ParamField path="agreeTrigger" type="Trigger<any>" required>
+<ParamField path='agreeTrigger' type='Trigger<any>' required>
   The trigger that sets the condition to `true`.
 </ParamField>
 
-<ParamField path="disagreeTrigger" type="Trigger<any>" required>
+<ParamField path='disagreeTrigger' type='Trigger<any>' required>
   The trigger that sets the condition to `false`.
 </ParamField>
 
-<ParamField path="defaultValue" type="boolean">
+<ParamField path='defaultValue' type='boolean'>
   Initial value of the condition. Defaults to `false`.
 </ParamField>
 
 **Returns** `SignalGetter<boolean>` — reactive boolean reflecting the current state.
 
 ```tsx
-import { useCondition, useComputed, useClickable } from 'fraxel/hooks'
+import { useCondition, useComputed, useClickable } from 'fraxel'
 
 const clickable = useClickable()
 const hover = useCondition(clickable.mouseEntered, clickable.mouseExited)
@@ -42,10 +42,13 @@ return <sprite brightness={brightness} />
 ```
 
 ```tsx
-import { useCondition, useEffect, useRayCast } from 'fraxel/hooks'
+import { useCondition, useEffect, useRayCast } from 'fraxel'
 
 const raycast = useRayCast()
-const isZombieDetected = useCondition(raycast.colliderEntered, raycast.colliderExited)
+const isZombieDetected = useCondition(
+  raycast.colliderEntered,
+  raycast.colliderExited,
+)
 
 useEffect(() => {
   anim.node.setNext(isZombieDetected() ? 'shoot' : 'idle')
@@ -62,22 +65,22 @@ Toggles between two values based on a boolean signal. Similar to a ternary expre
 useWhen<T>(signal: SignalGetterLike<boolean>, whenTrue: Reactive<T>, whenFalse: Reactive<T>): SignalGetter<T>
 ```
 
-<ParamField path="signal" type="SignalGetterLike<boolean>" required>
+<ParamField path='signal' type='SignalGetterLike<boolean>' required>
   The boolean signal that determines which value to return.
 </ParamField>
 
-<ParamField path="whenTrue" type="Reactive<T>" required>
+<ParamField path='whenTrue' type='Reactive<T>' required>
   Value to return when the signal is `true`.
 </ParamField>
 
-<ParamField path="whenFalse" type="Reactive<T>" required>
+<ParamField path='whenFalse' type='Reactive<T>' required>
   Value to return when the signal is `false`.
 </ParamField>
 
 **Returns** `SignalGetter<T>` — reactive value reflecting the current choice.
 
 ```tsx
-import { useCondition, useWhen, useClickable } from 'fraxel/hooks'
+import { useCondition, useWhen, useClickable } from 'fraxel'
 
 const clickable = useClickable()
 const isHovered = useCondition(clickable.mouseEntered, clickable.mouseExited)
@@ -87,13 +90,16 @@ return <sprite brightness={brightness} />
 ```
 
 ```tsx
-import { useCondition, useWhen, useRayCast } from 'fraxel/hooks'
+import { useCondition, useWhen, useRayCast } from 'fraxel'
 
 const raycast = useRayCast()
-const isZombieDetected = useCondition(raycast.colliderEntered, raycast.colliderExited)
+const isZombieDetected = useCondition(
+  raycast.colliderEntered,
+  raycast.colliderExited,
+)
 const animName = useWhen(isZombieDetected, 'shoot', 'idle')
 
-return <animation-player currentAnim={animName} />
+return <animator currentAnim={animName} />
 ```
 
 ---
@@ -106,22 +112,22 @@ Maps a signal's value to a corresponding value from a record. Similar to a `swit
 useMatch<T extends number | string | symbol, K>(signal: SignalGetterLike<T>, record: Reactive<Record<T, K>>, defaultValue?: Reactive<K>): SignalGetter<K | undefined>
 ```
 
-<ParamField path="signal" type="SignalGetterLike<T>" required>
+<ParamField path='signal' type='SignalGetterLike<T>' required>
   The signal that returns the key to match against.
 </ParamField>
 
-<ParamField path="record" type="Reactive<Record<T, K>>" required>
+<ParamField path='record' type='Reactive<Record<T, K>>' required>
   A record mapping signal values to computed values.
 </ParamField>
 
-<ParamField path="defaultValue" type="Reactive<K>">
+<ParamField path='defaultValue' type='Reactive<K>'>
   Value to return if the signal value is not found in the record.
 </ParamField>
 
 **Returns** `SignalGetter<K | undefined>` — reactive value reflecting the matched result.
 
 ```tsx
-import { useSignal, useMatch } from 'fraxel/hooks'
+import { useSignal, useMatch } from 'fraxel'
 
 const [state, setState] = useSignal<'idle' | 'walking' | 'jumping'>('idle')
 
@@ -131,7 +137,7 @@ const animation = useMatch(state, {
   jumping: 'jump-anim',
 })
 
-return <animation-player currentAnim={animation} />
+return <animator currentAnim={animation} />
 ```
 
 ---
@@ -147,7 +153,7 @@ useSize(): Vector2
 **Returns** `Vector2` — reactive `Vector2` with `x` (width) and `y` (height) of the game canvas.
 
 ```tsx
-import { useSize, useEffect } from 'fraxel/hooks'
+import { useSize, useEffect } from 'fraxel'
 
 const size = useSize()
 

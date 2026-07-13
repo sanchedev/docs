@@ -186,11 +186,11 @@ Static class `Game`:
 
 - `setup({width, height, root, pauseOnBlur?, theme?})` — initialize canvas
 - `play()` — start game loop
+- `resume()` — resume game
 - `pause()` — pause game
 - `destroy()` — stop loop, cleanup
-- `paused` → `SignalGetter<boolean>` (reactive)
-- `sceneManager` — manage scenes
 - Event: `blurred` (on window blur)
+- Event: `focused` (on window focus)
 
 ---
 

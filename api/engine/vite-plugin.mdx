@@ -1,0 +1,187 @@
+---
+title: '@fraxel/vite-plugin — Vite Plugin Reference'
+sidebarTitle: 'Vite Plugin'
+description: 'Configure @fraxel/vite-plugin for asset imports, JSX auto-configuration, hot module replacement, and development diagnostics.'
+---
+
+`@fraxel/vite-plugin` integrates Fraxel with Vite. It auto-configures the JSX transform, enables direct asset imports, adds hot module replacement for Fraxel components, and runs diagnostics to catch configuration errors early.
+
+## Setup
+
+Install the plugin alongside Vite:
+
+<CodeGroup>
+
+```bash npm
+npm install --save-dev @fraxel/vite-plugin
+```
+
+```bash pnpm
+pnpm add --save-dev @fraxel/vite-plugin
+```
+
+```bash yarn
+yarn add --dev @fraxel/vite-plugin
+```
+
+</CodeGroup>
+
+Add it to your Vite config:
+
+```ts vite.config.ts
+import { defineConfig } from 'vite'
+import { fraxel } from '@fraxel/vite-plugin'
+
+export default defineConfig({
+  plugins: [fraxel()],
+})
+```
+
+The plugin configures the OXC/esbuild JSX transform automatically. You do **not** need to set `esbuild.jsxImportSource` or `oxc.jsx` manually.
+
+## TypeScript config
+
+Add the client types to your `tsconfig.json` so TypeScript recognizes asset imports:
+
+```json tsconfig.json
+{
+  "compilerOptions": {
+    "types": ["@fraxel/vite-plugin/client"],
+    "jsx": "react-jsx",
+    "jsxImportSource": "fraxel"
+  }
+}
+```
+
+Without `"types": ["@fraxel/vite-plugin/client"]`, TypeScript will report errors on `import texture from './sprite.png'` statements.
+
+## Options
+
+<ParamField path='debug' type='boolean' default='false'>
+  Exposes a `virtual:fraxel` module with `version`, `mode`, and `debug` exports
+  for runtime inspection.
+</ParamField>
+
+<ParamField
+  path='diagnostics'
+  type="boolean | 'warn' | 'error'"
+  default="'warn'">
+  Controls diagnostic checks at build time. Set to `false` to disable, `'warn'`
+  to log warnings, or `'error'` to throw on misconfiguration.
+</ParamField>
+
+<ParamField path='kind' type='string'>
+  Passed through to Vite's `this.resolve()` when resolving asset imports. Use
+  this if you need custom resolution behavior.
+</ParamField>
+
+```ts vite.config.ts
+export default defineConfig({
+  plugins: [
+    fraxel({
+      debug: true,
+      diagnostics: 'error',
+    }),
+  ],
+})
+```
+
+## Asset imports
+
+The plugin lets you import texture and sound files directly as ES modules. The import resolves to a Fraxel `symbol` at build time:
+
+```tsx src/scenes/main.tsx
+import PLAYER from '../assets/sprites/player.png'
+import JUMP from '../assets/sounds/jump.mp3'
+
+export function MainScene() {
+  return (
+    <transform>
+      <sprite textureId={PLAYER} />
+    </transform>
+  )
+}
+```
+
+The plugin detects the file extension and generates a wrapper that calls `loadTexture` or `loadSound` under the hood. The imported value is a `symbol` — the same type returned by `loadTexture`/`loadSound`.
+
+### Supported formats
+
+| Type     | Extensions                                                                                |
+| -------- | ----------------------------------------------------------------------------------------- |
+| Textures | `.png`, `.jpg`, `.jpeg`, `.gif`, `.svg`, `.webp`, `.avif`, `.bmp`, `.ico`, `.cur`, `.jxl` |
+| Sounds   | `.ogg`, `.mp3`, `.wav`, `.flac`, `.aac`, `.opus`, `.m4a`                                  |
+
+### Explicit type hints
+
+You can force a specific asset type with query params when the extension is ambiguous:
+
+```ts
+import sound from './assets/background.?sound'
+import texture from './assets/background.?texture'
+```
+
+### How it works
+
+When the plugin encounters an import like `import tex from './sprite.png'`, it:
+
+1. Resolves the file path through Vite's resolver
+2. Generates a virtual module that calls `loadTexture(resolvedUrl)` with `await`
+3. Exports the resulting `symbol` as the default export
+
+This means the asset is loaded asynchronously at module evaluation time. Since Fraxel uses top-level `await`, this works naturally at the top of your scene files.
+
+## Hot module replacement
+
+The plugin enables HMR for Fraxel component files (any `.tsx`, `.ts`, `.jsx`, or `.js` file that imports from `fraxel`). When you edit a component:
+
+1. The plugin appends `import.meta.hot.accept()` to the module
+2. On save, it sends a custom `fraxel:hmr` event to the dev server
+3. The Fraxel runtime picks up the update and re-renders affected nodes without a full page reload
+
+No configuration is needed — HMR is active by default in development.
+
+## Diagnostics
+
+When the Vite config is resolved, the plugin runs a set of checks to catch common mistakes:
+
+| Check                 | What it detects                                                                           |
+| --------------------- | ----------------------------------------------------------------------------------------- |
+| React plugin conflict | React-related Vite plugins (e.g., `@vitejs/plugin-react`) that override the JSX transform |
+| JSX config            | Incorrect `oxc.jsx.runtime` or `oxc.jsx.importSource` settings                            |
+| tsconfig              | Missing or wrong `jsx` / `jsxImportSource` values in `tsconfig.json`                      |
+| Fraxel version        | Whether `fraxel` is installed and its version can be read from `package.json`             |
+
+Diagnostics run at startup. By default they emit warnings. Set `diagnostics: 'error'` to fail the build on misconfiguration, or `diagnostics: false` to skip checks entirely.
+
+## Virtual module
+
+The plugin provides a virtual module `virtual:fraxel` (available when `debug: true`):
+
+```ts
+import { version, mode, debug } from 'virtual:fraxel'
+```
+
+| Export    | Type      | Description                                     |
+| --------- | --------- | ----------------------------------------------- |
+| `version` | `string`  | The version from your project's `package.json`  |
+| `mode`    | `string`  | `'development'` or `'production'`               |
+| `debug`   | `boolean` | The `debug` option value from the plugin config |
+
+## Comparison: with and without the plugin
+
+| Feature          | Without plugin                                  | With plugin                                 |
+| ---------------- | ----------------------------------------------- | ------------------------------------------- |
+| JSX config       | Manual `esbuild.jsxImportSource` in Vite config | Automatic                                   |
+| Asset loading    | `loadTexture('/assets/sprite.png')`             | `import tex from './sprite.png'`            |
+| TypeScript types | None for asset imports                          | Full types via `@fraxel/vite-plugin/client` |
+| HMR              | Full page reload                                | Component-level hot reload                  |
+| Diagnostics      | None                                            | Automatic config validation                 |
+
+Both approaches work. The plugin is recommended for new projects but is entirely optional.
+
+## Related
+
+- **[Quickstart](/getting-started/quickstart)** — scaffold a project with the plugin pre-configured
+- **[Deployment](/getting-started/deployment)** — production builds with Vite
+- **[Assets](/api/engine/assets)** — `loadTexture`, `loadSound`, and `loadBatchAsset` API

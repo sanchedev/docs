@@ -28,7 +28,7 @@ useSignal<T>(initialValue: T): [SignalGetter<T>, SignalSetter<T>]
 | `setter` | `(value: T) => void` | Call to update the value and notify subscribers. |
 
 ```tsx
-import { useSignal, useEffect } from 'fraxel/hooks'
+import { useSignal, useEffect } from 'fraxel'
 
 function HealthBar() {
   const [health, setHealth] = useSignal(100)
@@ -66,7 +66,7 @@ useComputed<T>(fn: () => T): SignalGetter<T>
 **Returns** `SignalGetter<T>` — a read-only getter for the derived value.
 
 ```tsx
-import { useSignal, useComputed } from 'fraxel/hooks'
+import { useSignal, useComputed } from 'fraxel'
 
 function CooldownBar() {
   const [elapsed, setElapsed] = useSignal(0)
@@ -134,7 +134,7 @@ useUpdate(fn: (delta: number) => void): void
 </ParamField>
 
 ```tsx
-import { useUpdate, useSignal } from 'fraxel/hooks'
+import { useUpdate, useSignal } from 'fraxel'
 
 function Rotator() {
   const angle = useSignal(0)

@@ -1,10 +1,16 @@
 ---
-title: "Installing Fraxel — npm Setup & TypeScript Config"
-sidebarTitle: "Installation"
+title: 'Installing Fraxel — npm Setup & TypeScript Config'
+sidebarTitle: 'Installation'
 description: "Install Fraxel with npm, yarn, or pnpm. Configure TypeScript's jsxImportSource to use Fraxel's JSX runtime and set up your HTML canvas entry point."
 ---
 
-Fraxel is distributed as a single npm package. Because it ships its own JSX runtime, you also need a small TypeScript configuration change to tell the compiler to route JSX through Fraxel instead of React. This page walks through everything you need to go from zero to a working project.
+<Note>
+  **New to Fraxel?** Run `npx create-fraxel my-game` to scaffold a project with
+  Vite and the Fraxel plugin pre-configured. See the
+  [Quickstart](/getting-started/quickstart) guide.
+</Note>
+
+This page covers manual installation without the CLI. If you prefer to set up everything yourself — or need to add Fraxel to an existing project — follow the steps below.
 
 ## Install the package
 
@@ -45,7 +51,11 @@ Add the following to your `tsconfig.json`. The critical options are `jsx: "react
 ```
 
 <Note>
-  `verbatimModuleSyntax` enforces that type-only imports use the `import type` syntax. You will need to write `import type { NodeReference } from 'fraxel/hooks'` instead of `import { NodeReference } from 'fraxel/hooks'` for types. This keeps the emitted JavaScript clean and avoids accidental runtime imports of type-only symbols.
+  `verbatimModuleSyntax` enforces that type-only imports use the `import type`
+  syntax. You will need to write `import type {NodeReference} from 'fraxel'`
+  instead of `import {NodeReference} from 'fraxel'` for types. This keeps the
+  emitted JavaScript clean and avoids accidental runtime imports of type-only
+  symbols.
 </Note>
 
 ## Create your HTML entry point
@@ -81,24 +91,17 @@ Fraxel renders into a `<canvas>` element that it creates and mounts inside a con
 ```
 
 <Tip>
-  Setting `image-rendering: pixelated` on the canvas prevents the browser from blurring low-resolution pixel-art games when the canvas is scaled up via CSS.
+  Setting `image-rendering: pixelated` on the canvas prevents the browser from
+  blurring low-resolution pixel-art games when the canvas is scaled up via CSS.
 </Tip>
 
 ## Import paths
 
-The `fraxel` package exposes several sub-path imports, each scoped to a specific part of the engine. Import only what you need to keep your bundle lean.
-
-| Import path | What it provides |
-|---|---|
-| `fraxel` | Core nodes, math utilities (`Vector2`), collision shapes, `Input`, `Signal`, `PhysicsSystem`, assets loaders, animations utilities, audio management |
-| `fraxel/hooks` | All hooks: `useSignal`, `useEffect`, `useMount`, `useAction`, `useTrigger`, and all node-specific hooks (`useSprite`, `useTransform`, `useCollider`, etc.) |
-| `fraxel/jsx` | JSX components: `Game`, `Scene`, `List`, `Fragment`; and `createGame` |
-
-A typical game file imports from two or three of these paths:
+Everything is exported from a single entry point — `'fraxel'`:
 
 ```tsx main.tsx
-import { createGame, Game, Scene } from 'fraxel/jsx'
-import { useSignal, useSprite, useTrigger } from 'fraxel/hooks'
+import { createGame, GameRoot, SceneRoot } from 'fraxel'
+import { useSignal, useSprite, useTrigger } from 'fraxel'
 import { loadTexture, shapes } from 'fraxel'
 ```
 
@@ -107,14 +110,14 @@ import { loadTexture, shapes } from 'fraxel'
 Create a minimal `src/main.tsx` and run your bundler. If TypeScript compiles without errors and you see a black canvas in the browser, your setup is correct.
 
 ```tsx src/main.tsx
-import { createGame, Game, Scene } from 'fraxel/jsx'
+import { createGame, GameRoot, SceneRoot } from 'fraxel'
 
 const scene = () => <transform />
 
 const game = createGame(
-  <Game width={320} height={180} defaultScene="main">
-    <Scene name="main" component={scene} />
-  </Game>,
+  <GameRoot width={320} height={180} defaultScene='main'>
+    <SceneRoot name='main' component={scene} />
+  </GameRoot>,
   document.querySelector('#root')!,
 )
 

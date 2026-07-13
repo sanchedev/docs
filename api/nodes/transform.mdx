@@ -1,13 +1,13 @@
 ---
-title: "<transform> — Node2D positioning and hierarchy container"
-sidebarTitle: "<transform>"
-description: "Use <transform> to position, group, and nest child nodes in 2D space. The fundamental building block for game object hierarchies in Fraxel."
+title: '<transform> — Node2D positioning and hierarchy container'
+sidebarTitle: '<transform>'
+description: 'Use <transform> to position, group, and nest child nodes in 2D space. The fundamental building block for game object hierarchies in Fraxel.'
 ---
 
 Use `<transform>` to position child nodes in world space. It has no visual representation of its own — it exists purely as a coordinate-space container. Any node that needs a world position (a player, an enemy, a UI group) should live inside a `<transform>`. Because transforms nest, a child's position is always relative to its parent's `position`.
 
 ```tsx
-import { useTransform, useTrigger } from 'fraxel/hooks'
+import { useTransform, useTrigger } from 'fraxel'
 import { loadTexture } from 'fraxel'
 
 const PLAYER_TEX = await loadTexture('/assets/player.png')
@@ -37,10 +37,22 @@ function Player() {
   tuple, an `{ x, y }` object, or a reactive `SignalGetter`. Defaults to
   `[0, 0]`.
 
-  ```tsx
-  <transform position={[100, 50]} />
-  <transform position={() => [playerX(), playerY()]} />
-  ```
+```tsx
+<transform position={[100, 50]} />
+<transform position={() => [playerX(), playerY()]} />
+```
+
+</ParamField>
+
+<ParamField path="rotation" type="Reactive<number>">
+  Rotation in degrees around the Z axis (clockwise). Accepts a reactive
+  `SignalGetter`. Defaults to `0`.
+
+```tsx
+<transform rotation={45} />
+<transform rotation={() => angle()} />
+```
+
 </ParamField>
 
 <ParamField path="id" type="string | symbol">
@@ -48,14 +60,15 @@ function Player() {
   look up nested nodes by path. Must match `[a-zA-Z][a-zA-Z0-9-_]*` when a
   string.
 
-  ```tsx
-  <transform id="container">
-    <transform id="inner" />
-  </transform>
-  ```
+```tsx
+<transform id='container'>
+  <transform id='inner' />
+</transform>
+```
+
 </ParamField>
 
-<ParamField path="zIndex" type="number">
+<ParamField path='zIndex' type='number'>
   Drawing order relative to siblings. Higher values render on top. Defaults to
   `0`.
 </ParamField>
@@ -64,12 +77,15 @@ function Player() {
   Time-scale multiplier applied to this node and all its children. `0.5` = half
   speed, `2` = double speed. Defaults to `1`.
 
-  ```tsx
-  {/* Slow-motion subtree */}
-  <transform deltaIncrease={0.25}>
-    <sprite textureId={EFFECT_TEX} />
-  </transform>
-  ```
+```tsx
+{
+  /* Slow-motion subtree */
+}
+;<transform deltaIncrease={0.25}>
+  <sprite textureId={EFFECT_TEX} />
+</transform>
+```
+
 </ParamField>
 
 <ParamField path="gameMode" type="GameMode">
@@ -77,67 +93,72 @@ function Player() {
   `GameMode.INHERIT`. Use `GameMode.ALWAYS` for nodes that should keep updating
   while the game is paused (e.g. a pause menu).
 
-  ```tsx
-  import { GameMode } from 'fraxel'
-  <transform gameMode={GameMode.ALWAYS}>
-    <PauseMenu />
-  </transform>
-  ```
+```tsx
+import { GameMode } from 'fraxel'
+;<transform gameMode={GameMode.ALWAYS}>
+  <PauseMenu />
+</transform>
+```
+
 </ParamField>
 
-<ParamField path="script" type="FraxelScript<PrimaryNode.Transform>">
+<ParamField path='script' type='FraxelScript<PrimaryNode.Transform>'>
   Optional script instance to attach to this node. The script's lifecycle
   methods are called alongside the node's own `onStart`, `onUpdate`, and
   `onDestroy` hooks.
 </ParamField>
 
-<ParamField path="ref" type="NodeReference<PrimaryNode.Transform>">
+<ParamField path='ref' type='NodeReference<PrimaryNode.Transform>'>
   Attach a node reference created with `useTransform()` to access the instance
   imperatively.
 </ParamField>
 
 ## Computed properties
 
-| Property | Type | Description |
-|---|---|---|
-| `globalPosition` | `Vector2` (read/write) | Absolute world-space position, accounting for all ancestor offsets. Setting it back-calculates the required local `position`. |
-| `parent` | `Node \| undefined` | The parent node in the scene tree. |
-| `children` | `Node[]` | All immediate child nodes. |
+| Property         | Type                   | Description                                                                                                                       |
+| ---------------- | ---------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `globalPosition` | `Vector2` (read/write) | Absolute world-space position, accounting for all ancestor offsets. Setting it back-calculates the required local `position`.     |
+| `globalRotation` | `number` (read/write)  | World-space rotation in degrees, accounting for all ancestor rotations. Setting it back-calculates the required local `rotation`. |
+| `parent`         | `Node \| undefined`    | The parent node in the scene tree.                                                                                                |
+| `children`       | `Node[]`               | All immediate child nodes.                                                                                                        |
 
 ## Events
 
 Listen to these with `useTrigger(ref.eventName, callback)`.
 
-| Event name | Callback signature | Description |
-|---|---|---|
-| `started` | `() => void` | Fires once when the node finishes its `start()` lifecycle. |
-| `updated` | `(delta: number) => void` | Fires every frame during the update cycle. `delta` is elapsed seconds since the last frame. |
-| `drawed` | `(delta: number) => void` | Fires every frame when the node is being drawn. `delta` is elapsed seconds since the last frame. |
-| `destroyed` | `() => void` | Fires when the node is removed from the scene tree. |
-| `zIndexChanged` | `(zIndex: number) => void` | Fires when the node's `zIndex` value changes. |
+| Event name      | Callback signature         | Description                                                                                      |
+| --------------- | -------------------------- | ------------------------------------------------------------------------------------------------ |
+| `started`       | `() => void`               | Fires once when the node finishes its `start()` lifecycle.                                       |
+| `updated`       | `(delta: number) => void`  | Fires every frame during the update cycle. `delta` is elapsed seconds since the last frame.      |
+| `drawed`        | `(delta: number) => void`  | Fires every frame when the node is being drawn. `delta` is elapsed seconds since the last frame. |
+| `destroyed`     | `() => void`               | Fires when the node is removed from the scene tree.                                              |
+| `zIndexChanged` | `(zIndex: number) => void` | Fires when the node's `zIndex` value changes.                                                    |
 
 ## Methods
 
-| Method | Signature | Description |
-|---|---|---|
-| `addChild` | `(...nodes: Node[]) => void` | Dynamically attach child nodes at runtime. |
-| `removeChild` | `(node: Node) => void` | Detach a child node without destroying it. |
-| `child` | `({ path, type }) => Node` | Find a descendant by ID path and node type. Throws if not found. |
-| `destroy` | `() => void` | Remove this node and all its children from the scene. |
+| Method        | Signature                    | Description                                                      |
+| ------------- | ---------------------------- | ---------------------------------------------------------------- |
+| `addChild`    | `(...nodes: Node[]) => void` | Dynamically attach child nodes at runtime.                       |
+| `removeChild` | `(node: Node) => void`       | Detach a child node without destroying it.                       |
+| `child`       | `({ path, type }) => Node`   | Find a descendant by ID path and node type. Throws if not found. |
+| `destroy`     | `() => void`                 | Remove this node and all its children from the scene.            |
 
 ```tsx
 // Traverse the hierarchy at runtime
-const inner = body.node.child({ path: ['container', 'inner'], type: PrimaryNode.Sprite })
+const inner = body.node.child({
+  path: ['container', 'inner'],
+  type: PrimaryNode.Sprite,
+})
 ```
 
 <Tip>
   Nest transforms freely — a weapon node attached to a character transform
-  automatically inherits the character's position. Use `globalPosition` when
-  you need the absolute world coordinate regardless of depth.
+  automatically inherits the character's position. Use `globalPosition` when you
+  need the absolute world coordinate regardless of depth.
 </Tip>
 
 ## Related
 
 - [Nodes overview](/getting-started/nodes) — full node reference table
 - [`<sprite>`](/api/nodes/sprite) — render a texture inside a transform
-- [`<rigid-body>`](/api/nodes/rigid-body) — physics-enabled container (extends Node2D)
+- [`<body>`](/api/nodes/body) — physics-enabled container (extends Node2D)

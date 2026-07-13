@@ -71,7 +71,7 @@ modulate={color(1, 0, 0)}                       // Color instance
 Pass a `SignalGetter` (zero-argument function returning the value) as any filter prop to make it update every frame. The engine reads the getter during rendering:
 
 ```tsx player.tsx
-import { useSignal, useWhen } from 'fraxel/hooks'
+import { useSignal, useWhen } from 'fraxel'
 
 function Player() {
   const [isHit, setIsHit] = useSignal(false)
@@ -92,7 +92,7 @@ function Player() {
 Flash the sprite white for a fraction of a second when the player takes damage. Use `tween` to fade the brightness back:
 
 ```tsx player.tsx
-import { useSprite, useMount } from 'fraxel/hooks'
+import { useSprite, useMount } from 'fraxel'
 import { tween } from 'fraxel'
 
 function Player() {
@@ -119,7 +119,7 @@ function Player() {
 Smoothly desaturate an enemy as it dies:
 
 ```tsx enemy.tsx
-import { useSprite } from 'fraxel/hooks'
+import { useSprite } from 'fraxel'
 import { tween } from 'fraxel'
 
 function Enemy() {
@@ -145,7 +145,7 @@ function Enemy() {
 Apply a reactive tint to show an enemy's health state:
 
 ```tsx enemy.tsx
-import { useSignal, useComputed } from 'fraxel/hooks'
+import { useSignal, useComputed } from 'fraxel'
 
 function Enemy() {
   const [health, setHealth] = useSignal(100)
@@ -178,7 +178,7 @@ Combine multiple filters for a richer effect:
 Alternate `opacity` between `0` and `1` rapidly to indicate temporary invincibility after taking damage:
 
 ```tsx
-import { useSignal, useEffect } from 'fraxel/hooks'
+import { useSignal, useEffect } from 'fraxel'
 
 function Player() {
   const [invincible, setInvincible] = useSignal(false)

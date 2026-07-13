@@ -1,42 +1,42 @@
 ---
-title: "<rigid-body> — Physics simulation and collision node"
-sidebarTitle: "<rigid-body>"
-description: "Add gravity, velocity, and collision response to game objects. Requires a <collider> child. Control motion with applyForce, applyImpulse, and setVelocity."
+title: '<body> — Physics simulation and collision node'
+sidebarTitle: '<body>'
+description: 'Add gravity, velocity, and collision response to game objects. Requires a <collider> child. Control motion with applyForce, applyImpulse, and setVelocity.'
 ---
 
-Use `<rigid-body>` to subject a game object to physics simulation. The node integrates velocity into position each frame, applies configurable gravity, and resolves collisions with other rigid bodies through its child `<collider>` nodes. A rigid body **requires** at least one `<collider>` child — without one it registers with the physics system but has nothing to collide against.
+Use `<body>` to subject a game object to physics simulation. The node integrates velocity into position each frame, applies configurable gravity, and resolves collisions with other rigid bodies through its child `<collider>` nodes. A rigid body **requires** at least one `<collider>` child — without one it registers with the physics system but has nothing to collide against.
 
 ```tsx
 import { shapes } from 'fraxel'
 
 function FallingRock() {
   return (
-    <rigid-body position={[200, 0]} mass={2} bounce={0.6} friction={0.2}>
+    <body position={[200, 0]} mass={2} bounce={0.6} friction={0.2}>
       <sprite textureId={ROCK_TEX} />
       <collider
         shape={shapes.circle(16)}
         group={['rock']}
         collidesWith={['ground', 'player']}
       />
-    </rigid-body>
+    </body>
   )
 }
 ```
 
 ## Props
 
-<ParamField path="position" type="Reactive<VectorLike>">
+<ParamField path='position' type='Reactive<VectorLike>'>
   Initial world-space position. Defaults to `[0, 0]`. Once the node is started
   the physics system controls position; avoid setting this reactively after
   `start()`.
 </ParamField>
 
-<ParamField path="mass" type="number">
+<ParamField path='mass' type='number'>
   Body mass. Higher values are harder to move. Set to `0` for infinite mass
   (equivalent to `isStatic`). Defaults to `1`.
 </ParamField>
 
-<ParamField path="friction" type="number">
+<ParamField path='friction' type='number'>
   Friction coefficient applied during collision response. Range `0–1`. `0` =
   frictionless, `1` = maximum friction. Defaults to `0.1`.
 </ParamField>
@@ -45,10 +45,13 @@ function FallingRock() {
   Restitution (bounciness). `0` = no bounce (inelastic), `1` = perfect elastic
   bounce. Defaults to `0`.
 
-  ```tsx
-  {/* Bouncy ball */}
-  <rigid-body mass={1} bounce={0.9} friction={0.01} />
-  ```
+```tsx
+{
+  /* Bouncy ball */
+}
+;<body mass={1} bounce={0.9} friction={0.01} />
+```
+
 </ParamField>
 
 <ParamField path="isStatic" type="Reactive<boolean>">
@@ -57,56 +60,55 @@ function FallingRock() {
   Accepts a reactive `SignalGetter<boolean>`.
 </ParamField>
 
-<ParamField path="useGravity" type="boolean">
+<ParamField path='useGravity' type='boolean'>
   When `false`, `PhysicsSystem.gravity` is not applied to this body. Useful for
   top-down games or floating objects. Defaults to `true`.
 </ParamField>
 
-<ParamField path="gameMode" type="GameMode">
+<ParamField path='gameMode' type='GameMode'>
   Controls how this node behaves when the game is paused. Defaults to
   `GameMode.INHERIT`. Use `GameMode.ALWAYS` for nodes that should keep updating
   while paused.
 </ParamField>
 
-<ParamField path="ref" type="NodeReference<PrimaryNode.RigidBody>">
+<ParamField path='ref' type='NodeReference<PrimaryNode.RigidBody>'>
   Attach a node reference to call methods or read velocity at runtime.
 </ParamField>
 
 ## Instance properties
 
-| Property | Type | Description |
-|---|---|---|
-| `velocity` | `Vector2` | Current velocity in pixels per second. Readable and writable. |
-| `mass` | `number` | Body mass. Readable and writable at runtime. |
-| `friction` | `number` | Friction coefficient. Readable and writable at runtime. |
-| `bounce` | `number` | Restitution (bounciness). Readable and writable at runtime. |
-| `isStatic` | `boolean` | Whether the body is static. Readable and writable at runtime. |
+| Property     | Type      | Description                                                   |
+| ------------ | --------- | ------------------------------------------------------------- |
+| `velocity`   | `Vector2` | Current velocity in pixels per second. Readable and writable. |
+| `mass`       | `number`  | Body mass. Readable and writable at runtime.                  |
+| `friction`   | `number`  | Friction coefficient. Readable and writable at runtime.       |
+| `bounce`     | `number`  | Restitution (bounciness). Readable and writable at runtime.   |
+| `isStatic`   | `boolean` | Whether the body is static. Readable and writable at runtime. |
 | `useGravity` | `boolean` | Whether gravity is applied. Readable and writable at runtime. |
-| `isGrounded` | `boolean` (read-only) | `true` when the body is resting on a surface below it. Updated automatically each frame. |
 
 ## Methods
 
-| Method | Signature | Description |
-|---|---|---|
-| `applyForce` | `(force: Vector2) => void` | Accumulate a continuous force (px/s²). Forces are applied during physics integration and reset each frame. Use for thrust, wind, or gravity-like effects. |
-| `applyImpulse` | `(impulse: Vector2) => void` | Apply an instant velocity change (px/s). No-ops on static bodies. Use for jumps, explosions, or knockback. |
-| `setVelocity` | `(v: Vector2) => void` | Directly overwrite the current velocity. |
-| `destroy` | `() => void` | Remove the body and its children from the scene. |
+| Method         | Signature                    | Description                                                                                                                                               |
+| -------------- | ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `applyForce`   | `(force: Vector2) => void`   | Accumulate a continuous force (px/s²). Forces are applied during physics integration and reset each frame. Use for thrust, wind, or gravity-like effects. |
+| `applyImpulse` | `(impulse: Vector2) => void` | Apply an instant velocity change (px/s). No-ops on static bodies. Use for jumps, explosions, or knockback.                                                |
+| `setVelocity`  | `(v: Vector2) => void`       | Directly overwrite the current velocity.                                                                                                                  |
+| `destroy`      | `() => void`                 | Remove the body and its children from the scene.                                                                                                          |
 
 ## Events
 
-| Event name | Callback | Description |
-|---|---|---|
-| `started` | `() => void` | Fires once after `start()`. |
-| `updated` | `(delta: number) => void` | Fires every frame — use this to apply per-frame forces. |
-| `drawed` | `(delta: number) => void` | Fires every frame when the node is being drawn. |
-| `destroyed` | `() => void` | Fires on removal. |
-| `zIndexChanged` | `(zIndex: number) => void` | Fires when the node's `zIndex` value changes. |
+| Event name      | Callback                   | Description                                             |
+| --------------- | -------------------------- | ------------------------------------------------------- |
+| `started`       | `() => void`               | Fires once after `start()`.                             |
+| `updated`       | `(delta: number) => void`  | Fires every frame — use this to apply per-frame forces. |
+| `drawed`        | `(delta: number) => void`  | Fires every frame when the node is being drawn.         |
+| `destroyed`     | `() => void`               | Fires on removal.                                       |
+| `zIndexChanged` | `(zIndex: number) => void` | Fires when the node's `zIndex` value changes.           |
 
 <CodeGroup>
 
 ```tsx Platformer player with jump
-import { useRigidBody, useTrigger } from 'fraxel/hooks'
+import { useRigidBody, useTrigger } from 'fraxel'
 import { shapes, vector2, Input } from 'fraxel'
 
 function Player() {
@@ -124,20 +126,18 @@ function Player() {
   })
 
   const jump = () => {
-    if (body.isGrounded) {
-      body.applyImpulse(vector2(0, -480))
-    }
+    body.applyImpulse(vector2(0, -480))
   }
 
   return (
-    <rigid-body ref={body} position={[100, 50]} mass={1} friction={0.05}>
+    <body ref={body} position={[100, 50]} mass={1} friction={0.05}>
       <sprite textureId={PLAYER_TEX} />
       <collider
         shape={shapes.rectangle(16, 24)}
         group={['player']}
         collidesWith={['ground']}
       />
-    </rigid-body>
+    </body>
   )
 }
 ```
@@ -147,14 +147,14 @@ import { shapes } from 'fraxel'
 
 function Platform() {
   return (
-    <rigid-body position={[0, 300]} isStatic>
+    <body position={[0, 300]} isStatic>
       <sprite textureId={PLATFORM_TEX} />
       <collider
         shape={shapes.rectangle(256, 16)}
         group={['ground']}
         collidesWith={['player', 'rock']}
       />
-    </rigid-body>
+    </body>
   )
 }
 ```
@@ -168,12 +168,13 @@ function Platform() {
 </Note>
 
 <Tip>
-  Use `useRigidBody()` from `fraxel/hooks` for a declarative API that exposes
-  reactive `velocity`, `isGrounded`, `applyImpulse`, and more via a single ref.
+  Use `useRigidBody()` from `'fraxel'` for a declarative API that exposes
+  reactive `velocity`, `applyImpulse`, and more via a single ref.
 
-  ```tsx
-  const body = useRigidBody()
-  ```
+```tsx
+const body = useRigidBody()
+```
+
 </Tip>
 
 ## Related

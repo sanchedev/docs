@@ -1,13 +1,13 @@
 ---
-title: "<audio-player> — Sound and music Web Audio playback node"
-sidebarTitle: "<audio-player>"
-description: "Play decoded audio buffers loaded with loadSound(). Supports looping, volume, playback rate, pause/resume, and persistUntilEnd for one-shot sounds."
+title: '<audio> — Sound and music Web Audio playback node'
+sidebarTitle: '<audio>'
+description: 'Play decoded audio buffers loaded with loadSound(). Supports looping, volume, playback rate, pause/resume, and persistUntilEnd for one-shot sounds.'
 ---
 
-Use `<audio-player>` to play sounds and music loaded with `loadSound()`. It wraps the Web Audio API's `AudioBufferSourceNode` and `GainNode`, giving you volume control and playback rate adjustment with low overhead. Call `play()`, `pause()`, and `stop()` imperatively, or drive playback from events. For components that destroy themselves immediately after triggering a sound, set `persistUntilEnd` to keep the audio node alive until playback finishes.
+Use `<audio>` to play sounds and music loaded with `loadSound()`. It wraps the Web Audio API's `AudioBufferSourceNode` and `GainNode`, giving you volume control and playback rate adjustment with low overhead. Call `play()`, `pause()`, and `stop()` imperatively, or drive playback from events. For components that destroy themselves immediately after triggering a sound, set `persistUntilEnd` to keep the audio node alive until playback finishes.
 
 ```tsx
-import { useAudio, useClickable, useTrigger } from 'fraxel/hooks'
+import { useAudio, useClickable, useTrigger } from 'fraxel'
 import { loadSound } from 'fraxel'
 
 const SHOOT_SFX = await loadSound('/assets/shoot.mp3')
@@ -23,7 +23,7 @@ function Gun() {
   return (
     <sprite textureId={GUN_TEX}>
       <clickable ref={clickable} size={[48, 24]} />
-      <audio-player ref={audio} soundId={SHOOT_SFX} volume={0.8} />
+      <audio ref={audio} soundId={SHOOT_SFX} volume={0.8} />
     </sprite>
   )
 }
@@ -36,23 +36,24 @@ function Gun() {
   Duplicate calls to `loadSound()` with the same URL return the same cached
   symbol.
 
-  ```tsx
-  const BG_MUSIC = await loadSound('/assets/music.mp3')
-  <audio-player soundId={BG_MUSIC} loop volume={0.4} />
-  ```
+```tsx
+const BG_MUSIC = await loadSound('/assets/music.mp3')
+<audio soundId={BG_MUSIC} loop volume={0.4} />
+```
+
 </ParamField>
 
-<ParamField path="loop" type="boolean">
+<ParamField path='loop' type='boolean'>
   Loop playback indefinitely. The `ended` event does **not** fire on looping
   sounds. Defaults to `false`.
 </ParamField>
 
-<ParamField path="volume" type="number">
+<ParamField path='volume' type='number'>
   Initial playback volume. Range `0–1`. Can also be changed at runtime via the
   `volume` setter. Defaults to `1`.
 </ParamField>
 
-<ParamField path="playbackRate" type="number">
+<ParamField path='playbackRate' type='number'>
   Playback speed. `1` = normal, `2` = double speed, `0.5` = half speed. Can be
   changed at runtime via the `playbackRate` setter. Defaults to `1`.
 </ParamField>
@@ -63,59 +64,60 @@ function Gun() {
   self-destruct (e.g. a projectile that plays a hit sound and is then removed).
   Defaults to `false`.
 
-  ```tsx
-  // The pea destroys itself, but the splat sound plays out
-  useTrigger(col.colliderEntered, () => {
-    audio.play()
-    transform.node.destroy() // audio-player survives until `ended`
-  })
-  <audio-player ref={audio} soundId={SPLAT} persistUntilEnd />
-  ```
+```tsx
+// The pea destroys itself, but the splat sound plays out
+useTrigger(col.colliderEntered, () => {
+  audio.play()
+  transform.node.destroy() // audio survives until `ended`
+})
+<audio ref={audio} soundId={SPLAT} persistUntilEnd />
+```
+
 </ParamField>
 
-<ParamField path="gameMode" type="GameMode">
+<ParamField path='gameMode' type='GameMode'>
   Controls how this node behaves when the game is paused. Defaults to
   `GameMode.INHERIT`. Use `GameMode.ALWAYS` for nodes that should keep updating
   while paused.
 </ParamField>
 
-<ParamField path="ref" type="NodeReference<PrimaryNode.AudioPlayer>">
+<ParamField path='ref' type='NodeReference<PrimaryNode.AudioPlayer>'>
   Attach a node reference to call methods and read state at runtime.
 </ParamField>
 
 ## Instance properties (getters/setters)
 
-| Property | Access | Type | Description |
-|---|---|---|---|
-| `isPlaying` | get | `boolean` | `true` while the sound is playing. |
-| `volume` | get/set | `number` | Current volume `0–1`. Setting this also updates the live `GainNode`. |
-| `playbackRate` | get/set | `number` | Current playback speed. Setting this also updates the live `AudioBufferSourceNode`. |
+| Property       | Access  | Type      | Description                                                                         |
+| -------------- | ------- | --------- | ----------------------------------------------------------------------------------- |
+| `isPlaying`    | get     | `boolean` | `true` while the sound is playing.                                                  |
+| `volume`       | get/set | `number`  | Current volume `0–1`. Setting this also updates the live `GainNode`.                |
+| `playbackRate` | get/set | `number`  | Current playback speed. Setting this also updates the live `AudioBufferSourceNode`. |
 
 ## Methods
 
-| Method | Signature | Description |
-|---|---|---|
-| `play` | `(offset?: number) => void` | Start or restart playback. Pass `offset` (in seconds) to start from a specific point. If paused, resumes from the pause position when no offset is given. |
-| `pause` | `() => void` | Pause playback without resetting the playback position. Call `play()` again to resume. |
-| `stop` | `() => void` | Stop playback and reset the position to `0`. The next `play()` starts from the beginning. |
-| `destroy` | `() => void` | Remove the node. Deferred until playback ends if `persistUntilEnd` is `true`. |
+| Method    | Signature                   | Description                                                                                                                                               |
+| --------- | --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `play`    | `(offset?: number) => void` | Start or restart playback. Pass `offset` (in seconds) to start from a specific point. If paused, resumes from the pause position when no offset is given. |
+| `pause`   | `() => void`                | Pause playback without resetting the playback position. Call `play()` again to resume.                                                                    |
+| `stop`    | `() => void`                | Stop playback and reset the position to `0`. The next `play()` starts from the beginning.                                                                 |
+| `destroy` | `() => void`                | Remove the node. Deferred until playback ends if `persistUntilEnd` is `true`.                                                                             |
 
 ## Events
 
-| Event name | Callback signature | Description |
-|---|---|---|
-| `ended` | `() => void` | Fires when non-looping playback reaches the end naturally. Does not fire on `stop()` or `pause()`. |
-| `error` | `(err: Error) => void` | Fires if playback fails (e.g. decoding error, missing buffer). |
-| `started` | `() => void` | Fires once after the node finishes `start()`. |
-| `updated` | `(delta: number) => void` | Fires every frame during the update cycle. |
-| `drawed` | `(delta: number) => void` | Fires every frame when the node is being drawn. |
-| `destroyed` | `() => void` | Fires on removal (after any `persistUntilEnd` delay). |
-| `zIndexChanged` | `(zIndex: number) => void` | Fires when the node's `zIndex` value changes. |
+| Event name      | Callback signature         | Description                                                                                        |
+| --------------- | -------------------------- | -------------------------------------------------------------------------------------------------- |
+| `ended`         | `() => void`               | Fires when non-looping playback reaches the end naturally. Does not fire on `stop()` or `pause()`. |
+| `error`         | `(err: Error) => void`     | Fires if playback fails (e.g. decoding error, missing buffer).                                     |
+| `started`       | `() => void`               | Fires once after the node finishes `start()`.                                                      |
+| `updated`       | `(delta: number) => void`  | Fires every frame during the update cycle.                                                         |
+| `drawed`        | `(delta: number) => void`  | Fires every frame when the node is being drawn.                                                    |
+| `destroyed`     | `() => void`               | Fires on removal (after any `persistUntilEnd` delay).                                              |
+| `zIndexChanged` | `(zIndex: number) => void` | Fires when the node's `zIndex` value changes.                                                      |
 
 <CodeGroup>
 
 ```tsx Background music with auto-resume
-import { useAudio, useMount } from 'fraxel/hooks'
+import { useAudio, useMount } from 'fraxel'
 import { loadSound, getAudioContext } from 'fraxel'
 
 const BG_MUSIC = await loadSound('/assets/music.mp3')
@@ -130,12 +132,12 @@ function MusicPlayer() {
     music.play()
   })
 
-  return <audio-player ref={music} soundId={BG_MUSIC} loop volume={0.35} />
+  return <audio ref={music} soundId={BG_MUSIC} loop volume={0.35} />
 }
 ```
 
 ```tsx Pitch-shifted variants
-import { useAudio, useMount } from 'fraxel/hooks'
+import { useAudio, useMount } from 'fraxel'
 import { loadSound } from 'fraxel'
 
 const HIT_SFX = await loadSound('/assets/hit.mp3')
@@ -149,9 +151,7 @@ function randomHitSound() {
     audio.play()
   })
 
-  return (
-    <audio-player ref={audio} soundId={HIT_SFX} persistUntilEnd />
-  )
+  return <audio ref={audio} soundId={HIT_SFX} persistUntilEnd />
 }
 ```
 
@@ -164,9 +164,9 @@ function randomHitSound() {
 </Note>
 
 <Tip>
-  A single `<audio-player>` creates one `AudioBufferSourceNode` per `play()`
+  A single `<audio>` creates one `AudioBufferSourceNode` per `play()`
   call. To play multiple overlapping instances of the same sound (rapid gunfire),
-  create multiple `<audio-player>` nodes or call `play()` on separate instances.
+  create multiple `<audio>` nodes or call `play()` on separate instances.
 </Tip>
 
 ## Related

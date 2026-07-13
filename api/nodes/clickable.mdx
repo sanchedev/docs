@@ -1,13 +1,13 @@
 ---
-title: "<clickable> — Rectangular pointer interaction node"
-sidebarTitle: "<clickable>"
-description: "Detect clicks, hover enter/exit, and per-frame mouseOver events within a rectangular hit area. Use onClick, onMouseEnter, and onMouseExit prop shortcuts."
+title: '<clickable> — Rectangular pointer interaction node'
+sidebarTitle: '<clickable>'
+description: 'Detect clicks, hover enter/exit, and per-frame mouseOver events within a rectangular hit area. Use onClick, onMouseEnter, and onMouseExit prop shortcuts.'
 ---
 
 Use `<clickable>` to add pointer interaction to any game object. It performs hit-testing against a rectangular area each frame and emits events when the pointer enters, exits, or clicks within that area. There is no default size — `size` is required. The `disabled` prop suppresses all events without removing the node.
 
 ```tsx
-import { useClickable, useTrigger } from 'fraxel/hooks'
+import { useClickable, useTrigger } from 'fraxel'
 
 function MenuButton() {
   const btn = useClickable()
@@ -34,63 +34,67 @@ function MenuButton() {
   an `{ x, y }` object, a single number (square), or a reactive
   `SignalGetter`. There is no default — omitting `size` is a runtime error.
 
-  ```tsx
-  <clickable size={[64, 32]} />
-  <clickable size={48} />              {/* 48×48 square */}
-  <clickable size={() => btnSize()} /> {/* reactive */}
-  ```
+```tsx
+<clickable size={[64, 32]} />
+<clickable size={48} />              {/* 48×48 square */}
+<clickable size={() => btnSize()} /> {/* reactive */}
+```
+
 </ParamField>
 
 <ParamField path="disabled" type="Reactive<boolean>">
   When `true`, all event detection is suspended. The hit area is still visible
   in debug mode (drawn in grey). Defaults to `false`.
 
-  ```tsx
-  <clickable size={[80, 30]} disabled={!isReady()} />
-  ```
+```tsx
+<clickable size={[80, 30]} disabled={!isReady()} />
+```
+
 </ParamField>
 
-<ParamField path="position" type="Reactive<VectorLike>">
-  Top-left corner of the hit area relative to the parent node. Defaults to
-  `[0, 0]`. Align with the sprite's top-left corner for accurate hit detection.
+<ParamField path='position' type='Reactive<VectorLike>'>
+  Top-left corner of the hit area relative to the parent node. Defaults to `[0,
+  0]`. Align with the sprite's top-left corner for accurate hit detection.
 </ParamField>
 
-<ParamField path="gameMode" type="GameMode">
+<ParamField path='gameMode' type='GameMode'>
   Controls how this node behaves when the game is paused. Defaults to
   `GameMode.INHERIT`. Use `GameMode.ALWAYS` for nodes that should keep updating
   while paused.
 </ParamField>
 
-<ParamField path="ref" type="NodeReference<PrimaryNode.Clickable>">
+<ParamField path='ref' type='NodeReference<PrimaryNode.Clickable>'>
   Attach a node reference to access the instance or subscribe to events
   programmatically.
 </ParamField>
 
 ## Events
 
-| Event name | Callback signature | Description |
-|---|---|---|
-| `clicked` | `(localPos: Vector2) => void` | Fires when the pointer is **released** inside the hit area. `localPos` is relative to the node's top-left corner. |
-| `mouseEntered` | `() => void` | Fires once when the pointer moves into the hit area. |
-| `mouseExited` | `() => void` | Fires once when the pointer moves out of the hit area. |
-| `mouseOver` | `(localPos: Vector2) => void` | Fires **every frame** while the pointer is inside the area. `localPos` is relative to the top-left corner. Use for hover effects that need continuous updates. |
-| `started` | `() => void` | Fires once after `start()`. |
-| `updated` | `(delta: number) => void` | Fires every frame. |
-| `drawed` | `(delta: number) => void` | Fires every frame when the node is being drawn. |
-| `destroyed` | `() => void` | Fires on removal. |
-| `zIndexChanged` | `(zIndex: number) => void` | Fires when the node's `zIndex` value changes. |
+| Event name      | Callback signature            | Description                                                                                                                                                    |
+| --------------- | ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `clicked`       | `(localPos: Vector2) => void` | Fires when the pointer is **released** inside the hit area. `localPos` is relative to the node's top-left corner.                                              |
+| `mouseEntered`  | `() => void`                  | Fires once when the pointer moves into the hit area.                                                                                                           |
+| `mouseExited`   | `() => void`                  | Fires once when the pointer moves out of the hit area.                                                                                                         |
+| `mouseOver`     | `(localPos: Vector2) => void` | Fires **every frame** while the pointer is inside the area. `localPos` is relative to the top-left corner. Use for hover effects that need continuous updates. |
+| `started`       | `() => void`                  | Fires once after `start()`.                                                                                                                                    |
+| `updated`       | `(delta: number) => void`     | Fires every frame.                                                                                                                                             |
+| `drawed`        | `(delta: number) => void`     | Fires every frame when the node is being drawn.                                                                                                                |
+| `destroyed`     | `() => void`                  | Fires on removal.                                                                                                                                              |
+| `zIndexChanged` | `(zIndex: number) => void`    | Fires when the node's `zIndex` value changes.                                                                                                                  |
 
 <CodeGroup>
 
 ```tsx Hover tint effect
-import { useClickable, useTrigger, useSignal } from 'fraxel/hooks'
+import { useClickable, useTrigger, useSignal } from 'fraxel'
 
 function HoverButton() {
   const btn = useClickable()
-  const [tint, setTint] = useSignal<[number,number,number,number]>([1,1,1,1])
+  const [tint, setTint] = useSignal<[number, number, number, number]>([
+    1, 1, 1, 1,
+  ])
 
   useTrigger(btn.mouseEntered, () => setTint([1, 0.8, 0.2, 1]))
-  useTrigger(btn.mouseExited,  () => setTint([1, 1, 1, 1]))
+  useTrigger(btn.mouseExited, () => setTint([1, 1, 1, 1]))
 
   return (
     <sprite textureId={BTN_TEX} modulate={tint}>
@@ -101,7 +105,7 @@ function HoverButton() {
 ```
 
 ```tsx Drag-to-move
-import { useTransform, useClickable, useTrigger } from 'fraxel/hooks'
+import { useTransform, useClickable, useTrigger } from 'fraxel'
 import { Input } from 'fraxel'
 
 function DraggableCard() {
@@ -109,9 +113,13 @@ function DraggableCard() {
   const click = useClickable()
   let dragging = false
 
-  useTrigger(click.mouseEntered, () => { dragging = Input.isPointerPressed })
-  useTrigger(click.mouseExited,  () => { dragging = false })
-  useTrigger(click.mouseOver,    () => {
+  useTrigger(click.mouseEntered, () => {
+    dragging = Input.isPointerPressed
+  })
+  useTrigger(click.mouseExited, () => {
+    dragging = false
+  })
+  useTrigger(click.mouseOver, () => {
     if (dragging) {
       card.position.x = Input.pointerPosition.x
       card.position.y = Input.pointerPosition.y
@@ -144,5 +152,5 @@ function DraggableCard() {
 ## Related
 
 - [Nodes overview](/getting-started/nodes) — all available nodes
-- [`<audio-player>`](/api/nodes/audio-player) — play a sound on click
+- [`<audio>`](/api/nodes/audio) — play a sound on click
 - [`<sprite>`](/api/nodes/sprite) — common parent for a clickable sprite button

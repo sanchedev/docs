@@ -14,7 +14,7 @@ A component is just a TypeScript function. Define it, use it in JSX like a built
 
 ```tsx src/components/coin.tsx
 import { loadTexture } from 'fraxel'
-import { useSignal, useSprite, useClickable, useTrigger } from 'fraxel/hooks'
+import { useSignal, useSprite, useClickable, useTrigger } from 'fraxel'
 
 const COIN_TEX = await loadTexture('/assets/coin.png')
 
@@ -56,7 +56,7 @@ Pass data to a component through its props object. Define a TypeScript interface
 ```tsx src/components/enemy.tsx
 import type { VectorLike } from 'fraxel'
 import { shapes } from 'fraxel'
-import { useSignal } from 'fraxel/hooks'
+import { useSignal } from 'fraxel'
 
 interface EnemyProps {
   position: VectorLike
@@ -93,7 +93,7 @@ export function Enemy({ position, maxHealth = 100 }: EnemyProps) {
 Accept child nodes by including `children` in your props type. Render them by placing `{children}` in the JSX you return.
 
 ```tsx src/components/floatingLabel.tsx
-import type { Fraxel } from 'fraxel/jsx'
+import type { Fraxel } from 'fraxel'
 import { shapes } from 'fraxel'
 
 interface FloatingLabelProps {
@@ -179,7 +179,7 @@ export function MainScene() {
 Use `createContext` and `useContext` to share state down a component tree without prop drilling.
 
 ```tsx src/context.ts
-import { createContext } from 'fraxel/hooks'
+import { createContext } from 'fraxel'
 import type { SignalGetter } from 'fraxel'
 
 export const GameCtx = createContext<{ score: SignalGetter<number>; lives: SignalGetter<number> }>(
@@ -188,7 +188,7 @@ export const GameCtx = createContext<{ score: SignalGetter<number>; lives: Signa
 ```
 
 ```tsx src/scenes/main.tsx
-import { useSignal } from 'fraxel/hooks'
+import { useSignal } from 'fraxel'
 import { GameCtx } from '../context.js'
 import { HUD } from '../components/hud.js'
 import { Player } from '../components/player.js'
@@ -209,7 +209,7 @@ export function MainScene() {
 ```
 
 ```tsx src/components/hud.tsx
-import { useContext } from 'fraxel/hooks'
+import { useContext } from 'fraxel'
 import { GameCtx } from '../context.js'
 
 export function HUD() {
@@ -230,7 +230,7 @@ export function HUD() {
 Use `container.node.spawn()` to add nodes to the scene at runtime — for example, when spawning bullets or enemies.
 
 ```tsx
-import { useTransform, useTrigger } from 'fraxel/hooks'
+import { useTransform, useTrigger } from 'fraxel'
 import { Input } from 'fraxel'
 import { Shoot } from '../input.js'
 
@@ -289,7 +289,7 @@ function Player() {
 }
 ```
 
-Scripts use `createSignal` and `signalSetterFrom` (from `fraxel/hooks`) for reactive state instead of `useSignal`, since they run outside the hook context.
+Scripts use `createSignal` and `signalSetterFrom` (from `'fraxel'`) for reactive state instead of `useSignal`, since they run outside the hook context.
 
 <Note>
   Use function components with hooks for most cases. Scripts are best when you need class-based encapsulation, inheritance, or logic that spans multiple nodes.

@@ -1,25 +1,25 @@
 ---
-title: "Game & Scene JSX Components — Fraxel API Reference"
-sidebarTitle: "Game & Scene"
-description: "Reference for Fraxel's JSX bootstrap components: createGame, the <Game> component, <Scene> component, SceneComponent type, and GameControls."
+title: 'Game & Scene JSX Components — Fraxel API Reference'
+sidebarTitle: 'Game & Scene'
+description: "Reference for Fraxel's JSX bootstrap components: createGame, the <GameRoot> component, <SceneRoot> component, SceneComponent type, and GameControls."
 ---
 
-`<Game>` and `<Scene>` are the two JSX components that define the structure of a Fraxel application. They are not rendered as DOM elements or canvas nodes — they are configuration declarations that `createGame` reads to wire up the engine, canvas, and scene manager.
+`<GameRoot>` and `<SceneRoot>` are the two JSX components that define the structure of a Fraxel application. They are not rendered as DOM elements or canvas nodes — they are configuration declarations that `createGame` reads to wire up the engine, canvas, and scene manager.
 
 ---
 
 ## createGame
 
-Bootstraps the entire Fraxel runtime from a `<Game>` JSX tree and returns `GameControls` for lifecycle management.
+Bootstraps the entire Fraxel runtime from a `<GameRoot>` JSX tree and returns `GameControls` for lifecycle management.
 
 ```ts
-import { createGame } from 'fraxel/jsx'
+import { createGame } from 'fraxel'
 
 createGame(jsx: Fraxel.Node, root: HTMLElement): GameControls
 ```
 
 <ParamField path="jsx" type="Fraxel.Node" required>
-  Must be a `<Game>` element containing one or more `<Scene>` children.
+  Must be a `<GameRoot>` element containing one or more `<SceneRoot>` children.
 </ParamField>
 <ParamField path="root" type="HTMLElement" required>
   The DOM element that will become the parent of the generated `<canvas>`. Passing `null` throws `MissingGameRootError`.
@@ -28,21 +28,22 @@ createGame(jsx: Fraxel.Node, root: HTMLElement): GameControls
 **Returns** [`GameControls`](#gamecontrols).
 
 **What `createGame` does:**
-1. Reads `width`, `height`, and `testOptions` from `<Game>` props and calls `Game.setup()`.
-2. Iterates `<Scene>` children and registers each with `Game.sceneManager`.
-3. Calls `Game.sceneManager.setScene(defaultScene)` to load the first scene.
+
+1. Reads `width`, `height`, and `testOptions` from `<GameRoot>` props and calls `Game.setup()`.
+2. Iterates `<SceneRoot>` children and registers each with `SceneManager`.
+3. Calls `SceneManager.setScene(defaultScene)` to load the first scene.
 4. Returns a `GameControls` object.
 
 ```tsx
-import { createGame, Game, Scene } from 'fraxel/jsx'
+import { createGame, GameRoot, SceneRoot } from 'fraxel'
 
 const game = createGame(
-  <Game width={320} height={180} defaultScene="main">
-    <Scene name="main"  component={() => import('./scenes/main.js')} />
-    <Scene name="level2" component={() => import('./scenes/level2.js')} />
-    <Scene name="menu"  component={MenuScene} />
-  </Game>,
-  document.querySelector<HTMLElement>('#root')!
+  <GameRoot width={320} height={180} defaultScene='main'>
+    <SceneRoot name='main' component={() => import('./scenes/main.js')} />
+    <SceneRoot name='level2' component={() => import('./scenes/level2.js')} />
+    <SceneRoot name='menu' component={MenuScene} />
+  </GameRoot>,
+  document.querySelector<HTMLElement>('#root')!,
 )
 
 game.play()
@@ -50,18 +51,19 @@ game.play()
 
 ---
 
-## \<Game\>
+## <GameRoot>
 
 The root configuration component. Must be the top-level element passed to `createGame`. Does not produce a canvas node by itself — `createGame` reads its props and calls `Game.setup()`.
 
 ```ts
 interface GameOptions {
-  width:        number
-  height:       number
+  width: number
+  height: number
   defaultScene: string
   testOptions?: Partial<TestOptions>
-  theme?:       Theme
-  children:     Fraxel.Node   // one or more <Scene> elements
+  theme?: Theme
+  pixelated?: boolean
+  children: Fraxel.Node // one or more <SceneRoot> elements
 }
 ```
 
@@ -72,7 +74,7 @@ interface GameOptions {
   Logical canvas height in pixels.
 </ParamField>
 <ParamField path="defaultScene" type="string" required>
-  Name of the `<Scene>` to load first. Must match the `name` prop of one of the children.
+  Name of the `<SceneRoot>` to load first. Must match the `name` prop of one of the children.
 </ParamField>
 <ParamField path="pauseOnBlur" type="boolean">
   When `true`, the game pauses on browser blur (tab switch, minimize) and requires a manual `play()` call to resume. Defaults to `false`.
@@ -80,53 +82,58 @@ interface GameOptions {
 <ParamField path="testOptions" type="Partial<TestOptions>">
   Enable debug overlays during development. See [`TestOptions`](#testoptions).
 </ParamField>
+<ParamField path="pixelated" type="boolean">
+  When `true`, disables canvas image smoothing for pixel-art rendering. Prevents blurry upscaling of sprite textures. Defaults to `false`.
+</ParamField>
 <ParamField path="children" type="Fraxel.Node" required>
-  One or more `<Scene>` elements defining all registered scenes.
+  One or more `<SceneRoot>` elements defining all registered scenes.
 </ParamField>
 
 ```tsx
-<Game
+<GameRoot
   width={480}
   height={270}
-  defaultScene="menu"
-  testOptions={{ showColliders: true }}
->
-  <Scene name="menu"   component={MenuScene} />
-  <Scene name="level1" component={() => import('./level1.js')} />
-</Game>
+  defaultScene='menu'
+  pixelated
+  testOptions={{ showColliders: true }}>
+  <SceneRoot name='menu' component={MenuScene} />
+  <SceneRoot name='level1' component={() => import('./level1.js')} />
+</GameRoot>
 ```
 
 ---
 
-## \<Scene\>
+## <SceneRoot>
 
-Declares a named scene. Used exclusively as a direct child of `<Game>`.
+Declares a named scene. Used exclusively as a direct child of `<GameRoot>`.
 
 ```ts
 interface SceneOptions {
-  name:      string
+  name: string
   component: SceneComponent
 }
 ```
 
-<ParamField path="name" type="string" required>
-  Unique identifier for the scene. Passed to `game.changeScene()`, `game.preloadScene()`, and `GameControls.changeScene()`.
+<ParamField path='name' type='string' required>
+  Unique identifier for the scene. Passed to `SceneManager.setScene()`,
+  `SceneManager.preloadScene()`, and `GameControls.changeScene()`.
 </ParamField>
-<ParamField path="component" type="SceneComponent" required>
-  A function that returns the scene's root JSX node. Can be lazy (async import) or eagerly defined. See [`SceneComponent`](#scenecomponent).
+<ParamField path='component' type='SceneComponent' required>
+  A function that returns the scene's root JSX node. Can be lazy (async import)
+  or eagerly defined. See [`SceneComponent`](#scenecomponent).
 </ParamField>
 
 <CodeGroup>
 ```tsx Eager (no code splitting)
 import { MainScene } from './scenes/main.js'
 
-<Scene name="main" component={MainScene} />
+<SceneRoot name="main" component={MainScene} />
 ```
 ```tsx Lazy (dynamic import)
-<Scene name="main" component={() => import('./scenes/main.js')} />
+<SceneRoot name="main" component={() => import('./scenes/main.js')} />
 ```
 ```tsx Inline async
-<Scene
+<SceneRoot
   name="intro"
   component={async () => {
     const [BG] = await loadBatchAsset('texture', ['/assets/intro.png'])
@@ -140,25 +147,27 @@ import { MainScene } from './scenes/main.js'
 
 ## SceneComponent
 
-The type accepted by the `component` prop of `<Scene>`.
+The type accepted by the `component` prop of `<SceneRoot>`.
 
 ```ts
 type SceneComponent =
-  | (() => Fraxel.Node)                              // eager — returns JSX directly
-  | (() => Promise<() => Fraxel.Node>)               // lazy — async, returns a factory
-  | (() => Promise<{ default: () => Fraxel.Node }>)  // lazy — ES module default export
+  | (() => Fraxel.Node) // eager — returns JSX directly
+  | (() => Promise<() => Fraxel.Node>) // lazy — async, returns a factory
+  | (() => Promise<{ default: () => Fraxel.Node }>) // lazy — ES module default export
 ```
 
 All three forms are handled by `createGame`. The most common patterns:
 
-| Form | When to use |
-|---|---|
-| `() => JSX` | Small scene with no async asset loading needed. |
-| `() => import('./scene.js')` | Code-split scene module with a default export that is the component. |
-| `async () => { await load(); return () => JSX }` | Scene that loads assets before rendering. |
+| Form                                             | When to use                                                          |
+| ------------------------------------------------ | -------------------------------------------------------------------- |
+| `() => JSX`                                      | Small scene with no async asset loading needed.                      |
+| `() => import('./scene.js')`                     | Code-split scene module with a default export that is the component. |
+| `async () => { await load(); return () => JSX }` | Scene that loads assets before rendering.                            |
 
 <Note>
-The `SceneComponent` function must ultimately return (or resolve to a function that returns) **exactly one root node**. Multiple root nodes will throw `InvalidSceneComponentError`.
+  The `SceneComponent` function must ultimately return (or resolve to a function
+  that returns) **exactly one root node**. Multiple root nodes will throw
+  `InvalidSceneComponentError`.
 </Note>
 
 ---
@@ -169,37 +178,37 @@ The object returned by `createGame`.
 
 ```ts
 interface GameControls {
-  play():                     void
-  pause():                    void
-  destroy():                  void
-  changeScene(name: string):  Promise<void>
+  play(): void
+  pause(): void
+  destroy(): void
+  changeScene(name: string): Promise<void>
   preloadScene(name: string): Promise<() => void>
-  getSize():                  Vector2
-  paused:                     SignalGetter<boolean>
+  getSize(): Vector2
+  paused: SignalGetter<boolean>
 }
 ```
 
-| Property | Type | Description |
-|---|---|---|
-| `paused` | `SignalGetter<boolean>` | Reactive signal that is `true` when the game loop is paused. Read with `game.paused()`. |
-| `play()` | `() => void` | Starts or resumes the game loop. Acquires a screen wake lock on supported platforms. |
-| `pause()` | `() => void` | Pauses the game loop. The canvas freezes on the last rendered frame. |
-| `destroy()` | `() => void` | Stops the loop, clears the active scene, destroys input listeners, and resets state. |
-| `changeScene(name)` | `(name: string) => Promise<void>` | Destroys the active scene, loads the named scene, resolves when complete. |
+| Property             | Type                                    | Description                                                                                          |
+| -------------------- | --------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| `paused`             | `SignalGetter<boolean>`                 | Reactive signal that is `true` when the game loop is paused. Read with `game.paused()`.              |
+| `play()`             | `() => void`                            | Starts or resumes the game loop. Acquires a screen wake lock on supported platforms.                 |
+| `pause()`            | `() => void`                            | Pauses the game loop. The canvas freezes on the last rendered frame.                                 |
+| `destroy()`          | `() => void`                            | Stops the loop, clears the active scene, destroys input listeners, and resets state.                 |
+| `changeScene(name)`  | `(name: string) => Promise<void>`       | Destroys the active scene, loads the named scene, resolves when complete.                            |
 | `preloadScene(name)` | `(name: string) => Promise<() => void>` | Loads a scene in the background. Resolves with a function; call it to switch to the scene instantly. |
-| `getSize()` | `() => Vector2` | Returns a `Vector2` equal to `{ x: width, y: height }` as configured in `<Game>`. |
+| `getSize()`          | `() => Vector2`                         | Returns a `Vector2` equal to `{ x: width, y: height }` as configured in `<GameRoot>`.                    |
 
 ```ts
-const game = createGame(<Game ...>, root)
+const game = createGame(<GameRoot ...>, root)
 game.play()
 
 // Switch after a delay
 setTimeout(async () => {
-  await game.changeScene('level2')
+  await SceneManager.setScene('level2')
 }, 3000)
 
 // Preload then switch on button press
-const activate = await game.preloadScene('boss')
+const activate = await SceneManager.preloadScene('boss')
 button.onClick = () => activate()
 ```
 
@@ -211,24 +220,23 @@ Debug overlay configuration used to visualise invisible game objects during deve
 
 ```ts
 interface TestOptions {
-  showColliders:  boolean   // outline all collider shapes
-  showRayCasts:   boolean   // draw ray cast lines and hit indicators
-  showClickables: boolean   // outline all clickable areas
+  showColliders: boolean // outline all collider shapes
+  showRayCasts: boolean // draw ray cast lines and hit indicators
+  showClickables: boolean // outline all clickable areas
 }
 ```
 
 All default to `false`. Pass partial objects — only the keys you set will change.
 
 ```tsx
-<Game
+<GameRoot
   width={320}
   height={180}
-  defaultScene="main"
+  defaultScene='main'
   testOptions={{
     showColliders: true,
     showClickables: true,
-  }}
->
+  }}>
   ...
-</Game>
+</GameRoot>
 ```

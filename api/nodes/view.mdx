@@ -1,0 +1,141 @@
+---
+title: "<view> — Screen-space UI container"
+sidebarTitle: "<view>"
+description: "Render UI and HUD elements in screen-space. Resets the canvas transform so children are positioned relative to the viewport."
+---
+
+Use `<view>` to render UI and HUD elements in screen-space. A `<view>` node has no `position` or `size` — it resets the canvas transform so its children are positioned relative to the viewport (top-left corner of the canvas) regardless of camera position or zoom.
+
+```tsx
+function HUD() {
+  return (
+    <view>
+      <geometry position={[10, 10]} shape={shapes.rectangle(200, 30)} fillColor={[0, 0, 0, 0.5]} />
+      <text position={[20, 30]} text="Score: 100" />
+    </view>
+  )
+}
+```
+
+This is useful for health bars, score displays, minimaps, pause menus, and any element that should stay fixed on screen while the camera moves.
+
+## Usage
+
+Wrap screen-space elements in a `<view>`. Children are positioned starting from the top-left corner of the canvas.
+
+```tsx
+import { shapes } from 'fraxel'
+
+function PauseMenu() {
+  return (
+    <view>
+      {/* Semi-transparent background */}
+      <geometry
+        position={[0, 0]}
+        shape={shapes.rectangle(480, 270)}
+        fillColor={[0, 0, 0, 0.6]}
+      />
+      {/* Title */}
+      <text
+        position={[240, 100]}
+        text="PAUSED"
+        style={{ fontSize: 32, foregroundColor: '#fff', textAlign: 'center' }}
+      />
+      {/* Resume button */}
+      <text
+        position={[240, 160]}
+        text="Press ESC to resume"
+        style={{ fontSize: 14, foregroundColor: '#aaa', textAlign: 'center' }}
+      />
+    </view>
+  )
+}
+```
+
+## Props
+
+<ParamField path="zIndex" type="number">
+  Draw order relative to siblings. Use a high value to ensure UI renders on top
+  of world elements. Defaults to `0`.
+</ParamField>
+
+<ParamField path="gameMode" type="GameMode">
+  Controls how this node behaves when the game is paused. Defaults to
+  `GameMode.INHERIT`. Use `GameMode.ALWAYS` for HUD elements that should remain
+  visible and interactive while paused.
+</ParamField>
+
+<ParamField path="script" type="FraxelScript<PrimaryNode.View>">
+  Optional script instance to attach to this node.
+</ParamField>
+
+<ParamField path="ref" type="NodeReference<PrimaryNode.View>">
+  Attach a node reference to access the instance imperatively.
+</ParamField>
+
+## Events
+
+| Event name | Callback signature | Description |
+|---|---|---|
+| `started` | `() => void` | Fires once after initialization. |
+| `updated` | `(delta: number) => void` | Fires every frame during update. |
+| `drawed` | `(delta: number) => void` | Fires every frame when the node is being drawn. |
+| `destroyed` | `() => void` | Fires on removal. |
+| `zIndexChanged` | `(zIndex: number) => void` | Fires when the node's `zIndex` value changes. |
+
+<CodeGroup>
+
+```tsx Health bar overlay
+import { shapes } from 'fraxel'
+
+function HealthBar({ health, max }: { health: () => number; max: number }) {
+  const barWidth = () => (health() / max) * 100
+
+  return (
+    <view>
+      <geometry
+        position={[10, 10]}
+        shape={shapes.rectangle(100, 12)}
+        fillColor={[0.2, 0.2, 0.2, 0.8]}
+      />
+      <geometry
+        position={[10, 10]}
+        shape={() => shapes.rectangle(barWidth(), 12)}
+        fillColor={[0.8, 0.2, 0.2, 1]}
+      />
+      <text position={[12, 20]} text={() => `${health()} / ${max}`} style={{ fontSize: 10, foregroundColor: '#fff' }} />
+    </view>
+  )
+}
+```
+
+```tsx Minimap in corner
+import { shapes } from 'fraxel'
+
+function Minimap() {
+  return (
+    <view>
+      <geometry
+        position={[380, 10]}
+        shape={shapes.rectangle(90, 90)}
+        fillColor={[0, 0, 0, 0.5]}
+        strokeColor={[1, 1, 1, 0.3]}
+      />
+      {/* minimap content */}
+    </view>
+  )
+}
+```
+
+</CodeGroup>
+
+<Note>
+A `<view>` does not have `position`, `size`, `rotation`, or `scale` properties. It purely resets the canvas transform. If you need spatial positioning for UI elements, use a `<transform>` inside the `<view>`.
+</Note>
+
+## Related
+
+- [Nodes overview](/getting-started/nodes) — full node reference table
+- [`<text>`](/api/nodes/text) — render text labels inside a view
+- [`<geometry>`](/api/nodes/geometry) — render shapes for UI backgrounds and bars
+- [UI Text guide](/guides/ui-text) — text styling and layout patterns
