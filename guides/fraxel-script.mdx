@@ -68,7 +68,7 @@ import { shapes } from 'fraxel'
 function Player() {
   return (
     <transform position={[100, 200]} script={new PlayerScript()}>
-      <sprite textureId={PLAYER} sourceSize={[32, 48]} displaySize={[64, 96]} />
+      <sprite textureId={PLAYER} source={region([0, 0], [32, 48])} displaySize={[64, 96]} />
       <collider
         shape={shapes.rectangle(32, 48)}
         group={['player']}
@@ -167,7 +167,7 @@ function Projectile() {
 
   return (
     <body useGravity={false}>
-      <sprite textureId={BULLET} sourceSize={[8, 4]} />
+      <sprite textureId={BULLET} source={region([0, 0], [8, 4])} />
       <collider
         ref={collider}
         shape={shapes.circle(4)}
@@ -241,7 +241,7 @@ const enemyScript = new EnemyScript()
 function Enemy({ position }: { position: [number, number] }) {
   return (
     <body script={enemyScript} position={position} friction={0.8}>
-      <sprite textureId={ENEMY} sourceSize={[32, 48]} displaySize={[64, 96]} />
+      <sprite textureId={ENEMY} source={region([0, 0], [32, 48])} displaySize={[64, 96]} />
       <collider
         shape={shapes.rectangle(32, 48)}
         group={['enemy']}

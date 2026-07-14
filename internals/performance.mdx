@@ -4,6 +4,11 @@ sidebarTitle: "Performance"
 description: "Why Fraxel is fast by default, Canvas 2D tips, spatial hash tuning, signal batching, asset caching, DPR handling, memory management, and profiling tools."
 ---
 
+<Note>
+  This page describes Fraxel internals. You do not need this knowledge to build
+  a game with Fraxel.
+</Note>
+
 Fraxel is designed to be fast without requiring special opt-ins. The absence of a virtual DOM, the direct Canvas 2D rendering model, and fine-grained reactivity mean that the common-case performance profile is already quite good. This page explains the performance characteristics of each subsystem and gives concrete guidance for squeezing out more when you need it.
 
 ## Why Fraxel Is Fast by Default
@@ -72,7 +77,9 @@ However, **reactive node prop updates are not batched**. `subReactive` wires sig
 
 ## Asset Deduplication
 
-`loadTexture(url)` and `loadSound(url)` cache their results by URL. Calling `loadTexture('/assets/player.png')` twice returns the same `symbol` (and same `ImageBitmap` internally) — no duplicate network request or GPU upload.
+`loadTexture(url)` caches its result by URL. Calling `loadTexture('/assets/player.png')` twice returns the same `symbol` — no duplicate network request or texture upload after the first completed load.
+
+`loadSound(url)` does not deduplicate in `0.1.0-alpha.6d`. Load shared sounds once and reuse the exported symbol. `0.1.0-alpha.7` is planned to add sound deduplication by URL.
 
 ```ts
 // Both return the same symbol

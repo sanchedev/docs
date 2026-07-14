@@ -1,0 +1,83 @@
+---
+title: 'Developing @fraxel/vite-plugin'
+sidebarTitle: 'Vite Plugin'
+description: 'What the Fraxel Vite plugin currently does, which options it supports, how asset query imports work, and which behaviors it does not implement.'
+---
+
+`@fraxel/vite-plugin` is the official Vite integration for Fraxel projects.
+
+Use this page when changing the plugin or updating docs that describe Vite behavior.
+
+## Public setup
+
+```js vite.config.js
+import { defineConfig } from 'vite'
+import { fraxel } from '@fraxel/vite-plugin'
+
+export default defineConfig({
+  plugins: [fraxel()],
+})
+```
+
+## Public options
+
+```ts
+interface FraxelPluginOptions {
+  debug?: boolean
+  diagnostics?: boolean | 'warn' | 'error'
+}
+```
+
+Do not document additional options unless they exist in `src/options.ts`.
+
+## Current behavior
+
+The plugin currently does four public things:
+
+1. Configures the Fraxel JSX runtime for Vite.
+2. Runs diagnostics when Vite config is resolved.
+3. Transforms imports with `?texture` or `?sound` into modules that call `loadTexture()` or `loadSound()`.
+4. Provides `virtual:fraxel` with `version`, `mode`, and `debug` exports.
+
+## Asset query imports
+
+Asset transformation is query-based.
+
+```ts
+import player from './player.png?texture'
+import shoot from './shoot.ogg?sound'
+```
+
+The imported value is a Fraxel `symbol`.
+
+Imports without the query are not transformed by Fraxel:
+
+```ts
+import url from './player.png'
+```
+
+That import follows Vite's normal behavior and returns a URL string.
+
+## Client types
+
+Projects that use asset query imports should include the client types:
+
+```json tsconfig.json
+{
+  "compilerOptions": {
+    "types": ["@fraxel/vite-plugin/client"]
+  }
+}
+```
+
+`client.d.ts` declares `*?texture` and `*?sound` modules as `symbol` exports.
+
+## Not implemented
+
+Do not document these as current plugin behavior:
+
+- Plain extension-based Fraxel asset detection.
+- Component-level Fraxel HMR.
+- A public `kind` option.
+
+If any of these behaviors are implemented later, update this page and the public [Vite Plugin Reference](/api/engine/vite-plugin) in the same change.

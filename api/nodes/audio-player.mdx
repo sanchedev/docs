@@ -33,8 +33,10 @@ function Gun() {
 
 <ParamField path="soundId" type="symbol" required>
   The symbol returned by `loadSound()`. This is the only required prop.
-  Duplicate calls to `loadSound()` with the same URL return the same cached
-  symbol.
+  In `0.1.0-alpha.6d`, duplicate calls to `loadSound()` with the same URL return
+  different symbols. Load shared sounds once and reuse the exported symbol.
+
+  `0.1.0-alpha.7` is planned to deduplicate sounds by URL.
 
 ```tsx
 const BG_MUSIC = await loadSound('/assets/music.mp3')

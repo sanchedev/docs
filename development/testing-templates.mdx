@@ -1,0 +1,75 @@
+---
+title: 'Testing Fraxel Templates'
+sidebarTitle: 'Testing Templates'
+description: 'Checklist for validating create-fraxel templates after runtime, Vite plugin, dependency, or documentation changes.'
+---
+
+Templates are part of the developer experience. A small mismatch in a template can make the first Fraxel project fail before the user writes any code.
+
+Validate templates whenever you change `create-fraxel`, `fraxel`, `@fraxel/vite-plugin`, asset import behavior, JSX setup, or package versions.
+
+## Templates to check
+
+| Template | Directory |
+| -------- | --------- |
+| `empty` | `packages/create-fraxel/template-empty` |
+| `platformer` | `packages/create-fraxel/template-platformer` |
+| `top-down` | `packages/create-fraxel/template-top-down` |
+
+## Static checklist
+
+For each template, check:
+
+- `package.json` uses current compatible `fraxel`, `@fraxel/vite-plugin`, `vite`, and `typescript` versions.
+- `vite.config.js` imports `fraxel` from `@fraxel/vite-plugin` and calls `fraxel()`.
+- `tsconfig.json` uses `jsx: "react-jsx"` and `jsxImportSource: "fraxel"`.
+- `tsconfig.json` includes `@fraxel/vite-plugin/client` when using query asset imports.
+- `index.html` contains the same root ID used by `src/main.tsx`.
+- `src/main.tsx` calls `createGame()` with that root element.
+- Asset imports that should become Fraxel symbols use `?texture` or `?sound`.
+
+## Manual validation flow
+
+Build the CLI first:
+
+```bash
+pnpm --filter create-fraxel build
+```
+
+Then scaffold each template into a temporary directory and run the generated app:
+
+```bash
+node packages/create-fraxel/dist/index.mjs my-game --template empty --install
+```
+
+Repeat with:
+
+```bash
+node packages/create-fraxel/dist/index.mjs my-platformer --template platformer --install
+node packages/create-fraxel/dist/index.mjs my-top-down --template top-down --install
+```
+
+Inside each generated project, run:
+
+```bash
+pnpm build
+pnpm dev
+```
+
+## Regression checklist
+
+Before considering template changes done, verify:
+
+- The dev server starts without TypeScript errors.
+- The page mounts a canvas inside `#app`.
+- The default scene loads.
+- Plugin asset imports resolve to symbols when using `?texture` or `?sound`.
+- Manual `loadTexture()` / `loadSound()` paths still work for assets served from `public/`.
+
+## Documentation follow-up
+
+If a template changes, update these docs in the same work:
+
+- [Quickstart](/getting-started/quickstart)
+- [Project Structure](/getting-started/project-structure)
+- [create-fraxel](/development/create-fraxel)

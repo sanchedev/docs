@@ -22,9 +22,9 @@
             "pages": [
               "getting-started/introduction",
               "getting-started/quickstart",
-              "getting-started/installation",
               "getting-started/first-game",
-              "getting-started/project-structure"
+              "getting-started/project-structure",
+              "getting-started/installation"
             ]
           },
           {
@@ -50,6 +50,12 @@
       {
         "tab": "Guides",
         "groups": [
+          {
+            "group": "Workflow",
+            "pages": [
+              "guides/project-workflow"
+            ]
+          },
           {
             "group": "Rendering",
             "pages": [
@@ -84,18 +90,40 @@
               "guides/fraxel-script",
               "guides/tweening"
             ]
+          }
+        ]
+      },
+      {
+        "tab": "Development",
+        "groups": [
+          {
+            "group": "Environment",
+            "pages": [
+              "development/overview",
+              "development/monorepo",
+              "development/local-setup",
+              "development/packages"
+            ]
           },
           {
-            "group": "Engine Internals",
+            "group": "Tooling",
             "pages": [
-              "guides/architecture",
-              "guides/jsx-runtime-internals",
-              "guides/rendering-pipeline",
-              "guides/reactivity-internals",
-              "guides/event-system-internals",
-              "guides/collision-pipeline",
-              "guides/lifecycle",
-              "guides/performance"
+              "development/create-fraxel",
+              "development/vite-plugin",
+              "development/testing-templates"
+            ]
+          },
+          {
+            "group": "Internals",
+            "pages": [
+              "internals/architecture",
+              "internals/jsx-runtime",
+              "internals/rendering-pipeline",
+              "internals/reactivity",
+              "internals/event-system",
+              "internals/collision-pipeline",
+              "internals/lifecycle",
+              "internals/performance"
             ]
           }
         ]

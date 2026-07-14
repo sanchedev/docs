@@ -1,30 +1,36 @@
 ---
 title: "Game Hooks API Reference — Fraxel Game Engine"
 sidebarTitle: "Game"
-description: "Reference for Fraxel's game hooks: usePaused and useScene for game control and scene management."
+description: "Reference for Fraxel's game hooks: useGame, usePaused, and useScene for loop control, pause state, and scene management."
 ---
 
-Game hooks provide control over the game loop and scene management from inside components.
+Game hooks provide control over the game loop, pause state, browser focus events, and scene management from inside components.
 
 ---
 
 ## useGame
 
-Returns reactive access to the game's pause state and imperative play/pause controls.
+Returns imperative control over the game loop and triggers for browser focus events.
 
 ```ts
-useGame(): { play }
+useGame(): {
+  play: () => void
+  stop: () => void
+  destroy: () => void
+  blurred: Trigger<[]>
+  focused: Trigger<[]>
+}
 ```
 
 **Returns** `PausedControllers`:
 
 | Property | Type | Description |
 |---|---|---|
-| `play` | `() => void` | Start or restart the game loop. |
-| `stop` | `() => void` | Freezes the game loop. |
-| `destroy` | `() => void` | Destroys the game and unmount all nodes. |
+| `play` | `() => void` | Starts the game loop. |
+| `stop` | `() => void` | Stops the animation-frame loop without destroying the game. |
+| `destroy` | `() => void` | Destroys the game and unmounts all nodes. |
 | `blurred` | `Trigger<[]>` | Fires whenever the browser window loses focus. |
-| `focused` | `Trigger<[]>` | Fires whenever the browser window won focus. |
+| `focused` | `Trigger<[]>` | Fires whenever the browser window gains focus. |
 
 ```tsx
 import { useGame, useTrigger } from 'fraxel'
@@ -44,10 +50,10 @@ function GameController() {
 
 ## usePaused
 
-Returns reactive access to the game's pause state and imperative play/pause controls.
+Returns reactive access to the game's pause state and imperative pause/resume controls.
 
 ```ts
-usePaused(): { paused: SignalGetter<boolean>, play: () => void, pause: () => void }
+usePaused(): { paused: SignalGetter<boolean>, resume: () => void, pause: () => void }
 ```
 
 **Returns** `PausedControllers`:
@@ -55,8 +61,8 @@ usePaused(): { paused: SignalGetter<boolean>, play: () => void, pause: () => voi
 | Property | Type | Description |
 |---|---|---|
 | `paused` | `SignalGetter<boolean>` | Reactive signal that is `true` when the game is paused. |
-| `play` | `() => void` | Resumes the game loop. |
-| `pause` | `() => void` | Pauses the game loop. |
+| `resume` | `() => void` | Clears the pause state. |
+| `pause` | `() => void` | Sets the pause state. The loop keeps rendering, but updates and physics are skipped. |
 
 ```tsx
 import { usePaused, useEffect } from 'fraxel'
@@ -65,11 +71,11 @@ import { Input } from 'fraxel'
 const Pause = Input.createAction({ key: 'p' })
 
 function PauseManager() {
-  const { paused, play, pause } = usePaused()
+  const { paused, resume, pause } = usePaused()
 
   useEffect(() => {
     if (Input.justActionPressed(Pause)) {
-      paused() ? play() : pause()
+      paused() ? resume() : pause()
     }
   })
 
@@ -93,7 +99,7 @@ useScene(): { getCurrent: () => string, change: (sceneName: string | null) => Pr
 |---|---|---|
 | `getCurrent` | `() => string` | Returns the name of the currently active scene. |
 | `change` | `(sceneName: string \| null) => Promise<void>` | Destroys the current scene and loads the named one. Pass `null` to unload without switching. |
-| `preload` | `(scene: string) => Promise<() => void>` | Preloads a scene in the background. Returns a function to perform the instant switch. |
+| `preload` | `(scene: string) => Promise<() => void>` | Preloads a scene in the background. Returns a function to switch to the preloaded scene. |
 
 ```tsx
 import { useScene, useEffect } from 'fraxel'

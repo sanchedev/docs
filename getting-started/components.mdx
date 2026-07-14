@@ -13,10 +13,8 @@ If you have used React or another component-based UI framework, the mental model
 A component is just a TypeScript function. Define it, use it in JSX like a built-in tag.
 
 ```tsx src/components/coin.tsx
-import { loadTexture } from 'fraxel'
+import COIN_TEX from '../assets/coin.png?texture'
 import { useSignal, useSprite, useClickable, useTrigger } from 'fraxel'
-
-const COIN_TEX = await loadTexture('/assets/coin.png')
 
 export function Coin() {
   const sprite = useSprite()
@@ -289,7 +287,7 @@ function Player() {
 }
 ```
 
-Scripts use `createSignal` and `signalSetterFrom` (from `'fraxel'`) for reactive state instead of `useSignal`, since they run outside the hook context.
+Scripts use `createSignal` (from `'fraxel'`) for reactive state instead of `useSignal`, since they run outside the hook context.
 
 <Note>
   Use function components with hooks for most cases. Scripts are best when you need class-based encapsulation, inheritance, or logic that spans multiple nodes.

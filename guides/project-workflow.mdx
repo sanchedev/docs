@@ -1,0 +1,140 @@
+---
+title: 'Fraxel Project Workflow'
+sidebarTitle: 'Project Workflow'
+description: 'Learn the recommended day-to-day Fraxel workflow: create-fraxel projects, scenes, components, actions, asset imports, hooks, List, and when to use runtime loaders.'
+---
+
+Fraxel guides assume a project created with `create-fraxel`. That gives you Vite, `@fraxel/vite-plugin`, TypeScript, JSX, and a working `src/scenes/main.tsx` entry scene.
+
+This page explains the workflow the rest of the guides follow.
+
+## Work in scenes and components
+
+Scenes are just components registered by `<SceneRoot>`. The generated project already wires this up in `src/main.tsx`, so most game work happens inside `src/scenes/` and `src/components/`.
+
+```txt
+src/
+├── actions.ts
+├── assets/
+│   ├── player.png
+│   └── jump.ogg
+├── components/
+│   ├── player.tsx
+│   └── coin.tsx
+└── scenes/
+    └── main.tsx
+```
+
+Use scenes for whole screens or levels. Use components for reusable game objects.
+
+## Put input actions in one file
+
+`Input.createAction()` registers a key combination globally. Define actions once and import the symbols where you need them.
+
+```ts src/actions.ts
+import { Input } from 'fraxel'
+
+export const MoveLeft = Input.createAction({ key: 'a' })
+export const MoveRight = Input.createAction({ key: 'd' })
+export const Jump = Input.createAction({ key: ' ' })
+```
+
+```tsx src/components/player.tsx
+import { MoveLeft, MoveRight, Jump } from '../actions.js'
+import { useAction, useActionAxis, useRigidBody, useUpdate } from 'fraxel'
+
+export function Player() {
+  const body = useRigidBody()
+  const x = useActionAxis(MoveLeft, MoveRight)
+  const jump = useAction(Jump)
+
+  useUpdate(() => {
+    body.setVelocity([x() * 160, body.velocity().y])
+    if (jump.justPressed()) body.applyImpulse([0, -320])
+  })
+
+  return <body ref={body} />
+}
+```
+
+## Import static assets with queries
+
+For static assets in `src/assets/`, use the Vite plugin query imports.
+
+```tsx
+import PLAYER from '../assets/player.png?texture'
+import JUMP from '../assets/jump.ogg?sound'
+```
+
+`?texture` and `?sound` return Fraxel `symbol` IDs. Pass them to node props:
+
+```tsx
+<sprite textureId={PLAYER} />
+<audio soundId={JUMP} />
+```
+
+Use runtime loaders only when the path is dynamic or served from `public/`:
+
+```ts
+import { loadTexture } from 'fraxel'
+
+const texture = await loadTexture('/assets/generated-at-runtime.png')
+```
+
+## Prefer hooks over direct node access
+
+Hooks create typed references and expose the common operations you need.
+
+| Need | Prefer |
+| ---- | ------ |
+| Move a body | `useRigidBody()` |
+| Read collision events | `useCollider()` + `useTrigger()` |
+| Play audio | `useAudio()` |
+| Play animations | `useAnimation()` |
+| Control a camera | `useCamera()` |
+| Track time | `useTimer()` |
+
+Use `ref.node` only when there is no hook method for the operation you need.
+
+## Use `List` for dynamic collections
+
+Use `<List>` when you have a reactive array of game objects.
+
+```tsx
+import { List, useSignal } from 'fraxel'
+
+type EnemyState = { id: string; x: number; y: number }
+
+export function EnemyWave() {
+  const [enemies] = useSignal<EnemyState[]>([
+    { id: 'a', x: 120, y: 80 },
+    { id: 'b', x: 220, y: 120 },
+  ])
+
+  return (
+    <List array={enemies} itemKey={(enemy) => enemy.id}>
+      {(enemy) => <Enemy position={[enemy.x, enemy.y]} />}
+    </List>
+  )
+}
+```
+
+`List` keeps node identity stable while adding, removing, or reordering items.
+
+## Avoid low-level APIs in normal gameplay code
+
+Most projects do not need `Game.setup()`, `SceneManager`, `GameConfig`, or direct node construction. The template already wires the game, and JSX creates nodes for you.
+
+Use the API reference when you need exact signatures or advanced control.
+
+## Where to go next
+
+Follow the guides in a natural build order:
+
+1. [Sprites](/guides/sprites)
+2. [Animation](/guides/animation)
+3. [Input](/getting-started/input)
+4. [Physics](/guides/physics)
+5. [Collision Groups](/guides/collision-groups)
+6. [Spawning](/guides/spawning)
+7. [Scenes](/guides/scenes)

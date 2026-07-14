@@ -12,9 +12,9 @@ Use **kebab-case** for all file and folder names: `player.tsx`, `game-scene.tsx`
 
 ## Recommended layout
 
-The structure depends on whether you use `@fraxel/vite-plugin`. Both variants share the same `src/` organization — only the asset location changes.
+The recommended structure assumes `create-fraxel` and `@fraxel/vite-plugin`. Static assets live in `src/` and are imported with `?texture` or `?sound`.
 
-### With Vite plugin (assets in `src/`)
+### Assets in `src/`
 
 When using `@fraxel/vite-plugin`, place raw assets inside `src/` so you can import them directly:
 
@@ -42,12 +42,12 @@ my-game/
 │   └── lib/                  # Utilities and helpers
 ├── index.html
 ├── tsconfig.json
-└── vite.config.ts
+└── vite.config.js
 ```
 
-### Without Vite plugin (assets in `public/`)
+### Runtime URL alternative
 
-Without the plugin, assets go in `public/` and are loaded explicitly via `loadTexture` / `loadSound`:
+Use `public/` for assets whose URLs are built at runtime, or for a custom integration without `@fraxel/vite-plugin`. Those assets are loaded explicitly via `loadTexture` / `loadSound`:
 
 ```
 my-game/
@@ -62,7 +62,7 @@ my-game/
 ├── src/
 │   ├── main.tsx              # Entry point
 │   ├── style.css             # Canvas and body styles
-│   ├── assets.ts             # All loadTexture / loadSound calls
+│   ├── runtime-assets.ts     # Optional loadTexture / loadSound calls
 │   ├── actions.ts            # Input.createAction — all input bindings
 │   ├── constants.ts          # Game-wide constants (GRAVITY, PLAYER_SPEED, etc.)
 │   ├── scenes/
@@ -75,7 +75,7 @@ my-game/
 │   └── lib/                  # Utilities and helpers
 ├── index.html
 ├── tsconfig.json
-└── vite.config.ts
+└── vite.config.js
 ```
 
 ### Why this layout works
@@ -84,7 +84,7 @@ my-game/
 
 **`src/constants.ts`** — Keeps magic numbers out of components. Values like `GRAVITY`, `PLAYER_SPEED`, or `TILE_SIZE` live in one place and are easy to tweak without hunting through the codebase.
 
-**`src/assets.ts`** (without plugin) — Centralizing all `loadTexture` and `loadSound` calls means the rest of your code imports typed symbol constants (`import { PLAYER_TEX } from '../assets.js'`) rather than hard-coding URL strings. You only have one place to update when an asset path changes.
+**`src/assets.ts`** — Centralizing static `?texture` and `?sound` imports means the rest of your code imports typed symbol constants (`import { PLAYER_TEX } from '../assets.js'`) rather than hard-coding paths. Use runtime loaders only for URLs that are not known at build time.
 
 **`src/scenes/`** — Each scene is its own file. Scene component functions can be large, and keeping them isolated prevents `main.tsx` from becoming a thousand-line file.
 
@@ -118,20 +118,18 @@ export const TILE_SIZE = 16
 
 Keep constants as plain exports. If a value needs to be reactive (changes at runtime), it belongs in a signal inside the component, not in this file.
 
-## Asset file (without plugin)
+## Asset file
 
 ```ts src/assets.ts
-import { loadTexture, loadSound } from 'fraxel'
-
-export const PLAYER_TEX = await loadTexture('/assets/sprites/player.png')
-export const ENEMY_TEX = await loadTexture('/assets/sprites/enemy.png')
-export const SHOOT_SFX = await loadSound('/assets/sounds/shoot.mp3')
-export const BG_MUSIC = await loadSound('/assets/sounds/music.mp3')
+export { default as PLAYER_TEX } from './assets/sprites/player.png?texture'
+export { default as ENEMY_TEX } from './assets/sprites/enemy.png?texture'
+export { default as SHOOT_SFX } from './assets/sounds/shoot.mp3?sound'
+export { default as BG_MUSIC } from './assets/sounds/music.mp3?sound'
 ```
 
-Because `assets.ts` uses top-level `await`, you must import it at the top of `main.tsx` before calling `createGame`. This guarantees all textures are decoded and cached before the first scene tries to render them.
+The Vite plugin resolves imports with `?texture` to a texture ID and imports with `?sound` to a sound ID. Import the symbols wherever your components need them.
 
-For large games, consider using `loadBatchAsset` to load groups of assets with a progress callback:
+For dynamic URLs that are not known at build time, use `loadBatchAsset` to load groups of runtime assets with a progress callback:
 
 ```ts src/assets.ts
 import { loadBatchAsset } from 'fraxel'
@@ -144,19 +142,19 @@ const [PLAYER_TEX, ENEMY_TEX] = await loadBatchAsset('texture', [
 export { PLAYER_TEX, ENEMY_TEX }
 ```
 
-### Direct asset imports with the Vite plugin
+### Direct asset imports
 
-If your project uses `@fraxel/vite-plugin`, you can import assets directly in your components instead of centralizing them in `assets.ts`:
+You can also import assets directly in your components instead of centralizing them in `assets.ts`:
 
 ```tsx src/components/player.tsx
-import PLAYER from '../assets/sprites/player.png'
+import PLAYER from '../assets/sprites/player.png?texture'
 
 export function Player() {
   return <sprite textureId={PLAYER} />
 }
 ```
 
-The plugin resolves the import to a `loadTexture` call automatically. This eliminates the need for a separate `assets.ts` file, though you can still use both patterns together — direct imports for static assets and `loadTexture` / `loadBatchAsset` for runtime or batched loading.
+This eliminates the need for a separate `assets.ts` file, though you can still use both patterns together - query imports for static assets and `loadTexture` / `loadBatchAsset` for runtime loading.
 
 See the [Vite Plugin Reference](/api/engine/vite-plugin#asset-imports) for supported formats and details.
 
@@ -165,11 +163,9 @@ See the [Vite Plugin Reference](/api/engine/vite-plugin#asset-imports) for suppo
 For large projects with many assets per scene, you can create a `loaders/` directory with one file per scene. Each file re-exports the assets that scene needs:
 
 ```ts src/loaders/game-loader.ts
-import { loadTexture, loadSound } from 'fraxel'
-
-export const PLAYER_TEX = await loadTexture('/assets/sprites/player.png')
-export const ENEMY_TEX = await loadTexture('/assets/sprites/enemy.png')
-export const SHOOT_SFX = await loadSound('/assets/sounds/shoot.mp3')
+export { default as PLAYER_TEX } from '../assets/sprites/player.png?texture'
+export { default as ENEMY_TEX } from '../assets/sprites/enemy.png?texture'
+export { default as SHOOT_SFX } from '../assets/sounds/shoot.mp3?sound'
 ```
 
 ```tsx src/scenes/game.tsx
@@ -200,7 +196,7 @@ import { loadTexture, shapes, Vector2, Input } from 'fraxel'
 
 In Fraxel there is no technical difference between a scene and a component. Both are functions that return JSX. The distinction is organizational:
 
-- A **scene** is registered with `<SceneRoot name component>` inside `<GameRoot>`. The engine instantiates it when `changeScene` is called. It typically returns a root `<transform>` containing the entire game world.
+- A **scene** is registered with `<SceneRoot name component>` inside `<GameRoot>`. The engine instantiates it when `useScene().change()` is called. It typically returns a root `<transform>` containing the entire game world.
 - A **component** is a function you define and call from inside a scene (or another component). It encapsulates a reusable piece of the node tree — a player, an enemy, a HUD element.
 
 ```tsx src/scenes/game.tsx
@@ -239,7 +235,7 @@ const game = createGame(
     <SceneRoot name='menu' component={MenuScene} />
     <SceneRoot name='game' component={GameScene} />
   </GameRoot>,
-  document.querySelector('#root')!,
+  document.querySelector('#app')!,
 )
 
 game.play()

@@ -75,7 +75,7 @@ function Player() {
   return (
     <body ref={body} position={[100, 200]}>
       <camera current smoothing={6} offset={[0, -40]} />
-      <sprite textureId={PLAYER} sourceSize={[32, 32]} displaySize={[64, 64]} />
+      <sprite textureId={PLAYER} source={region([0, 0], [32, 32])} displaySize={[64, 64]} />
       <collider
         shape={shapes.rectangle(32, 48)}
         group={['player']}
@@ -154,11 +154,10 @@ Both methods account for the current zoom level, screen-space offset, and the sm
 Here's a full platformer setup with a follow camera, smooth easing, a vertical look-ahead offset, and level bounds:
 
 ```tsx platformer.tsx
+import PLAYER from '../assets/player.png?texture'
+import GROUND from '../assets/ground.png?texture'
 import { useRigidBody, useAction } from 'fraxel'
-import { loadTexture, Input, shapes, bounds } from 'fraxel'
-
-const PLAYER = await loadTexture('/assets/player.png')
-const GROUND = await loadTexture('/assets/ground.png')
+import { Input, shapes, bounds } from 'fraxel'
 
 const Jump = Input.createAction({ key: ' ' })
 
@@ -184,7 +183,7 @@ function PlatformerScene() {
         />
         <sprite
           textureId={PLAYER}
-          sourceSize={[32, 48]}
+          source={region([0, 0], [32, 48])}
           displaySize={[64, 96]}
         />
         <collider
@@ -196,7 +195,7 @@ function PlatformerScene() {
 
       {/* Static ground platform */}
       <body position={[0, 400]} isStatic>
-        <sprite textureId={GROUND} sourceSize={[3200, 32]} />
+        <sprite textureId={GROUND} source={region([0, 0], [3200, 32])} />
         <collider
           shape={shapes.rectangle(3200, 32)}
           group={['ground']}

@@ -7,8 +7,8 @@ description: 'Fraxel is a modern 2D game engine for the browser. Build games wit
 Fraxel lets you build 2D browser games using familiar JSX syntax compiled directly into engine nodes — no Virtual DOM, no React overhead. If you know TypeScript and have ever written a React component, you already understand 80% of Fraxel's mental model.
 
 <CardGroup cols={2}>
-  <Card title='Quick Start' icon='rocket' href='/getting-started/installation'>
-    Install Fraxel and have a game running in under five minutes.
+  <Card title='Quick Start' icon='rocket' href='/getting-started/quickstart'>
+    Create a Fraxel project and have a game running in under five minutes.
   </Card>
   <Card
     title='Your First Game'
@@ -89,13 +89,11 @@ Fraxel is not a wrapper around an existing engine or a React renderer for canvas
 
   </Step>
   <Step title="Write your first scene">
-    Create a `main.tsx` file, load a texture, define a scene, and start the game loop.
+    Create a `main.tsx` file, import a texture, define a scene, and start the game loop.
 
     ```tsx main.tsx
     import { createGame, GameRoot, SceneRoot } from 'fraxel'
-    import { loadTexture } from 'fraxel'
-
-    const PLAYER = await loadTexture('/assets/player.png')
+    import PLAYER from './assets/player.png?texture'
 
     const scene = () => <sprite textureId={PLAYER} position={[80, 50]} />
 
@@ -103,7 +101,7 @@ Fraxel is not a wrapper around an existing engine or a React renderer for canvas
       <GameRoot width={320} height={180} defaultScene="main">
         <SceneRoot name="main" component={scene} />
       </GameRoot>,
-      document.querySelector('#root')!,
+      document.querySelector('#app')!,
     )
 
     game.play()

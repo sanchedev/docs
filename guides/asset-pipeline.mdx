@@ -1,7 +1,7 @@
 ---
 title: 'Fraxel Asset Pipeline: Loading Textures and Sounds'
 sidebarTitle: 'Asset Pipeline'
-description: 'Load and cache textures and sounds in Fraxel using loadTexture, loadSound, loadBatch, and loadBatchAsset with progress callbacks to avoid frame drops.'
+description: 'Load textures and sounds in Fraxel using loadTexture, loadSound, loadBatch, and loadBatchAsset with progress callbacks to avoid frame drops.'
 ---
 
 Every texture and sound your game uses needs to be fetched from the server and decoded before it can be displayed or played. If you load assets on demand — right when a sprite first appears — you'll see frame drops and pop-in. Fraxel's asset pipeline solves this with an upfront loading system that deduplicates requests and tracks progress, so you can show a loading screen while everything prepares.
@@ -10,7 +10,7 @@ Every texture and sound your game uses needs to be fetched from the server and d
 
 `loadTexture` and `loadSound` each return a `symbol` — a unique, globally stable identifier for that resource. You pass symbols to node props like `textureId` and `soundId`. This design means:
 
-- **Deduplication**: calling `loadTexture('/assets/player.png')` twice returns the same symbol and skips the second network request.
+- **Texture deduplication**: calling `loadTexture('/assets/player.png')` twice after the first load completes returns the same symbol.
 - **Decoupling**: components don't hold onto image data directly; they reference symbols, and the engine looks up the asset when needed.
 
 ```ts assets.ts
@@ -46,6 +46,12 @@ import { loadSound } from 'fraxel'
 const SHOOT_SFX = await loadSound('/assets/shoot.ogg')
 const BG_MUSIC = await loadSound('/assets/music.mp3')
 ```
+
+<Note>
+  In `0.1.0-alpha.6d`, `loadSound()` does not deduplicate by URL. Calling it
+  twice with the same URL creates two symbols. `0.1.0-alpha.7` is planned to add
+  URL deduplication for sounds.
+</Note>
 
 See [Audio Playback](/guides/audio-playback) for using sound IDs with `<audio>`.
 
@@ -172,7 +178,7 @@ function LoadingScene() {
 
     // Short delay so the player sees 100%, then go
     await new Promise((r) => setTimeout(r, 300))
-    scene.changeScene('level1')
+    scene.change('level1')
   })
 
   return (

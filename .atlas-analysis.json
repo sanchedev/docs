@@ -1,11 +1,18 @@
 {
   "projectType": "framework",
   "projectName": "Fraxel",
-  "projectDescription": "A modern 2D game engine for the web that lets you build games using JSX syntax, fine-grained reactivity, and a custom canvas runtime — no React required.",
+  "projectDescription": "A modern 2D game engine for the web that lets you build games with create-fraxel, JSX syntax, fine-grained reactivity, Vite asset imports, and a custom canvas runtime with no React dependency.",
   "theme": "luma",
   "primaryColor": "#040404",
-  "lightColor": null,
+  "lightColor": "#6B7280",
   "darkColor": "#040404",
+  "recommendedLearningPath": [
+    "Create a project with create-fraxel, preferably the empty template for learning material.",
+    "Use @fraxel/vite-plugin in Vite projects so static assets can be imported with ?texture and ?sound.",
+    "Use JSX nodes, components, native node hooks, signals, List, and public helpers for day-to-day game code.",
+    "Use runtime loadTexture/loadSound only for dynamic URLs, public/ assets, small embeds, or custom integrations.",
+    "Keep low-level Game.setup, SceneManager, GameConfig, and internals material in API, Development, or Internals documentation."
+  ],
   "navigation": {
     "tabs": [
       {
@@ -15,9 +22,10 @@
             "group": "Introduction",
             "pages": [
               "getting-started/introduction",
-              "getting-started/installation",
+              "getting-started/quickstart",
               "getting-started/first-game",
-              "getting-started/project-structure"
+              "getting-started/project-structure",
+              "getting-started/installation"
             ]
           },
           {
@@ -43,6 +51,12 @@
       {
         "tab": "Guides",
         "groups": [
+          {
+            "group": "Workflow",
+            "pages": [
+              "guides/project-workflow"
+            ]
+          },
           {
             "group": "Rendering",
             "pages": [
@@ -74,8 +88,43 @@
             "pages": [
               "guides/hooks-in-depth",
               "guides/signals-reactivity",
-              "guides/scripts",
+              "guides/fraxel-script",
               "guides/tweening"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Development",
+        "groups": [
+          {
+            "group": "Environment",
+            "pages": [
+              "development/overview",
+              "development/monorepo",
+              "development/local-setup",
+              "development/packages"
+            ]
+          },
+          {
+            "group": "Tooling",
+            "pages": [
+              "development/create-fraxel",
+              "development/vite-plugin",
+              "development/testing-templates"
+            ]
+          },
+          {
+            "group": "Internals",
+            "pages": [
+              "internals/architecture",
+              "internals/jsx-runtime",
+              "internals/rendering-pipeline",
+              "internals/reactivity",
+              "internals/event-system",
+              "internals/collision-pipeline",
+              "internals/lifecycle",
+              "internals/performance"
             ]
           }
         ]
@@ -89,6 +138,7 @@
               "api/nodes/transform",
               "api/nodes/sprite",
               "api/nodes/text",
+              "api/nodes/geometry",
               "api/nodes/collider",
               "api/nodes/rigid-body",
               "api/nodes/camera",
@@ -96,13 +146,24 @@
               "api/nodes/audio-player",
               "api/nodes/clickable",
               "api/nodes/timer",
-              "api/nodes/geometry",
-              "api/nodes/ray-cast"
+              "api/nodes/ray-cast",
+              "api/nodes/group",
+              "api/nodes/tilemap",
+              "api/nodes/view"
             ]
           },
           {
             "group": "Hooks",
-            "pages": ["api/hooks/core-hooks", "api/hooks/derived-hooks"]
+            "pages": [
+              "api/hooks/state",
+              "api/hooks/lifecycle",
+              "api/hooks/node",
+              "api/hooks/game",
+              "api/hooks/input",
+              "api/hooks/context",
+              "api/hooks/pub-sub",
+              "api/hooks/deriveds"
+            ]
           },
           {
             "group": "Engine",
@@ -111,34 +172,24 @@
               "api/engine/input",
               "api/engine/physics-system",
               "api/engine/assets",
-              "api/engine/math"
+              "api/engine/math",
+              "api/engine/vite-plugin"
             ]
           },
           {
             "group": "JSX Components",
-            "pages": ["api/jsx/game-scene", "api/jsx/list-fragment"]
-          }
-        ]
-      },
-      {
-        "tab": "Advanced",
-        "groups": [
-          {
-            "group": "Internals",
             "pages": [
-              "advanced/architecture",
-              "advanced/jsx-runtime",
-              "advanced/rendering-pipeline",
-              "advanced/reactivity-internals",
-              "advanced/event-system"
+              "api/jsx/game-scene",
+              "api/jsx/list-fragment"
             ]
           },
           {
-            "group": "Systems",
+            "group": "Core Concepts",
             "pages": [
-              "advanced/collision-pipeline",
-              "advanced/lifecycle",
-              "advanced/performance"
+              "api/concepts/fraxel-script",
+              "api/concepts/event-system",
+              "api/concepts/context",
+              "api/concepts/triggers"
             ]
           }
         ]
@@ -146,76 +197,103 @@
     ]
   },
   "keyFeatures": [
-    "JSX-based scene graph compiled directly into engine nodes — no React, no Virtual DOM",
-    "Fine-grained reactivity via useSignal and useComputed with automatic dependency tracking",
-    "Auto-computed JSX props: pass signals or functions as attributes for live canvas updates",
+    "create-fraxel scaffolding with empty, platformer, and top-down templates",
+    "Vite integration through @fraxel/vite-plugin with ?texture and ?sound asset imports",
+    "JSX-based scene graph compiled directly into engine nodes, with no React or Virtual DOM",
+    "Fine-grained reactivity via useSignal, createSignal, useComputed, and reactive JSX props",
+    "Typed native node hooks such as useSprite, useCollider, useRigidBody, useCamera, useAudio, useTimer, useGroup, and useView",
+    "Declarative scene registration with createGame, GameRoot, and SceneRoot",
+    "Small GameControls surface: play, pause, and destroy",
+    "Scene transitions through useScene().change(), useScene().preload(), and SceneManager.setScene() for low-level API use",
     "Built-in collision system with rectangle, circle, and capsule shapes plus spatial hash broadphase",
-    "Physics simulation with gravity, rigid bodies, forces, impulses, and collision response",
-    "Camera system with zoom, smoothing, screen shake, and coordinate conversion",
-    "Sprite sheet animation with AnimationPlayer and reactive currentAnim switching",
-    "Tweening engine with 12 easing functions and sequence/parallel composition",
-    "Asset pipeline with batch loading, progress tracking, and deduplication",
-    "Audio playback via AudioPlayer node with loop, volume, and playback rate control",
+    "Physics simulation with gravity, rigid bodies, forces, impulses, friction, bounce, and collision response",
+    "Camera system with zoom, smoothing, offset, bounds, screen shake, and coordinate conversion",
+    "Sprite sheet animation with AnimationPlayer, animationFromSheet, keyframesFromSheet, and reactive animation switching",
+    "Audio playback through the audio node and useAudio, with Web Audio autoplay handling",
+    "Runtime asset pipeline with loadTexture, loadSound, loadBatch, loadBatchAsset, unloadTexture, and unloadSound",
     "Input system with pointer tracking, keyboard actions, and axis helpers",
-    "Sprite filters: brightness, grayscale, modulate, contrast, opacity, hue rotation",
-    "FraxelScript API for separating game logic from rendering",
-    "Context API for cross-component value sharing without prop drilling",
-    "TypeScript-first with strict type safety throughout"
+    "Reactive List component for keyed dynamic node rendering",
+    "Sprite filters including brightness, grayscale, modulate, contrast, opacity, saturation, hue rotation, and invert",
+    "FraxelScript API for node-attached logic when component hooks are not the right fit",
+    "Development documentation for the monorepo, packages, local setup, create-fraxel, vite-plugin, and template testing",
+    "Internals documentation separated from user-facing guides"
+  ],
+  "packages": [
+    {
+      "name": "fraxel",
+      "description": "Runtime engine, JSX runtime, nodes, hooks, reactivity, input, assets, animation, audio, collision, math, and scripts.",
+      "nodeRequirement": ">=18"
+    },
+    {
+      "name": "create-fraxel",
+      "description": "CLI for creating new Fraxel projects from templates.",
+      "nodeRequirement": ">=20",
+      "templates": ["empty", "platformer", "top-down"]
+    },
+    {
+      "name": "@fraxel/vite-plugin",
+      "description": "Vite plugin that configures Fraxel JSX and transforms asset imports with ?texture and ?sound.",
+      "nodeRequirement": ">=18"
+    }
   ],
   "publicApiSurface": [
-    "createGame(jsx, root) — bootstrap and control the game",
-    "<Game width height defaultScene> — root JSX component",
-    "<Scene name component> — scene definition component",
-    "<transform> — spatial container node",
-    "<sprite textureId ...filters> — texture rendering node",
-    "<collider shape group collidesWith> — collision detection node",
-    "<rigid-body mass friction bounce isStatic> — physics simulation node",
-    "<camera current zoom smoothing offset limit> — viewport control node",
-    "<animation-player animations currentAnim> — sprite animation node",
-    "<audio-player soundId loop volume> — audio playback node",
-    "<clickable size onClick onMouseEnter> — pointer interaction node",
-    "<timer duration autoPlay> — countdown node",
+    "createGame(jsx, root) -> GameControls",
+    "GameControls.play() / pause() / destroy()",
+    "<GameRoot width height defaultScene testOptions pauseOnBlur pixelated> — root JSX configuration component",
+    "<SceneRoot name component> — scene definition component",
+    "<List array itemKey empty> — reactive keyed list rendering component",
+    "<Fragment> — group children without adding an engine node",
+    "<transform position rotation> — spatial container node",
+    "<sprite textureId source displaySize flipX flipY ...filters> — texture rendering node",
     "<text text style> — canvas text rendering node",
-    "<geometry shape fillColor strokeColor> — primitive shape rendering node",
-    "<ray-cast direction collidesWith> — ray projection node",
-    "<List array itemKey> — reactive list rendering component",
-    "useSignal(initial) — reactive state hook",
-    "useComputed(fn) — derived signal hook",
-    "useEffect(fn) — batched reactive side-effect hook",
-    "useMount(fn) — mount/unmount lifecycle hook",
-    "useAction(action) — reactive input action hook",
-    "useActionAxis(neg, pos) — reactive axis input hook",
-    "useTrigger(trigger, callback) — pub/sub cross-component hook",
-    "createContext(default) / useContext(ctx) — context API",
-    "useClickable() — derived hook for Clickable node",
-    "useTimer() — derived hook for Timer node",
-    "useRayCast() — derived hook for RayCast node",
-    "useCollider() — derived hook for Collider node",
-    "useAnimation() — derived hook for AnimationPlayer node",
-    "useAudio() — derived hook for AudioPlayer node",
-    "useRigidBody() — derived hook for RigidBody node",
-    "useCondition(trueTrigger, falseTrigger) — reactive boolean toggle hook",
-    "useMatch(signal, record) — signal switch-expression hook",
-    "useWhen(signal, truthy, falsy) — signal ternary hook",
-    "Input.createAction({ key }) — bind keyboard action",
+    "<geometry shape fillColor strokeColor strokeWidth> — primitive shape rendering node",
+    "<collider shape group collidesWith> — collision detection node",
+    "<body mass friction bounce isStatic useGravity> — rigid body physics node",
+    "<camera current zoom smoothing offset limit> — viewport control node",
+    "<animator animations currentAnim> — sprite animation player node",
+    "<audio soundId loop volume playbackRate persistUntilEnd> — audio playback node",
+    "<clickable size disabled> — pointer interaction node",
+    "<timer duration autoPlay> — timer node",
+    "<raycast direction collidesWith> — ray projection node",
+    "<group> — grouping node",
+    "<view> — view/HUD root node",
+    "<tilemap> — tilemap rendering node",
+    "useSignal(initial) -> [SignalGetter<T>, SignalSetter<T>]",
+    "createSignal(initial) -> [SignalGetter<T>, SignalSetter<T>]",
+    "useComputed(fn) -> SignalGetter<T>",
+    "useEffect(fn), useMount(fn), useUpdate(fn) — lifecycle and reactive effect hooks",
+    "useAction(action) and useActionAxis(negative, positive) — reactive input hooks",
+    "useScene() -> { getCurrent, change, preload }",
+    "useGame() — game loop control and focus triggers",
+    "usePaused() and useSize() — game state derived hooks",
+    "useContext(ctx), createContext(default) — context API",
+    "createTrigger(), useTrigger(trigger, callback) — pub/sub trigger API",
+    "useCondition(), useMatch(), useWhen() — derived reactivity helpers",
+    "useTransform(), useSprite(), useText(), useGeometry(), useCollider(), useRigidBody(), useCamera(), useClickable(), useRayCast(), useAnimation(), useAudio(), useTimer(), useGroup(), useView() — typed node reference hooks",
+    "NodeReference.node / signal / started / updated / drawed / destroyed / script() / spawn()",
+    "Node2DReference.position / setPosition() / rotation / setRotation()",
+    "Input.createAction({ key, ctrl?, shift?, alt? }) — bind keyboard action",
     "Input.isActionPressed / justActionPressed / justActionUnpressed",
+    "Input.isKeyPressed / isJustKeyPressed / isJustKeyUnpressed",
     "Input.pointerPosition / isPointerPressed",
     "Input.getKeyAxis(positiveKey, negativeKey)",
-    "loadTexture(url) — load image asset",
-    "loadSound(url) — load audio asset",
+    "loadTexture(url) — runtime image asset loading with URL deduplication",
+    "loadSound(url) — runtime audio asset loading; 0.1.0-alpha.6d does not deduplicate sounds by URL",
     "loadBatch(loaders, options) — parallel batch loader with progress",
-    "loadBatchAsset(type, urls) — typed batch loader",
+    "loadBatchAsset(type, urls, options) — typed batch loader",
     "unloadTexture(id) / unloadSound(id) — free asset memory",
+    "@fraxel/vite-plugin asset imports: import tex from './sprite.png?texture'; import snd from './sound.ogg?sound'",
     "PhysicsSystem.gravity — configure global gravity",
-    "tween(options) — interpolate a numeric property",
-    "tweenValue(options) — interpolate a free value",
-    "sequence(tweens) / parallel(tweens) — tween composition",
-    "animationFromSheet(sprite, texture, options) — create animation from sprite sheet",
-    "keyframesFromSheet / kfFromProp / multiKF — low-level animation keyframe builders",
-    "shapes.rectangle / shapes.circle / shapes.capsule — collision shape factory",
-    "Vector2 / vector2(x, y) — 2D math class",
+    "tween(options), tweenValue(options), sequence(tweens), parallel(tweens) — tweening API",
+    "animationFromSheet(sprite, texture, options) and keyframesFromSheet(sprite, texture, columns, rows, range?)",
+    "shapes.rectangle / shapes.circle / shapes.capsule — collision shape factories",
+    "Vector2 / vector2(value) — 2D vector utilities",
     "bounds(x, y, w, h) — axis-aligned bounding box",
+    "Color / color(...) — RGBA color utilities",
     "FraxelScript<NodeType> — base class for node-attached game logic scripts",
-    "getAudioContext() — access the WebAudio context"
+    "Game.setup(options), Game.play(), Game.pause(), Game.resume(), Game.destroy() — low-level game API",
+    "SceneManager.addScene(), SceneManager.setScene(), SceneManager.preloadScene() — low-level scene API",
+    "GameConfig — low-level canvas, dimensions, and test overlay configuration",
+    "getAudioContext() — access the Web Audio context"
   ]
 }

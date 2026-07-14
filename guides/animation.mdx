@@ -11,28 +11,27 @@ Static sprites make a game feel lifeless. Animation is how you signal state — 
 A sprite sheet packs all animation frames side-by-side (or in a grid) into one texture. Instead of loading dozens of individual files, you load one image and tell the engine how to divide it into frames. The `AnimationPlayer` then cycles through those frames at a given speed.
 
 ```
-┌────────────────────────────────────────────┐
+┌──────────────────────────────────────────────┐
 │  frame 0  │  frame 1  │  frame 2  │  frame 3 │  ← 4 columns, 1 row
-└────────────────────────────────────────────┘
+└──────────────────────────────────────────────┘
 ```
 
-## Loading a Texture and Building Keyframes
+## Import a sheet and build keyframes
 
-First, load your sprite sheet texture. Then use `animationFromSheet` to build a complete `Animation` object — keyframes and FPS are calculated for you:
+First, import your sprite sheet texture with `?texture`. Then use `animationFromSheet` to build a complete `Animation` object — keyframes and FPS are calculated for you:
 
 ```tsx player.tsx
-import { loadTexture, animationFromSheet } from 'fraxel'
+import IDLE_SHEET from '../assets/player-idle.png?texture'
+import WALK_SHEET from '../assets/player-walk.png?texture'
+import { animationFromSheet } from 'fraxel'
 import { useSprite } from 'fraxel'
-
-const IDLE_SHEET = await loadTexture('/assets/player-idle.png') // 4 columns × 1 row
-const WALK_SHEET = await loadTexture('/assets/player-walk.png') // 4 columns × 2 rows
 
 function Player() {
   const sprite = useSprite()
 
   return (
     <transform>
-      <sprite ref={sprite} sourceSize={[32, 32]} displaySize={[64, 64]} />
+      <sprite ref={sprite} source={region([0, 0], [32, 32])} displaySize={[64, 64]} />
       <animator
         animations={() => ({
           idle: animationFromSheet(sprite, IDLE_SHEET, {
@@ -64,8 +63,7 @@ function Player() {
 ## `animationFromSheet` Parameters
 
 <ParamField path='sprite' type='Sprite | NodeReference<PrimaryNode.Sprite>'>
-  The sprite instance (or ref) whose `margin` and `sourceSize` will be mutated
-  each frame.
+  The sprite instance (or ref) whose `source` will be mutated each frame.
 </ParamField>
 
 <ParamField path='textureId' type='symbol | null | undefined'>
@@ -130,7 +128,7 @@ function Player() {
 
   return (
     <transform>
-      <sprite ref={sprite} sourceSize={[32, 32]} displaySize={[64, 64]} />
+      <sprite ref={sprite} source={region([0, 0], [32, 32])} displaySize={[64, 64]} />
       <animator
         animations={() => ({ idle: idleAnim, walk: walkAnim })}
         currentAnim={currentAnim}
@@ -157,7 +155,7 @@ function Player() {
 
   return (
     <transform>
-      <sprite ref={sprite} sourceSize={[32, 32]} displaySize={[64, 64]} />
+      <sprite ref={sprite} source={region([0, 0], [32, 32])} displaySize={[64, 64]} />
       <animator
         animations={() => ({ idle: idleAnim, walk: walkAnim, jump: jumpAnim })}
         currentAnim={currentAnim}
@@ -187,7 +185,7 @@ function Enemy() {
 
   return (
     <transform>
-      <sprite ref={sprite} sourceSize={[32, 32]} displaySize={[64, 64]} />
+      <sprite ref={sprite} source={region([0, 0], [32, 32])} displaySize={[64, 64]} />
       <animator
         ref={anim}
         animations={() => ({

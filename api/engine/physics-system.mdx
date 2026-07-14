@@ -90,14 +90,6 @@ shapes.rectangle(width: number, height: number): RectangleShape
 />
 ```
 
-<Note>
-  As of v0.1.0-alpha.6, rectangle collision shapes rotate around the node's
-  position (matching canvas rendering) instead of the rectangle's geometric
-  center. This eliminates position offsets between visual and collision shapes
-  at non-zero rotation angles. The fix applies to all rectangle collision pairs
-  (rect-rect, rect-circle, rect-capsule).
-</Note>
-
 ---
 
 ### shapes.circle

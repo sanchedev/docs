@@ -4,6 +4,11 @@ sidebarTitle: "Collision Pipeline"
 description: "Broadphase spatial hashing, narrowphase shape algorithms, collision event emission, raycasting, and how RigidBody integrates with the collision system."
 ---
 
+<Note>
+  This page describes Fraxel internals. You do not need this knowledge to build
+  a game with Fraxel.
+</Note>
+
 Fraxel's collision system is a classic two-phase pipeline: a broadphase that quickly eliminates impossible collision pairs using a spatial hash grid, followed by a narrowphase that performs precise geometric intersection tests. Both phases run every frame, after the update phase and before the draw phase.
 
 ## System Overview
@@ -51,7 +56,7 @@ for x in [minCellX, maxCellX]:
 
 **Query** (finding candidates for a given collider): compute the AABB of the querying collider, convert to cell coordinates, and union the contents of all overlapping cells into a result set. The querying collider itself is removed from the result.
 
-The default cell size is `64`. You should tune this relative to the typical collider size in your game — see [Performance](/guides/performance) for guidance.
+The default cell size is `64`. You should tune this relative to the typical collider size in your game — see [Performance](/internals/performance) for guidance.
 
 <Note>
 The spatial hash is rebuilt from scratch every frame when `#dirty` is `true`. This is intentional: incremental updates (tracking which cells a collider occupied last frame) are more complex to implement correctly and are rarely faster for games with many moving objects.

@@ -229,20 +229,18 @@ return <animator currentAnim={animName} />
 
 ## Reactive state outside components
 
-For state that lives outside a component — global game state, singletons, or utility modules — use `createSignal` and `signalSetterFrom` from `'fraxel'`.
+For state that lives outside a component — global game state, singletons, or utility modules — use `createSignal` from `'fraxel'`.
 
 ```tsx src/state.ts
-import { createSignal, signalSetterFrom } from 'fraxel'
+import { createSignal } from 'fraxel'
 
-export const score = createSignal(0)
-export const setScore = signalSetterFrom(score)
+export const [score, setScore] = createSignal(0)
 
 // Update via the standalone setter
 setScore(score() + 10)
 
 // Or via the getter's underlying Signal
 score.signal.setter(score() + 10)
-score.signal.value = score() + 10
 ```
 
 Since `score` is a `SignalGetter<number>`, you can pass it directly as a JSX auto-computed prop:
@@ -260,8 +258,9 @@ function ScoreDisplay() {
 }
 ```
 
-<Warning>
-  `createSignal` is prone to API changes. The recommended approach for module-level signals is still to instantiate `Signal` directly and access its `.getter` and `.setter`:
+<Tip>
+  If you need direct access to the `Signal` instance, instantiate `Signal`
+  manually and export its `.getter` and `.setter`:
 
 ```ts
 import { Signal } from 'fraxel'
@@ -271,7 +270,7 @@ export const score = scoreSignal.getter
 export const setScore = scoreSignal.setter
 ```
 
-</Warning>
+</Tip>
 
 ### Cleanup
 

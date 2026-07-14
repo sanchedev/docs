@@ -116,12 +116,12 @@ function Player() {
 
   useTrigger(body.updated, (_delta) => {
     // Horizontal movement
-    if (Input.isKeyDown('ArrowRight')) {
-      body.velocity.x = 160
-    } else if (Input.isKeyDown('ArrowLeft')) {
-      body.velocity.x = -160
+    if (Input.isKeyPressed('ArrowRight')) {
+      body.setVelocity([160, body.velocity().y])
+    } else if (Input.isKeyPressed('ArrowLeft')) {
+      body.setVelocity([-160, body.velocity().y])
     } else {
-      body.velocity.x *= 0.8
+      body.setVelocity([body.velocity().x * 0.8, body.velocity().y])
     }
   })
 

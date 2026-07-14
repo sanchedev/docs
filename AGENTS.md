@@ -43,6 +43,18 @@ Preview at `http://localhost:3000`. Pages are MDX with YAML frontmatter.
 - Use `<ParamField>` for props, `<CodeGroup>` for multiple examples
 - Reference related pages at the bottom of each API page
 
+## Editorial defaults
+
+- `getting-started/` and `guides/` assume a project created with `create-fraxel`, preferably the `empty` template for learning material.
+- For new projects, recommend `create-fraxel` first.
+- For existing Vite projects, recommend Vite + `@fraxel/vite-plugin`.
+- Using `fraxel` without `@fraxel/vite-plugin` is only recommended for small embedded games or custom integrations inside an existing page.
+- Guide examples should use JSX, hooks, native node references, components, `List`, and public helpers from `fraxel`.
+- Guide examples that import static assets should use `?texture` and `?sound`.
+- Do not use `Game.setup`, `SceneManager`, `GameConfig`, `new Scene`, `new Node`, or direct node construction in `getting-started/` or `guides/` unless the section is explicitly explaining an advanced alternative.
+- Put low-level APIs in `api/`, `development/`, or `internals/`.
+- API pages should be technical and complete: signatures, props, reactive reference properties, methods, triggers/events, behavior notes, and concise examples.
+
 ## Do not edit
 
 - `api-declarations/` — auto-generated from Fraxel source
@@ -104,8 +116,7 @@ The following is extracted from `api-declarations/` type definitions for quick r
 
 **Script reactivity:**
 
-- `createSignal<T>(default)` → `SignalGetter<T>` (outside hooks, for FraxelScript)
-- `signalSetterFrom(getter)` → `SignalSetter<T>` (extract setter from getter)
+- `createSignal<T>(default)` → `[SignalGetter<T>, SignalSetter<T>]` (outside hooks, for FraxelScript)
 
 **Deprecation warnings:**
 

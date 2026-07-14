@@ -4,6 +4,11 @@ sidebarTitle: 'Lifecycle'
 description: 'Node construction, start, update, destroy — how scenes transition, async preloading works, how hooks map to lifecycle events, and the hook context rules.'
 ---
 
+<Note>
+  This page describes Fraxel internals. You do not need this knowledge to build
+  a game with Fraxel.
+</Note>
+
 Every object in a Fraxel game follows a deterministic lifecycle: it is constructed, attached to the scene tree, started, updated each frame, and eventually destroyed. Understanding this lifecycle — and exactly when each hook fires — is essential for writing correct game logic.
 
 ## Node Lifecycle Overview

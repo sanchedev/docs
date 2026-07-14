@@ -128,7 +128,7 @@ const playerScript = new PlayerScript()
 function Player() {
   return (
     <transform script={playerScript} position={[100, 200]}>
-      <sprite textureId={PLAYER} sourceSize={[32, 48]} displaySize={[64, 96]} />
+      <sprite textureId={PLAYER} source={region([0, 0], [32, 48])} displaySize={[64, 96]} />
       <collider
         shape={shapes.rectangle(32, 48)}
         group={['player']}
@@ -191,7 +191,7 @@ function Projectile() {
 
   return (
     <body useGravity={false}>
-      <sprite textureId={BULLET} sourceSize={[8, 4]} />
+      <sprite textureId={BULLET} source={region([0, 0], [8, 4])} />
       <collider
         ref={collider}
         shape={shapes.circle(4)}
@@ -219,34 +219,45 @@ function Projectile() {
 
 ## Script Signals
 
-Inside a `FraxelScript` class, use `createSignal` and `signalSetterFrom` instead of `useSignal` (which only works in hook contexts).
+Inside a `FraxelScript` class, use `createSignal` instead of `useSignal` (which only works in hook contexts).
 
 ### createSignal
 
-Creates a reactive signal outside of hooks. Returns a `SignalGetter<T>`.
+Creates a reactive signal outside of hooks. Returns `[SignalGetter<T>, SignalSetter<T>]`.
 
 ```ts
-import { createSignal } from 'fraxel'
+import { createSignal, type SignalGetter, type SignalSetter } from 'fraxel'
 
 class PlayerScript extends FraxelScript<PrimaryNode.Transform> {
-  health = createSignal(100)
+  health: SignalGetter<number>
+  setHealth: SignalSetter<number>
+
+  constructor() {
+    super()
+    ;[this.health, this.setHealth] = createSignal(100)
+  }
 
   applyDamage(amount: number) {
-    this.health(this.health() - amount)
+    this.setHealth(this.health() - amount)
   }
 }
 ```
 
-### signalSetterFrom
+### Separate getter and setter fields
 
-Extracts a `SignalSetter<T>` from a `SignalGetter<T>`. Useful when you want a separate setter reference.
+Destructure the tuple if you want named fields on the script instance.
 
 ```ts
-import { createSignal, signalSetterFrom } from 'fraxel'
+import { createSignal, type SignalGetter, type SignalSetter } from 'fraxel'
 
 class PlayerScript extends FraxelScript<PrimaryNode.Transform> {
-  health = createSignal(100)
-  setHealth = signalSetterFrom(this.health)
+  health: SignalGetter<number>
+  setHealth: SignalSetter<number>
+
+  constructor() {
+    super()
+    ;[this.health, this.setHealth] = createSignal(100)
+  }
 
   applyDamage(amount: number) {
     this.setHealth(this.health() - amount)

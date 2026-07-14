@@ -62,7 +62,7 @@ function Bullet({ position }: { position: [number, number] }) {
 
   return (
     <body ref={body} position={position} useGravity={false}>
-      <sprite textureId={BULLET} sourceSize={[8, 4]} />
+      <sprite textureId={BULLET} source={region([0, 0], [8, 4])} />
       <collider
         ref={collider}
         shape={shapes.circle(4)}
@@ -186,12 +186,11 @@ import {
   useAction,
   useEffect,
 } from 'fraxel'
-import { loadTexture, Input, shapes } from 'fraxel'
+import PLAYER_TEX from '../assets/player.png?texture'
+import BULLET_TEX from '../assets/bullet.png?texture'
+import ENEMY_TEX from '../assets/enemy.png?texture'
+import { Input, shapes } from 'fraxel'
 import { createTrigger } from 'fraxel'
-
-const PLAYER_TEX = await loadTexture('/assets/player.png')
-const BULLET_TEX = await loadTexture('/assets/bullet.png')
-const ENEMY_TEX = await loadTexture('/assets/enemy.png')
 
 const fireTrigger = createTrigger<[x: number, y: number]>()
 const Shoot = Input.createAction({ key: ' ' })
@@ -210,7 +209,7 @@ function Player() {
     <transform ref={body} position={[100, 200]}>
       <sprite
         textureId={PLAYER_TEX}
-        sourceSize={[32, 48]}
+        source={region([0, 0], [32, 48])}
         displaySize={[32, 48]}
       />
     </transform>
@@ -227,7 +226,7 @@ function Bullet({ x, y }: { x: number; y: number }) {
 
   return (
     <body ref={body} position={[x, y]} useGravity={false}>
-      <sprite textureId={BULLET_TEX} sourceSize={[8, 4]} />
+      <sprite textureId={BULLET_TEX} source={region([0, 0], [8, 4])} />
       <collider
         ref={collider}
         shape={shapes.circle(4)}

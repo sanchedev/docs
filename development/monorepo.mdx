@@ -1,0 +1,86 @@
+---
+title: 'Fraxel Monorepo Structure'
+sidebarTitle: 'Monorepo'
+description: 'How the Fraxel pnpm workspace is organized, what each package owns, and where source, builds, examples, templates, and docs live.'
+---
+
+Fraxel uses a `pnpm` workspace. The workspace includes packages under `packages/*` and examples under `examples/*`.
+
+```txt
+fraxel/
+├── packages/
+│   ├── fraxel/
+│   ├── create-fraxel/
+│   └── vite-plugin/
+├── examples/
+├── package.json
+└── pnpm-workspace.yaml
+```
+
+## Workspace packages
+
+| Path | Package | Role |
+| ---- | ------- | ---- |
+| `packages/fraxel` | `fraxel` | Runtime package used by games. |
+| `packages/create-fraxel` | `create-fraxel` | CLI that creates new Fraxel projects. |
+| `packages/vite-plugin` | `@fraxel/vite-plugin` | Vite plugin for Fraxel projects. |
+
+## Runtime package
+
+`packages/fraxel` contains the engine source.
+
+Important folders:
+
+| Folder | Contents |
+| ------ | -------- |
+| `src/nodes` | Built-in nodes such as `Sprite`, `Collider`, `RigidBody`, `Timer`, `AudioPlayer`, and `Camera`. |
+| `src/hooks` | Hook system, node references, derived hooks, lifecycle hooks, input hooks, and state hooks. |
+| `src/jsx` | JSX runtime, intrinsic element rendering, and root components. |
+| `src/core` | `Game`, `Scene`, `SceneManager`, config, theme, and loop state. |
+| `src/assets` | Texture and sound loading helpers. |
+| `src/collision` | Collision and physics systems. |
+| `src/animation` | Tweening, sprite sheet helpers, animation types, and easing. |
+
+The package exports only three browser-facing entrypoints:
+
+```ts
+import { Game, createGame } from 'fraxel'
+import 'fraxel/jsx-runtime'
+import 'fraxel/jsx-dev-runtime'
+```
+
+Examples and docs should import public symbols from `fraxel`, not from internal subpaths.
+
+## CLI package
+
+`packages/create-fraxel` owns project scaffolding.
+
+Important folders:
+
+| Folder | Contents |
+| ------ | -------- |
+| `src/` | CLI prompts, flags, template copy logic, dependency install logic. |
+| `template-empty/` | Minimal starter template. |
+| `template-platformer/` | Platformer starter template. |
+| `template-top-down/` | Top-down starter template. |
+
+The CLI is published as the `create-fraxel` binary.
+
+## Vite plugin package
+
+`packages/vite-plugin` owns Vite integration.
+
+Important files:
+
+| File | Purpose |
+| ---- | ------- |
+| `src/index.ts` | Plugin entrypoint. |
+| `src/assets.ts` | Detects `?texture` and `?sound` imports. |
+| `src/options.ts` | Public plugin options. |
+| `client.d.ts` | Type declarations for asset queries and Vite-style imports. |
+
+## Docs repository
+
+The `docs/` directory is a Mintlify site. It documents the public API, practical guides, development environment, and internals.
+
+When package behavior and docs disagree, the source code is the source of truth for the current version.

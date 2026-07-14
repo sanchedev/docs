@@ -142,31 +142,27 @@ This avoids creating intermediate `useComputed` signals when you only need the v
 
 ## Reactive state outside components
 
-For reactive state that lives outside a component — global game state, shared scores, event buses — use `createSignal` and `signalSetterFrom` from `'fraxel'`:
+For reactive state that lives outside a component — global game state, shared scores, event buses — use `createSignal` from `'fraxel'`:
 
 ```tsx game-state.ts
-import { createSignal, signalSetterFrom } from 'fraxel'
+import { createSignal } from 'fraxel'
 
-export const score = createSignal(0)
-export const setScore = signalSetterFrom(score)
-export const lives = createSignal(3)
+export const [score, setScore] = createSignal(0)
+export const [lives, setLives] = createSignal(3)
 
 // Update via the standalone setter
 setScore(score() + 100)
 
 // Or via the getter's underlying Signal
 score.signal.setter(score() + 100)
-score.signal.value = score() + 100
 ```
 
-| Pattern                     | Description                                                            |
-| --------------------------- | ---------------------------------------------------------------------- |
-| `createSignal(initial)`     | Creates a `SignalGetter<T>` — callable getter with dependency tracking |
-| `signalSetterFrom(getter)`  | Extracts a standalone `SignalSetter<T>` from a getter                  |
-| `getter()`                  | Returns current value and registers as dependency                      |
-| `getter.signal.value = val` | Updates the value via the underlying `Signal`                          |
-| `getter.signal.setter(val)` | Updates the value via the `Signal`'s setter                            |
-| `setter(val)`               | Updates the value and notifies dependents                              |
+| Pattern                     | Description                                                               |
+| --------------------------- | ------------------------------------------------------------------------- |
+| `createSignal(initial)`     | Creates `[SignalGetter<T>, SignalSetter<T>]` outside the hook lifecycle   |
+| `getter()`                  | Returns current value and registers as dependency                         |
+| `getter.signal.setter(val)` | Updates the value via the underlying `Signal`                             |
+| `setter(val)`               | Updates the value and notifies dependents                                 |
 
 Since `score` is a `SignalGetter<number>`, you can pass it directly as a JSX auto-computed prop:
 
@@ -183,8 +179,9 @@ function ScoreDisplay() {
 }
 ```
 
-<Warning>
-  `createSignal` is prone to API changes. The recommended approach for module-level signals is still to instantiate `Signal` directly and access its `.getter` and `.setter`:
+<Tip>
+  If you need direct access to the `Signal` instance, instantiate `Signal`
+  manually and export its `.getter` and `.setter`:
 
 ```ts
 import { Signal } from 'fraxel'
@@ -226,7 +223,7 @@ function Player() {
 
   return (
     <transform>
-      <sprite ref={sprite} sourceSize={[32, 48]} />
+      <sprite ref={sprite} source={region([0, 0], [32, 48])} />
       <animator
         animations={() => ({ ... })}
         currentAnim={currentAnim}

@@ -9,10 +9,9 @@ Not every animation needs a sprite sheet. Moving a UI element into view, fading 
 ## Your First Tween
 
 ```tsx coin-pop.tsx
+import COIN from '../assets/coin.png?texture'
 import { useMount, useSprite } from 'fraxel'
 import { tween, easeOutBounce } from 'fraxel'
-
-const COIN = await loadTexture('/assets/coin.png')
 
 function CoinPop() {
   const sprite = useSprite()
@@ -287,7 +286,6 @@ function PowerUp() {
 ```tsx coin.tsx
 import { useMount, useSprite } from 'fraxel'
 import {
-  loadTexture,
   tween,
   parallel,
   sequence,
@@ -295,8 +293,7 @@ import {
   easeOutBounce,
   easeInQuad,
 } from 'fraxel'
-
-const COIN = await loadTexture('/assets/coin.png')
+import COIN from '../assets/coin.png?texture'
 
 function Coin({ x, y }: { x: number; y: number }) {
   const sprite = useSprite()
@@ -335,7 +332,7 @@ function Coin({ x, y }: { x: number; y: number }) {
       <sprite
         ref={sprite}
         textureId={COIN}
-        sourceSize={[16, 16]}
+        source={region([0, 0], [16, 16])}
         displaySize={[4, 4]}
         opacity={0}
       />

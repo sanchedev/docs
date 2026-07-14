@@ -11,14 +11,13 @@ Physics makes your game world feel real. A platformer character that actually fa
 Wrap any game object in `<body>` to give it physics. The body **must** contain at least one `<collider>` child — the collider defines the physical shape that interacts with the world:
 
 ```tsx falling-ball.tsx
-import { loadTexture, shapes } from 'fraxel'
-
-const BALL = await loadTexture('/assets/ball.png')
+import BALL from '../assets/ball.png?texture'
+import { shapes } from 'fraxel'
 
 function FallingBall() {
   return (
     <body position={[200, 0]} mass={1} bounce={0.7}>
-      <sprite textureId={BALL} sourceSize={[32, 32]} displaySize={[32, 32]} />
+      <sprite textureId={BALL} source={region([0, 0], [32, 32])} displaySize={[32, 32]} />
       <collider
         shape={shapes.circle(16)}
         group={['ball']}
@@ -100,7 +99,7 @@ body.applyImpulse([0, -500])
 
 return (
 <body ref={body} position={[100, 200]}>
-<sprite textureId={PLAYER} sourceSize={[32, 48]} displaySize={[64, 96]} />
+<sprite textureId={PLAYER} source={region([0, 0], [32, 48])} displaySize={[64, 96]} />
 <collider shape={shapes.rectangle(32, 48)} group={['player']} collidesWith={['ground']} />
 </body>
 )
@@ -173,7 +172,7 @@ Set `isStatic` on any body that should never move:
 function Platform({ x, y, width }: { x: number; y: number; width: number }) {
   return (
     <body position={[x, y]} isStatic>
-      <sprite textureId={PLATFORM} sourceSize={[width, 16]} />
+      <sprite textureId={PLATFORM} source={region([0, 0], [width, 16])} />
       <collider
         shape={shapes.rectangle(width, 16)}
         group={['ground']}
@@ -214,11 +213,10 @@ function Player() {
 ## Complete Example: Falling Ball Scene
 
 ```tsx falling-ball-scene.tsx
+import BALL from '../assets/ball.png?texture'
+import GROUND from '../assets/ground.png?texture'
 import { useRigidBody } from 'fraxel'
-import { loadTexture, PhysicsSystem, shapes, vector2 } from 'fraxel'
-
-const BALL = await loadTexture('/assets/ball.png')
-const GROUND = await loadTexture('/assets/ground.png')
+import { PhysicsSystem, shapes, vector2 } from 'fraxel'
 
 // Slightly reduced gravity for a floatier feel
 PhysicsSystem.gravity = vector2(0, 600)
@@ -228,7 +226,7 @@ function FallingBallScene() {
     <transform>
       {/* Bouncy ball */}
       <body position={[200, 50]} mass={1} bounce={0.75} friction={0.05}>
-        <sprite textureId={BALL} sourceSize={[32, 32]} />
+        <sprite textureId={BALL} source={region([0, 0], [32, 32])} />
         <collider
           shape={shapes.circle(16)}
           group={['ball']}
@@ -238,7 +236,7 @@ function FallingBallScene() {
 
       {/* Ground platform */}
       <body position={[0, 380]} isStatic>
-        <sprite textureId={GROUND} sourceSize={[480, 24]} />
+        <sprite textureId={GROUND} source={region([0, 0], [480, 24])} />
         <collider
           shape={shapes.rectangle(480, 24)}
           group={['ground']}

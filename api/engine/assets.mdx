@@ -4,7 +4,7 @@ sidebarTitle: 'Assets'
 description: "Reference for Fraxel's asset pipeline: loadTexture, loadSound, loadBatch, loadBatchAsset, unloadTexture, unloadSound, and progress tracking."
 ---
 
-The asset pipeline loads image and audio files and returns opaque `symbol` identifiers you pass to node props like `textureId` and `soundId`. All loaders are Promise-based and deduplicate identical URLs automatically — loading the same URL twice returns the same `symbol` without fetching again.
+The asset pipeline loads image and audio files and returns opaque `symbol` identifiers you pass to node props like `textureId` and `soundId`. Loaders are Promise-based. In the current release, `loadTexture` deduplicates identical URLs, while `loadSound` creates a new sound entry on each call.
 
 ---
 
@@ -48,7 +48,13 @@ loadSound(url: string): Promise<symbol>
   the browser (MP3, OGG, WAV, AAC).
 </ParamField>
 
-**Returns** `Promise<symbol>` — resolves to a stable `symbol` ID for the audio buffer.
+**Returns** `Promise<symbol>` — resolves to a new `symbol` ID for the decoded audio buffer.
+
+<Note>
+  In `0.1.0-alpha.6d`, `loadSound()` does not deduplicate by URL. Calling it
+  twice with the same URL fetches and decodes the sound twice and returns two
+  different symbols. `0.1.0-alpha.7` is planned to deduplicate sounds by URL.
+</Note>
 
 ```ts
 import { loadSound } from 'fraxel'
@@ -257,7 +263,7 @@ interface LoaderOptions {
 
 ## Deduplication
 
-Every URL is tracked internally by a map. If you call `loadTexture('/assets/player.png')` twice before the first resolves, only one network request is made and both calls receive the same `symbol`. This means it is safe to call `loadTexture` / `loadSound` at the top level of multiple scene modules without worrying about redundant fetches.
+Texture URLs are tracked internally. If you call `loadTexture('/assets/player.png')` twice after the first load completes, both calls receive the same `symbol`.
 
 ```ts
 const A = await loadTexture('/assets/shared.png')
@@ -265,6 +271,20 @@ const B = await loadTexture('/assets/shared.png')
 
 console.log(A === B) // true — same symbol
 ```
+
+Sounds are different in `0.1.0-alpha.6d`:
+
+```ts
+const A = await loadSound('/assets/shared.ogg')
+const B = await loadSound('/assets/shared.ogg')
+
+console.log(A === B) // false — different symbols in the current release
+```
+
+<Note>
+  Sound deduplication is expected in `0.1.0-alpha.7`. Until then, keep shared
+  sounds in one module and import the same symbol where you need it.
+</Note>
 
 ---
 

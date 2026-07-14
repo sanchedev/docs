@@ -4,6 +4,11 @@ sidebarTitle: 'JSX Runtime'
 description: "How jsxImportSource wires up, how FraxelElement is created, intrinsic element mapping, function component resolution, and why there's no Virtual DOM."
 ---
 
+<Note>
+  This page describes Fraxel internals. You do not need this knowledge to build
+  a game with Fraxel.
+</Note>
+
 When you write JSX in a Fraxel project, the TypeScript compiler (or Babel) transforms every tag into a call to a small runtime function. Understanding that function — and the pipeline it launches — explains exactly when nodes are constructed, when hooks run, and how reactive props attach to the node tree.
 
 ## Wiring Up: `jsxImportSource`
@@ -55,7 +60,7 @@ There is no `key` field, no fiber, no reconciler. `FraxelElement` is purely a de
   Because JSX is evaluated eagerly and only once during scene construction (not
   on every frame), there is no diffing step. Reactive updates go through
   signals, not re-rendering. See [Reactivity
-  Internals](/guides/reactivity-internals).
+  Internals](/internals/reactivity).
 </Note>
 
 ## `Fragment`
@@ -169,7 +174,7 @@ Frameworks like React maintain a virtual tree and diff it against the previous r
 
 1. **Scene construction happens once.** JSX is evaluated at scene load time, not every frame. Nodes are permanent objects that update themselves reactively.
 
-2. **Reactivity is prop-level, not tree-level.** When a signal changes, the corresponding node prop setter is called directly — there is no re-render of the component tree. See [Reactivity Internals](/guides/reactivity-internals) for how `subReactive` and `propSignal` make this work.
+2. **Reactivity is prop-level, not tree-level.** When a signal changes, the corresponding node prop setter is called directly — there is no re-render of the component tree. See [Reactivity Internals](/internals/reactivity) for how `subReactive` and `propSignal` make this work.
 
 3. **The canvas has no retained-mode graph.** There is no browser DOM tree to reconcile against. Each frame is drawn from scratch by walking the node tree.
 

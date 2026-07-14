@@ -39,7 +39,7 @@ const game = createGame(
     <SceneRoot name="main"  component={() => import('./scenes/main.js')} />
     <SceneRoot name="menu"  component={() => import('./scenes/menu.js')} />
   </GameRoot>,
-  document.querySelector('#root')!
+  document.querySelector('#app')!
 )
 
 game.play()
@@ -57,21 +57,19 @@ The object returned by `createGame`. Provides the primary API for controlling th
 
 ```ts
 interface GameControls {
-  play():                          void
-  pause():                         void
-  destroy():                       void
+  play(): void
+  pause(): void
+  destroy(): void
 }
 ```
 
-| Property | Type | Description |
+| Method | Type | Description |
 |---|---|---|
-| `paused` | `SignalGetter<boolean>` | Reactive signal that is `true` when the game loop is paused. Read with `game.paused()`. |
-| `play()` | `() => void` | Starts (or resumes) the game loop. Acquires a screen wake-lock if available. |
-| `pause()` | `() => void` | Pauses the game loop. Call `play()` to resume. |
-| `destroy()` | `() => void` | Stops the loop, tears down the current scene, destroys the input system, and releases all resources. |
-| `changeScene(name)` | `(name: string) => Promise<void>` | Destroys the current scene, loads the named scene, and resolves when the transition is complete. |
-| `preloadScene(name)` | `(name: string) => Promise<() => void>` | Loads a scene in the background without switching to it. Resolves with a function you can call later to perform the instant switch. |
-| `getSize()` | `() => Vector2` | Returns a `Vector2` with the canvas's logical pixel dimensions (as configured in `<GameRoot width height>`). |
+| `play()` | `() => void` | Starts the game loop. |
+| `pause()` | `() => void` | Sets the game pause state to paused. Rendering continues, but updates and physics are skipped. |
+| `destroy()` | `() => void` | Stops the loop, destroys the current scene, destroys the input system, and removes engine listeners. |
+
+`GameControls` intentionally stays small. Use `SceneManager` for scene transitions and the static `Game.isPaused` / `Game.isRunning` signals for state.
 
 <CodeGroup>
 ```ts Basic lifecycle
@@ -87,7 +85,7 @@ const game = createGame(<GameRoot ...>, root)
 game.play()
 
 // Switch immediately
-await SceneManager.changeScene('level-2')
+await SceneManager.setScene('level-2')
 
 // Or preload first, then switch instantly
 const activate = await SceneManager.preloadScene('boss-fight')
@@ -138,7 +136,7 @@ import { Game } from 'fraxel'
 Game.setup({
   width:  480,
   height: 270,
-  root:   document.querySelector('#root')!,
+  root:   document.querySelector('#app')!,
   testOptions: { showColliders: true },
   pixelated: true,
 })
@@ -154,7 +152,7 @@ Game.play(): void
 
 ### Game.resume
 
-Resume the loop. The game changes mode `PLAYING`.
+Clears the pause state. The animation-frame loop must already be running for updates to resume.
 
 ```ts
 Game.resume(): void
@@ -162,7 +160,7 @@ Game.resume(): void
 
 ### Game.pause
 
-Pauses the loop. The game changes mode `PAUSED`.
+Sets the pause state. The loop keeps rendering, but scene updates, collision updates, and physics updates are skipped.
 
 ```ts
 Game.pause(): void
@@ -170,7 +168,7 @@ Game.pause(): void
 
 ### Game.stop
 
-Pauses the loop. The canvas freezes on the last rendered frame.
+Stops the animation-frame loop entirely. This is separate from `Game.pause()` and does not reset `Game.isPaused`.
 
 ```ts
 Game.stop(): void
@@ -186,7 +184,7 @@ Game.destroy(): void
 
 ### Game.isRunning
 
-A signal of the current game status mode (`true` / `false`). If it is `true` that is because the game was initialized and it is playing. If it is `false` that means the game is frreze or was destroyed.
+A signal that indicates whether the animation-frame loop is running.
 
 ```ts
 Game.isRunning: SignalGetter<boolean>
@@ -202,7 +200,7 @@ Game.isPaused: SignalGetter<boolean>
 
 ## Game.blurred
 
-An `Event` that fires whenever the browser window loses focus (tab switch, minimize, etc.). The game is automatically paused when this fires.
+An `Event` that fires whenever the browser window loses focus (tab switch, minimize, etc.). The game loop is stopped on blur. If `pauseOnBlur` is enabled, the pause state is also set to `true`.
 
 ```ts
 Game.blurred: Event<[], 'blur'>
@@ -212,18 +210,20 @@ Game.blurred: Event<[], 'blur'>
 import { Game } from 'fraxel'
 
 Game.blurred.on(() => {
-  console.log('Game paused — tab lost focus')
+  console.log('Game loop stopped — tab lost focus')
   showPauseOverlay()
 })
 ```
 
 <Note>
-The game auto-pauses on blur and resumes when the player calls `game.play()` again. You can hook into `Game.blurred` to show a pause screen.
+The game loop stops on blur. When the browser regains focus, Fraxel calls
+`Game.play()` automatically if the loop is not running. Set `pauseOnBlur` if you
+also want `Game.isPaused()` to become `true` on blur.
 </Note>
 
 ## Game.focused
 
-An `Event` that fires whenever the browser window is focus. The game automatically continue when this fires.
+An `Event` that fires whenever the browser window gains focus.
 
 ```ts
 Game.focused: Event<[], 'focus'>

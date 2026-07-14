@@ -4,11 +4,11 @@ sidebarTitle: '<sprite>'
 description: 'Render a loaded texture in the game world with sprite-sheet slicing, display scaling, flip, and visual filters including tint and opacity.'
 ---
 
-Use `<sprite>` to display a texture loaded with `loadTexture()`. It supports sprite-sheet slicing via `margin` and `sourceSize`, independent display scaling via `displaySize`, horizontal/vertical flipping, and a full suite of visual filters (brightness, grayscale, tint, contrast, saturation, hue rotation, inversion, and opacity). All filter props accept reactive `SignalGetter` values for frame-by-frame control without re-rendering the scene tree.
+Use `<sprite>` to display a texture loaded with `loadTexture()`. It supports sprite-sheet slicing via the `source` prop (a `Region` with `offset` and `size`), independent display scaling via `displaySize`, horizontal/vertical flipping, and a full suite of visual filters (brightness, grayscale, tint, contrast, saturation, hue rotation, inversion, and opacity). All filter props accept reactive `SignalGetter` values for frame-by-frame control without re-rendering the scene tree.
 
 ```tsx
 import { useSprite } from 'fraxel'
-import { loadTexture } from 'fraxel'
+import { loadTexture, region } from 'fraxel'
 
 const PLAYER_TEX = await loadTexture('/assets/player.png')
 
@@ -19,7 +19,7 @@ function Player() {
     <sprite
       ref={sprite}
       textureId={PLAYER_TEX}
-      sourceSize={[32, 32]}
+      source={region([0, 0], [32, 32])}
       displaySize={[64, 64]}
       brightness={1.2}
       modulate={[1, 0.6, 0, 1]}
@@ -52,23 +52,49 @@ const TEX = await loadTexture('/assets/ball.png')
   Pixel offset into the source texture before sampling. Use this to select a
   specific frame in a sprite sheet. Defaults to `[0, 0]`.
 
-```tsx
-{
-  /* Second frame of a 16 px-wide sheet */
-}
-;<sprite textureId={SHEET} margin={[16, 0]} sourceSize={[16, 16]} />
-```
+  ```tsx
+  {
+    /* Second frame of a 16 px-wide sheet */
+  }
+  ;<sprite textureId={SHEET} margin={[16, 0]} sourceSize={[16, 16]} />
+  ```
+
+  <Warning>
+    `margin` is deprecated. Use `source` instead, which combines both `margin` and
+    `sourceSize` into a single `Region` object.
+  </Warning>
 
 </ParamField>
 
 <ParamField path='sourceSize' type='Reactive<VectorLike>'>
   The pixel region of the source texture to draw. Defaults to the full texture
   size. Used together with `margin` for sprite-sheet slicing.
+
+  <Warning>
+    `sourceSize` is deprecated. Use `source` instead, which combines both `margin`
+    and `sourceSize` into a single `Region` object.
+  </Warning>
+</ParamField>
+
+<ParamField path='source' type='Reactive<Region>'>
+  Describes which rectangular region of the source texture to draw. Accepts a
+  `Region` instance or an object with `offset` and `size` properties (both
+  `VectorLike`). Use this for sprite-sheet slicing.
+
+  ```tsx
+  {
+    /* Second frame of a 16 px-wide sheet */
+  }
+  ;<sprite textureId={SHEET} source={region([16, 0], [16, 16])} />
+  ```
+
+  The `offset` is the pixel coordinate of the top-left corner within the
+  texture. The `size` is the width and height of the frame to sample.
 </ParamField>
 
 <ParamField path='displaySize' type='Reactive<VectorLike>'>
-  The on-screen rendered size. Defaults to `sourceSize`. Use this to scale up a
-  16×16 sprite to 64×64 without changing the sampled region.
+  The on-screen rendered size. Defaults to the `source` region size. Use this to
+  scale up a 16×16 sprite to 64×64 without changing the sampled region.
 </ParamField>
 
 <ParamField path='flipX' type='Reactive<boolean>'>
@@ -172,15 +198,14 @@ function Enemy() {
 ```
 
 ```tsx Sprite-sheet frame selection
-import { loadTexture } from 'fraxel'
+import { loadTexture, region } from 'fraxel'
 
 const WALK_SHEET = await loadTexture('/assets/walk.png')
 
 // Manually select the 3rd frame (0-indexed) from a 16 px-wide sheet
 <sprite
   textureId={WALK_SHEET}
-  margin={[32, 0]}
-  sourceSize={[16, 32]}
+  source={region([32, 0], [16, 32])}
   displaySize={[32, 64]}
 />
 ```
@@ -205,3 +230,4 @@ const WALK_SHEET = await loadTexture('/assets/walk.png')
 - [`<animator>`](/api/nodes/animator) — frame animation for sprites
 - [`<geometry>`](/api/nodes/geometry) — render shapes without a texture
 - [`loadTexture`](/api/engine/assets) — load and cache textures
+- [`Region`](/api/engine/math#region) — sprite-sheet region type

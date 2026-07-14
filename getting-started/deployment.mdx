@@ -12,7 +12,7 @@ Vite is the recommended bundler for Fraxel games. It supports TypeScript and JSX
 
 ### With @fraxel/vite-plugin (recommended)
 
-The `@fraxel/vite-plugin` plugin auto-configures the JSX transform, enables direct asset imports (`import tex from './sprite.png'`), and adds hot module replacement for Fraxel components. Projects created with `create-fraxel` include this plugin by default.
+The `@fraxel/vite-plugin` plugin auto-configures the JSX transform and enables explicit asset imports (`import tex from './sprite.png?texture'`). Projects created with `create-fraxel` include this plugin by default.
 
 <Steps>
   <Step title="Install the plugin">
@@ -59,7 +59,7 @@ The `@fraxel/vite-plugin` plugin auto-configures the JSX transform, enables dire
     }
     ```
 
-    This enables TypeScript to recognize asset imports like `import tex from './sprite.png'`.
+    This enables TypeScript to recognize asset imports like `import tex from './sprite.png?texture'`.
 
   </Step>
 </Steps>
@@ -140,18 +140,16 @@ If you prefer not to use the plugin, configure the JSX transform manually:
 
 ## Asset paths
 
-Fraxel assets (`loadTexture`, `loadSound`) take URL strings. In development these resolve against the Vite dev server. In production they resolve against the deployed origin.
+In projects created with `create-fraxel`, static assets are imported with `?texture` and `?sound`. Vite rewrites those imports for production and the Fraxel plugin decodes them into asset IDs.
 
-Place all your game assets in `public/assets/` and reference them with absolute paths starting with `/`:
+Place game assets in `src/assets/` when they are known at build time:
 
 ```ts src/assets.ts
-import { loadTexture, loadSound } from 'fraxel'
-
-export const PLAYER_TEX = await loadTexture('/assets/sprites/player.png')
-export const JUMP_SFX = await loadSound('/assets/sounds/jump.mp3')
+export { default as PLAYER_TEX } from './assets/sprites/player.png?texture'
+export { default as JUMP_SFX } from './assets/sounds/jump.mp3?sound'
 ```
 
-Using absolute paths (starting with `/`) means the URLs work correctly regardless of whether the game is served from the root of the domain or a subdirectory — as long as you set Vite's `base` option when deploying to a subdirectory:
+Set Vite's `base` option when deploying to a subdirectory:
 
 ```ts vite.config.ts
 export default defineConfig({
@@ -160,15 +158,11 @@ export default defineConfig({
 })
 ```
 
-<Warning>
-  Without the plugin, do **not** import asset files directly with ES import
-  syntax (e.g., `import sprite from './sprite.png'`). Fraxel's asset system uses
-  `fetch` internally to decode images and audio, so assets must be accessible at
-  runtime via a URL, not bundled as data URIs. With `@fraxel/vite-plugin`,
-  direct imports work — the plugin resolves them to `loadTexture`/`loadSound`
-  calls automatically. See the [Vite Plugin
-  Reference](/api/engine/vite-plugin#asset-imports) for details.
-</Warning>
+<Note>
+  Use runtime `loadTexture('/assets/...')` or `loadSound('/assets/...')` for
+  files whose URLs are not known at build time. Put those files in `public/` so
+  they are available by URL after deployment.
+</Note>
 
 ## HTML entry point for production
 
@@ -203,7 +197,7 @@ Your `index.html` does not change between development and production. Vite handl
     </style>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="app"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
@@ -238,13 +232,15 @@ Because Fraxel uses top-level `await`, the recommended pattern — loading all a
 ```tsx src/scenes/main.tsx
 import { loadBatchAsset } from 'fraxel'
 
-// All assets are decoded before createGame is called
 const [PLAYER, BG] = await loadBatchAsset('texture', [
   '/assets/sprites/player.png',
   '/assets/sprites/bg.png',
-  '/assets/sounds/music.mp3',
 ])
 const [MUSIC] = await loadBatchAsset('sound', ['/assets/sounds/music.mp3'])
+
+void PLAYER
+void BG
+void MUSIC
 
 export default function MainScene() {
   return <transform />
@@ -258,7 +254,7 @@ const game = createGame(
   <GameRoot width={320} height={180} defaultScene='main'>
     <SceneRoot name='main' component={() => import('./scenes/main.js')} />
   </GameRoot>,
-  document.querySelector('#root')!,
+  document.querySelector('#app')!,
 )
 
 game.play()
@@ -274,10 +270,10 @@ You do not need to multiply your canvas dimensions by `window.devicePixelRatio`.
 
 ## Scaling the canvas with CSS
 
-The canvas Fraxel creates fills the `#root` container. To make the game fill the browser window while maintaining aspect ratio, use CSS:
+The canvas Fraxel creates fills the `#app` container. To make the game fill the browser window while maintaining aspect ratio, use CSS:
 
 ```css
-#root {
+#app {
   width: 100%;
   height: 100%;
   display: flex;

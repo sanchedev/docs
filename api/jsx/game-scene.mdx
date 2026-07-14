@@ -43,7 +43,7 @@ const game = createGame(
     <SceneRoot name='level2' component={() => import('./scenes/level2.js')} />
     <SceneRoot name='menu' component={MenuScene} />
   </GameRoot>,
-  document.querySelector<HTMLElement>('#root')!,
+  document.querySelector<HTMLElement>('#app')!,
 )
 
 game.play()
@@ -116,7 +116,7 @@ interface SceneOptions {
 
 <ParamField path='name' type='string' required>
   Unique identifier for the scene. Passed to `SceneManager.setScene()`,
-  `SceneManager.preloadScene()`, and `GameControls.changeScene()`.
+  `SceneManager.preloadScene()`, and `useScene().change()`.
 </ParamField>
 <ParamField path='component' type='SceneComponent' required>
   A function that returns the scene's root JSX node. Can be lazy (async import)
@@ -181,22 +181,14 @@ interface GameControls {
   play(): void
   pause(): void
   destroy(): void
-  changeScene(name: string): Promise<void>
-  preloadScene(name: string): Promise<() => void>
-  getSize(): Vector2
-  paused: SignalGetter<boolean>
 }
 ```
 
-| Property             | Type                                    | Description                                                                                          |
-| -------------------- | --------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| `paused`             | `SignalGetter<boolean>`                 | Reactive signal that is `true` when the game loop is paused. Read with `game.paused()`.              |
-| `play()`             | `() => void`                            | Starts or resumes the game loop. Acquires a screen wake lock on supported platforms.                 |
-| `pause()`            | `() => void`                            | Pauses the game loop. The canvas freezes on the last rendered frame.                                 |
-| `destroy()`          | `() => void`                            | Stops the loop, clears the active scene, destroys input listeners, and resets state.                 |
-| `changeScene(name)`  | `(name: string) => Promise<void>`       | Destroys the active scene, loads the named scene, resolves when complete.                            |
-| `preloadScene(name)` | `(name: string) => Promise<() => void>` | Loads a scene in the background. Resolves with a function; call it to switch to the scene instantly. |
-| `getSize()`          | `() => Vector2`                         | Returns a `Vector2` equal to `{ x: width, y: height }` as configured in `<GameRoot>`.                    |
+| Property    | Type         | Description                                                                         |
+| ----------- | ------------ | ----------------------------------------------------------------------------------- |
+| `play()`    | `() => void` | Starts or resumes the game loop. Acquires a screen wake lock on supported platforms. |
+| `pause()`   | `() => void` | Pauses the game loop. The canvas freezes on the last rendered frame.                 |
+| `destroy()` | `() => void` | Stops the loop, clears the active scene, destroys input listeners, and resets state. |
 
 ```ts
 const game = createGame(<GameRoot ...>, root)

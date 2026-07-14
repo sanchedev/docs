@@ -4,6 +4,11 @@ sidebarTitle: "Event System"
 description: "How Event<T> works, node lifecycle events, the onXxx naming convention, Trigger subscriptions, FraxelScript.connect(), and cross-component communication."
 ---
 
+<Note>
+  This page describes Fraxel internals. You do not need this knowledge to build
+  a game with Fraxel.
+</Note>
+
 Fraxel uses a lightweight, type-safe event system built on a single `Event<T, K>` class. Every node event — from `started` to `colliderEntered` — is an instance of this class, exposed as a plain public property. Understanding its contract makes it straightforward to subscribe, unsubscribe, and avoid memory leaks.
 
 ## The `Event<T, K>` Class

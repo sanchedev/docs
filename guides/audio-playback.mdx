@@ -1,22 +1,25 @@
 ---
 title: 'Audio Playback: Sound Effects and Music in Fraxel Games'
 sidebarTitle: 'Audio'
-description: 'Play sound effects and music in Fraxel using audio nodes and loadSound symbol IDs. Handle browser autoplay policy and control loop and volume.'
+description: 'Play sound effects and music in Fraxel using audio nodes, ?sound imports, and useAudio. Handle browser autoplay policy and control loop and volume.'
 ---
 
-Sound makes gameplay feel alive — a crunch when a bullet lands, a musical sting when you clear a level, ambient effects that set the mood. Fraxel plays audio through the Web Audio API via the `<audio>` node. The workflow mirrors textures: load a sound file to get a symbol ID, then reference that symbol in your JSX.
+Sound makes gameplay feel alive — a crunch when a bullet lands, a musical sting when you clear a level, ambient effects that set the mood. Fraxel plays audio through the Web Audio API via the `<audio>` node. In `create-fraxel` projects, import static sounds with `?sound` and pass the returned symbol to JSX.
 
-## Loading a Sound
+## Importing a sound
 
 ```tsx
-import { loadSound } from 'fraxel'
-
-const SHOOT_SFX = await loadSound('/assets/shoot.mp3')
-const JUMP_SFX = await loadSound('/assets/jump.ogg')
-const BG_MUSIC = await loadSound('/assets/music.mp3')
+import SHOOT_SFX from '../assets/shoot.mp3?sound'
+import JUMP_SFX from '../assets/jump.ogg?sound'
+import BG_MUSIC from '../assets/music.mp3?sound'
 ```
 
-`loadSound` fetches the file, decodes it with `AudioContext.decodeAudioData`, and returns a `symbol`. Identical URLs are deduplicated — calling `loadSound` twice with the same URL returns the same symbol without a second network request.
+The imported value is a Fraxel `symbol`. Use `loadSound()` only for runtime URLs or files served from `public/`.
+
+<Note>
+  In `0.1.0-alpha.6d`, `loadSound()` does not deduplicate runtime URL loads.
+  `0.1.0-alpha.7` is planned to deduplicate sounds by URL.
+</Note>
 
 ## The `<audio>` Node
 
@@ -24,9 +27,7 @@ Place `<audio>` anywhere in your scene tree and pass the sound's symbol ID. Call
 
 ```tsx gun.tsx
 import { useAudio, useClickable, useTrigger } from 'fraxel'
-import { loadSound } from 'fraxel'
-
-const SHOOT_SFX = await loadSound('/assets/shoot.mp3')
+import SHOOT_SFX from '../assets/shoot.mp3?sound'
 
 function Gun() {
   const audio = useAudio()
@@ -123,8 +124,8 @@ function GameScene() {
   })
 
   return (
-    <sprite ref={clickable} textureId={START_BTN}>
-      <clickable size={[120, 40]} />
+    <sprite textureId={START_BTN}>
+      <clickable ref={clickable} size={[120, 40]} />
     </sprite>
   )
 }
@@ -141,9 +142,8 @@ function GameScene() {
 `useAudio` wraps `AudioPlayer` with reactive state and control methods, so you can build play/pause toggles and reactive UI without manual event wiring:
 
 ```tsx music-player.tsx
+import BG_MUSIC from '../assets/music.mp3?sound'
 import { useAudio, useClickable, useTrigger, useComputed } from 'fraxel'
-
-const BG_MUSIC = await loadSound('/assets/music.mp3')
 
 function MusicPlayer() {
   const audio = useAudio()
@@ -188,7 +188,7 @@ function MusicPlayer() {
     import { useAudio, useMount } from 'fraxel'
     import { getAudioContext } from 'fraxel'
 
-    const BG_MUSIC = await loadSound('/assets/music.mp3')
+    import BG_MUSIC from '../assets/music.mp3?sound'
 
     function GameMusic() {
       const music = useAudio()
@@ -245,12 +245,11 @@ function MusicPlayer() {
 ## Complete Example
 
 ```tsx game-audio.tsx
+import BG_MUSIC from '../assets/music.mp3?sound'
+import SHOOT_SFX from '../assets/shoot.mp3?sound'
+import HIT_SFX from '../assets/hit.mp3?sound'
 import { useAudio, useMount } from 'fraxel'
-import { loadSound, getAudioContext } from 'fraxel'
-
-const BG_MUSIC = await loadSound('/assets/music.mp3')
-const SHOOT_SFX = await loadSound('/assets/shoot.mp3')
-const HIT_SFX = await loadSound('/assets/hit.mp3')
+import { getAudioContext } from 'fraxel'
 
 function GameAudio() {
   const music = useAudio()

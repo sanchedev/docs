@@ -1,0 +1,93 @@
+---
+title: 'Developing create-fraxel'
+sidebarTitle: 'create-fraxel'
+description: 'How the create-fraxel CLI works, which flags and templates it supports, and what generated projects look like.'
+---
+
+`create-fraxel` is the official project generator for Fraxel.
+
+It scaffolds a Vite project, writes template files, optionally installs dependencies, and can optionally start the dev server.
+
+## Requirements
+
+The CLI package requires Node.js `20.0.0` or newer.
+
+## Commands users run
+
+```bash
+npx create-fraxel my-game
+pnpm create fraxel my-game
+yarn create fraxel my-game
+```
+
+## Supported flags
+
+| Flag | Type | Description |
+| ---- | ---- | ----------- |
+| `-t, --template <name>` | string | Selects a template. |
+| `--install` | boolean | Installs dependencies after scaffolding. |
+| `--overwrite` | boolean | Removes an existing non-empty target directory before copying. |
+| `-h, --help` | boolean | Prints help and exits. |
+
+## Templates
+
+| Template | Directory | Description |
+| -------- | --------- | ----------- |
+| `empty` | `template-empty` | Minimal Fraxel project. |
+| `platformer` | `template-platformer` | Basic side-scrolling platformer. |
+| `top-down` | `template-top-down` | Basic top-down movement. |
+
+## Generated project shape
+
+The templates use `vite.config.js` and mount the game into `#app`.
+
+```txt
+my-game/
+├── src/
+│   ├── main.tsx
+│   ├── scenes/
+│   │   └── main.tsx
+│   └── style.css
+├── index.html
+├── package.json
+├── tsconfig.json
+└── vite.config.js
+```
+
+The generated entrypoint follows this pattern:
+
+```tsx
+import { createGame, GameRoot, SceneRoot } from 'fraxel'
+import './style.css'
+
+const game = createGame(
+  <GameRoot width={480} height={360} defaultScene="main">
+    <SceneRoot name="main" component={() => import('./scenes/main')} />
+  </GameRoot>,
+  document.querySelector('#app')!,
+)
+
+game.play()
+```
+
+## CLI flow
+
+1. Resolve the target directory from the positional argument or prompt.
+2. Check whether the directory exists and whether it is empty.
+3. Prompt for overwrite if needed.
+4. Validate or normalize the package name.
+5. Select a template from `empty`, `platformer`, or `top-down`.
+6. Ask whether to install dependencies when `--install` is not provided.
+7. Copy the selected template.
+8. Optionally install dependencies.
+9. Optionally run the dev server.
+
+## When updating templates
+
+Keep all templates aligned with the current runtime and Vite plugin behavior:
+
+- Use `#app` consistently in `index.html` and `src/main.tsx`.
+- Keep `vite.config.js` configured with `fraxel()`.
+- Use `?texture` and `?sound` when importing assets through the plugin.
+- Keep `tsconfig.json` using `jsx: "react-jsx"` and `jsxImportSource: "fraxel"`.
+- Include `@fraxel/vite-plugin/client` types when templates import assets with queries.

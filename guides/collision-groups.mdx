@@ -168,11 +168,10 @@ function GuardAI() {
 Here's a complete shooter scenario showing group filtering in action:
 
 ```tsx shooter-example.tsx
+import BULLET_TEX from '../assets/bullet.png?texture'
+import ENEMY_TEX from '../assets/enemy.png?texture'
 import { useCollider, useRigidBody, useTrigger } from 'fraxel'
-import { loadTexture, shapes } from 'fraxel'
-
-const BULLET_TEX = await loadTexture('/assets/bullet.png')
-const ENEMY_TEX = await loadTexture('/assets/enemy.png')
+import { shapes } from 'fraxel'
 
 // Bullet: belongs to 'bullet', only detects 'enemy' — other bullets are invisible
 function Bullet({ position }: { position: [number, number] }) {
@@ -187,7 +186,7 @@ function Bullet({ position }: { position: [number, number] }) {
 
   return (
     <body ref={body} position={position} useGravity={false}>
-      <sprite textureId={BULLET_TEX} sourceSize={[8, 4]} />
+      <sprite textureId={BULLET_TEX} source={region([0, 0], [8, 4])} />
       <collider
         ref={collider}
         shape={shapes.rectangle(8, 4)}
@@ -208,7 +207,7 @@ function Enemy({ position }: { position: [number, number] }) {
 
   return (
     <body position={position} isStatic>
-      <sprite textureId={ENEMY_TEX} sourceSize={[32, 48]} />
+      <sprite textureId={ENEMY_TEX} source={region([0, 0], [32, 48])} />
       <collider
         ref={collider}
         shape={shapes.rectangle(32, 48)}

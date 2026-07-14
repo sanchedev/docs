@@ -1,0 +1,71 @@
+---
+title: 'Fraxel Packages'
+sidebarTitle: 'Packages'
+description: 'Responsibilities, entrypoints, versions, dependencies, and publication boundaries for fraxel, create-fraxel, and @fraxel/vite-plugin.'
+---
+
+Fraxel currently ships three related packages.
+
+| Package | Current version | Role | Node engine |
+| ------- | --------------- | ---- | ----------- |
+| `fraxel` | `0.1.0-alpha.6d` | Runtime engine. | `>=18` |
+| `create-fraxel` | `0.1.0-alpha.1` | Project generator CLI. | `>=20` |
+| `@fraxel/vite-plugin` | `0.1.0-alpha.3` | Vite integration. | `>=18` |
+
+## `fraxel`
+
+The `fraxel` package is the runtime used by games.
+
+It provides:
+
+- JSX runtime and root components.
+- Built-in nodes.
+- Hooks and node references.
+- Signals and reactivity.
+- Assets, audio, input, animation, math, collision, and physics.
+
+Public exports:
+
+```json
+{
+  ".": "./dist/index.mjs",
+  "./jsx-runtime": "./dist/jsx-runtime.mjs",
+  "./jsx-dev-runtime": "./dist/jsx-dev-runtime.mjs"
+}
+```
+
+Use `import { ... } from 'fraxel'` in examples and docs.
+
+## `create-fraxel`
+
+The `create-fraxel` package provides the `create-fraxel` binary.
+
+It creates a new Vite project from one of the bundled templates:
+
+- `empty`
+- `platformer`
+- `top-down`
+
+It owns CLI flags, prompts, template copying, optional dependency installation, and optional dev server launch.
+
+## `@fraxel/vite-plugin`
+
+The Vite plugin integrates Fraxel with Vite.
+
+It currently provides:
+
+- JSX runtime configuration.
+- Diagnostics for common setup issues.
+- `?texture` and `?sound` asset imports that return Fraxel `symbol` IDs.
+- `virtual:fraxel` metadata exports.
+- Client types through `@fraxel/vite-plugin/client`.
+
+It does not transform plain `.png` or `.mp3` imports into Fraxel symbols. Plain imports use Vite's normal URL-string behavior.
+
+## Dependency relationships
+
+`@fraxel/vite-plugin` has peer dependencies on `fraxel` and `vite`.
+
+Generated projects depend on `fraxel` and use `@fraxel/vite-plugin` as a dev dependency.
+
+`create-fraxel` bundles templates that reference both packages.

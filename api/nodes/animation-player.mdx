@@ -17,7 +17,7 @@ function Hero() {
   const anim = useAnimation()
 
   return (
-    <sprite ref={sprite} textureId={SHEET} sourceSize={[16, 24]}>
+    <sprite ref={sprite} textureId={SHEET} source={region([0, 0], [16, 24])}>
       <animator
         ref={anim}
         animations={() => ({
@@ -149,7 +149,7 @@ function Character() {
   const animName = useComputed(() => (isWalking() ? 'walk' : 'idle'))
 
   return (
-    <sprite ref={sprite} textureId={SHEET} sourceSize={[16, 24]}>
+    <sprite ref={sprite} textureId={SHEET} source={region([0, 0], [16, 24])}>
       <animator
         animations={() => ({
           idle: animationFromSheet(sprite, SHEET, {
@@ -185,7 +185,7 @@ function SwordSwing() {
   })
 
   return (
-    <sprite ref={sprite} textureId={SHEET} sourceSize={[32, 32]}>
+    <sprite ref={sprite} textureId={SHEET} source={region([0, 0], [32, 32])}>
       <animator
         ref={anim}
         animations={() => ({

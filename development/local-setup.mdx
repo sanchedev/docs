@@ -1,0 +1,64 @@
+---
+title: 'Fraxel Local Development Setup'
+sidebarTitle: 'Local Setup'
+description: 'Install and run the Fraxel monorepo locally with pnpm, build packages, run development watchers, lint changes, and understand Node requirements.'
+---
+
+This page covers working on Fraxel itself. If you only want to create a game, use [Quickstart](/getting-started/quickstart).
+
+## Requirements
+
+| Tool | Requirement | Notes |
+| ---- | ----------- | ----- |
+| Node.js | `>=18` for `fraxel` and `@fraxel/vite-plugin` | Package tooling and builds. |
+| Node.js | `>=20` for `create-fraxel` | The CLI package declares this requirement. |
+| pnpm | `10.29.3` | Declared by the workspace package manager field. |
+
+## Install dependencies
+
+Run from the Fraxel monorepo root:
+
+```bash
+pnpm install
+```
+
+## Common commands
+
+| Command | Purpose |
+| ------- | ------- |
+| `pnpm engine:build` | Build `packages/fraxel`. |
+| `pnpm engine:dev` | Watch-build `packages/fraxel`. |
+| `pnpm dev` | Run the engine watcher and demo dev server together. |
+| `pnpm lint` | Run ESLint across the workspace. |
+| `pnpm lint:fix` | Fix auto-fixable lint issues. |
+| `pnpm format:check` | Check Prettier formatting. |
+| `pnpm format` | Format files with Prettier. |
+
+## Package-specific commands
+
+Use `pnpm --filter` when working on one package:
+
+```bash
+pnpm --filter fraxel build
+pnpm --filter fraxel dev
+pnpm --filter create-fraxel build
+pnpm --filter @fraxel/vite-plugin build
+```
+
+## Build outputs
+
+Each package builds to its own `dist/` directory.
+
+Do not edit generated `dist/` files manually. Change source under `src/` and rebuild.
+
+## Development workflow
+
+1. Install dependencies with `pnpm install`.
+2. Build or watch the package you are changing.
+3. Test the affected example or template.
+4. Run `pnpm lint` before submitting changes.
+5. Update docs when public behavior changes.
+
+## Version-specific behavior
+
+Fraxel is still in alpha. Document the current code behavior first. If a planned version changes behavior, add a version note instead of documenting the future behavior as current.

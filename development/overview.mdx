@@ -1,0 +1,55 @@
+---
+title: 'Fraxel Development Environment Overview'
+sidebarTitle: 'Overview'
+description: 'Understand the Fraxel development environment, who this section is for, and how the runtime, CLI, Vite plugin, docs, and internals fit together.'
+---
+
+The Development section explains Fraxel as a codebase and toolchain, not just as a library you install in a game project.
+
+Use this section when you want to contribute to Fraxel, debug package behavior locally, update templates, or understand how the official tooling fits together.
+
+## What belongs here
+
+Fraxel is maintained as a small ecosystem:
+
+| Area | Purpose |
+| ---- | ------- |
+| `fraxel` | Runtime package: JSX runtime, nodes, hooks, assets, input, audio, collision, physics, and math. |
+| `create-fraxel` | Project generator that scaffolds Vite + Fraxel starter projects. |
+| `@fraxel/vite-plugin` | Vite integration for JSX config, diagnostics, and `?texture` / `?sound` asset imports. |
+| `docs` | Mintlify documentation site. |
+
+## User docs vs development docs
+
+If you are building a game, start with [Getting Started](/getting-started/introduction), [Guides](/guides/sprites), and [API Reference](/api/engine/game).
+
+Public learning material assumes this path:
+
+1. Create a project with `create-fraxel`.
+2. Work inside the generated Vite project.
+3. Import static assets with `?texture` and `?sound` through `@fraxel/vite-plugin`.
+4. Interact with Fraxel through JSX, hooks, components, `List`, and public helpers.
+
+For an existing Vite application, add `@fraxel/vite-plugin` manually. Use `fraxel` without the plugin only for small embedded games or custom integrations inside another page.
+
+If you are changing Fraxel itself, start here:
+
+- [Monorepo](/development/monorepo) explains the workspace structure.
+- [Local Setup](/development/local-setup) explains install, build, dev, and lint commands.
+- [Packages](/development/packages) explains package responsibilities and public entrypoints.
+- [Internals](/internals/architecture) explains runtime architecture.
+
+## Recommended reading order
+
+1. [Monorepo](/development/monorepo)
+2. [Local Setup](/development/local-setup)
+3. [Packages](/development/packages)
+4. [create-fraxel](/development/create-fraxel)
+5. [Vite Plugin](/development/vite-plugin)
+6. [Testing Templates](/development/testing-templates)
+
+## Boundaries
+
+Development docs can mention implementation details and package internals. Public API pages should stay focused on supported user-facing APIs.
+
+When an implementation detail is not part of the stable API, label it as internal or version-specific.

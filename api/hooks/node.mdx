@@ -1,74 +1,107 @@
 ---
 title: 'Node Hooks API Reference — Fraxel Game Engine'
 sidebarTitle: 'Node'
-description: "Reference for Fraxel's node-specific hooks: useSprite, useCollider, useRigidBody, and more for typed node references."
+description: "Technical reference for Fraxel's node-specific hooks, NodeReference, Node2DReference, reactive reference properties, methods, and triggers."
 ---
 
-Node hooks create typed references to specific node types. Each hook returns a `NodeReference` that becomes populated once the component mounts. Pass the reference to a node's `ref` prop to capture the live instance.
+Node hooks create typed references to JSX nodes. Pass the returned reference to a node's `ref` prop. Fraxel populates it when the node is mounted.
 
----
-
-## Base NodeReference
-
-All node-specific hooks return a type-specific reference that extends the base `NodeReference<T>`. The base provides:
-
-| Property    | Type                                                                   | Description                                                                           |
-| ----------- | ---------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
-| `node`      | `T`                                                                    | The live node instance. Throws `NodeNotInitializedError` if accessed before mount.    |
-| `signal`    | `SignalGetter<T \| null>`                                              | Reactive getter for the node instance. Returns `null` before mount and after destroy. |
-| `started`   | `Trigger<[]>`                                                          | Fires when the node starts.                                                           |
-| `updated`   | `Trigger<[delta: number]>`                                             | Fires every frame with the delta time.                                                |
-| `drawed`    | `Trigger<[delta: number]>`                                             | Fires every frame when the node is drawn.                                             |
-| `destroyed` | `Trigger<[]>`                                                          | Fires when the node is destroyed.                                                     |
-| `script`    | `<K>(scriptClass: K, noTrack?: boolean): InstanceType<K> \| undefined` | Access the attached `FraxelScript` instance by passing the script class constructor.  |
-| `spawn`     | `(jsx: Fraxel.Node) => void`                                           | Dynamically append a child node.                                                      |
+Use `reference.node` for direct access when needed. Prefer the reactive properties, methods, and triggers exposed by the reference when they exist.
 
 ---
 
-## useTransform
+## Base `NodeReference<T>`
 
-Returns a reference to a `Transform` node — the spatial container used to group and position child nodes.
+All node hooks return a reference that extends `NodeReference<T>`.
+
+| Member | Type | Description |
+| ------ | ---- | ----------- |
+| `node` | `T` | Live node instance. Throws `NodeNotInitializedError` before mount. |
+| `signal` | `SignalGetter<T \| null>` | Reactive getter for the live node. Returns `null` before mount and after destroy. |
+| `started` | `Trigger<[]>` | Fires when the node starts. |
+| `updated` | `Trigger<[delta: number]>` | Fires every update. |
+| `drawed` | `Trigger<[delta: number]>` | Fires every draw. |
+| `destroyed` | `Trigger<[]>` | Fires when the node is destroyed. |
+| `script(scriptClass, noTrack?)` | `InstanceType<K> \| undefined` | Returns the attached `FraxelScript` if it matches the class. |
+| `spawn(jsx)` | `(jsx: Fraxel.Node) => void` | Renders JSX and appends the resulting nodes as children. |
+
+```tsx
+const group = useGroup()
+
+useTrigger(group.started, () => {
+  group.spawn(<Enemy />)
+})
+
+return <group ref={group} />
+```
+
+## `Node2DReference<T>`
+
+Hooks for 2D nodes extend `Node2DReference<T>`.
+
+| Member | Type | Description |
+| ------ | ---- | ----------- |
+| `position` | `SignalGetter<Vector2>` | Current local position. |
+| `setPosition` | `(value: VectorLike) => void` | Sets local position. |
+| `rotation` | `SignalGetter<number>` | Current local rotation. |
+| `setRotation` | `(value: number) => void` | Sets local rotation. |
+
+This base applies to `useTransform`, `useSprite`, `useText`, `useGeometry`, `useCollider`, `useRigidBody`, `useCamera`, `useClickable`, and `useRayCast`.
+
+---
+
+## `useTransform()`
 
 ```ts
 useTransform(): TransformReference
 ```
 
+`TransformReference` extends `Node2DReference<PrimaryNode.Transform>` and adds no extra members.
+
 ```tsx
-import { useTransform } from 'fraxel'
+import { useTransform, useTrigger } from 'fraxel'
 
-function Player() {
-  const container = useTransform()
+function Mover() {
+  const transform = useTransform()
 
-  useEffect(() => {
-    console.log('Player position:', container.node.position)
+  useTrigger(transform.updated, () => {
+    transform.setPosition([transform.position().x + 1, transform.position().y])
   })
 
-  return (
-    <transform ref={container} position={[100, 200]}>
-      <sprite textureId={PLAYER} />
-    </transform>
-  )
+  return <transform ref={transform} />
 }
 ```
 
 ---
 
-## useSprite
-
-Returns a reference to a `Sprite` node — used to render textures.
+## `useSprite()`
 
 ```ts
 useSprite(): SpriteReference
 ```
 
-```tsx
-import { useSprite } from 'fraxel'
+`SpriteReference` extends `Node2DReference<PrimaryNode.Sprite>`.
 
-function Avatar() {
+| Member | Type | Description |
+| ------ | ---- | ----------- |
+| `source` | `SignalGetter<Region>` | Current source region. |
+| `setSource` | `(value: Region) => void` | Sets the source region. |
+| `flipX`, `flipY` | `SignalGetter<boolean>` | Flip state. |
+| `setFlipX`, `setFlipY` | `(value: boolean) => void` | Sets flip state. |
+| `brightness`, `grayscale`, `contrast`, `saturate`, `hueRotate`, `invert`, `opacity` | `SignalGetter<number>` | Filter values. |
+| `setBrightness`, `setGrayscale`, `setContrast`, `setSaturate`, `setHueRotate`, `setInvert`, `setOpacity` | `(value: number) => void` | Sets filter values. |
+| `modulate` | `SignalGetter<Color>` | Current modulate tint. |
+| `setModulate` | `(value: ColorLike) => void` | Sets modulate tint. |
+
+```tsx
+import PLAYER from '../assets/player.png?texture'
+import { useSprite, useTrigger } from 'fraxel'
+
+function PlayerSprite() {
   const sprite = useSprite()
 
-  useEffect(() => {
-    sprite.node.visible = true
+  useTrigger(sprite.started, () => {
+    sprite.setOpacity(0.8)
   })
 
   return <sprite ref={sprite} textureId={PLAYER} />
@@ -77,169 +110,203 @@ function Avatar() {
 
 ---
 
-## useText
-
-Returns a reference to a `Text` node — renders styled canvas text.
+## `useText()`
 
 ```ts
 useText(): TextReference
 ```
 
-```tsx
-import { useText } from 'fraxel'
+`TextReference` extends `Node2DReference<PrimaryNode.Text>`.
 
-function ScoreLabel() {
-  const text = useText()
+| Member | Type | Description |
+| ------ | ---- | ----------- |
+| `text` | `SignalGetter<string>` | Current text value. |
+| `setText` | `(text: string) => void` | Sets the text value. |
+
+```tsx
+import { useText, useEffect } from 'fraxel'
+
+function ScoreLabel({ score }: { score: () => number }) {
+  const label = useText()
 
   useEffect(() => {
-    text.node.text = 'Score: 0'
+    label.setText(`Score: ${score()}`)
   })
 
-  return (
-    <text
-      ref={text}
-      text={() => `Score: ${score()}`}
-      style={{ fontSize: 24, foregroundColor: '#fff' }}
-    />
-  )
+  return <text ref={label} text="Score: 0" />
 }
 ```
 
 ---
 
-## useGeometry
-
-Returns a reference to a `Geometry` node — renders primitive shapes (rectangles, circles, capsules).
+## `useGeometry()`
 
 ```ts
 useGeometry(): GeometryReference
 ```
 
+`GeometryReference` extends `Node2DReference<PrimaryNode.Geometry>`.
+
+| Member | Type | Description |
+| ------ | ---- | ----------- |
+| `shape` | `SignalGetter<Shape>` | Current rendered shape. |
+| `fillColor` | `SignalGetter<Color>` | Current fill color. |
+| `strokeColor` | `SignalGetter<Color \| undefined>` | Current stroke color. |
+| `strokeWidth` | `SignalGetter<number>` | Current stroke width. |
+| `size` | `SignalGetter<Vector2>` | Computed shape size. |
+
+`GeometryReference` exposes reactive reads only. Change geometry through reactive props or `geometry.node` when you need direct control.
+
 ```tsx
-import { useGeometry } from 'fraxel'
+import { shapes, useGeometry, useEffect } from 'fraxel'
 
-function HealthBar() {
-  const bar = useGeometry()
-  const [health] = useSignal(100)
+function DebugBox() {
+  const geometry = useGeometry()
 
-  return (
-    <geometry
-      ref={bar}
-      shape={shapes.rectangle(200, 20)}
-      fillColor={() => [1 - health() / 100, health() / 100, 0, 1]}
-    />
-  )
+  useEffect(() => {
+    console.log('Geometry size:', geometry.size())
+  })
+
+  return <geometry ref={geometry} shape={shapes.rectangle(32, 32)} />
 }
 ```
 
 ---
 
-## useCollider
-
-Returns a reference to a `Collider` node — used for collision detection.
+## `useCollider()`
 
 ```ts
 useCollider(): ColliderReference
 ```
 
-```tsx
-import { useCollider, useEffect } from 'fraxel'
-import { shapes } from 'fraxel'
+`ColliderReference` extends `Node2DReference<PrimaryNode.Collider>`.
 
-function Enemy() {
+| Member | Type | Description |
+| ------ | ---- | ----------- |
+| `colliding` | `SignalGetter<boolean>` | `true` when overlapping at least one collider. |
+| `detectedColliders` | `SignalGetter<Set<Collider>>` | Current colliders being touched. |
+| `colliderEntered` | `Trigger<[other: Collider]>` | Fires when a collision starts. |
+| `colliderExited` | `Trigger<[other: Collider]>` | Fires when a collision ends. |
+
+```tsx
+import { shapes, useCollider, useTrigger } from 'fraxel'
+
+function Coin() {
   const collider = useCollider()
 
-  useEffect(() => {
-    console.log('Enemy collider mounted')
+  useTrigger(collider.colliderEntered, () => {
+    collider.node.destroy()
+  })
+
+  return <collider ref={collider} shape={shapes.circle(8)} group={['coin']} collidesWith={['player']} />
+}
+```
+
+---
+
+## `useRigidBody()`
+
+```ts
+useRigidBody(): RigidBodyReference
+```
+
+`RigidBodyReference` extends `Node2DReference<PrimaryNode.RigidBody>`.
+
+| Member | Type | Description |
+| ------ | ---- | ----------- |
+| `velocity` | `SignalGetter<Vector2>` | Current body velocity. |
+| `mass` | `SignalGetter<number>` | Current mass. |
+| `friction` | `SignalGetter<number>` | Current friction coefficient. |
+| `bounce` | `SignalGetter<number>` | Current bounce value. |
+| `isStatic` | `SignalGetter<boolean>` | Whether the body is static. |
+| `useGravity` | `SignalGetter<boolean>` | Whether gravity affects the body. |
+| `applyForce(force)` | `(force: VectorLike) => void` | Applies continuous force. |
+| `applyImpulse(impulse)` | `(impulse: VectorLike) => void` | Applies instant velocity change. |
+| `setVelocity(value)` | `(value: VectorLike) => void` | Sets velocity directly. |
+
+```tsx
+import { Input, shapes, useAction, useRigidBody, useUpdate } from 'fraxel'
+
+const Jump = Input.createAction({ key: ' ' })
+
+function PlayerBody() {
+  const body = useRigidBody()
+  const jump = useAction(Jump)
+
+  useUpdate(() => {
+    if (jump.justPressed()) body.applyImpulse([0, -320])
   })
 
   return (
-    <collider
-      ref={collider}
-      shape={shapes.circle(8)}
-      group={['enemy']}
-      collidesWith={['projectile']}
-    />
+    <body ref={body}>
+      <collider shape={shapes.rectangle(24, 32)} group={['player']} collidesWith={['ground']} />
+    </body>
   )
 }
 ```
 
 ---
 
-## useRigidBody
-
-Returns a reference to a `RigidBody` node — applies physics simulation.
-
-```ts
-useRigidBody(): RigidBodyReference
-```
-
-```tsx
-import { useRigidBody, useAction, useEffect } from 'fraxel'
-import { Input } from 'fraxel'
-
-const Jump = Input.createAction({ key: ' ' })
-
-function Player() {
-  const body = useRigidBody()
-  const { justPressed } = useAction(Jump)
-
-  useEffect(() => {
-    if (justPressed()) {
-      body.node.applyImpulse([0, -400])
-    }
-  })
-
-  return <body ref={body} />
-}
-```
-
----
-
-## useCamera
-
-Returns a reference to a `Camera` node — controls the viewport.
+## `useCamera()`
 
 ```ts
 useCamera(): CameraReference
 ```
 
-```tsx
-import { useCamera } from 'fraxel'
+`CameraReference` extends `Node2DReference<PrimaryNode.Camera>`.
 
-function FollowCamera() {
+| Member | Type | Description |
+| ------ | ---- | ----------- |
+| `zoom` | `SignalGetter<Vector2>` | Current zoom. |
+| `offset` | `SignalGetter<Vector2>` | Current camera offset. |
+| `smoothing` | `SignalGetter<number>` | Current smoothing value. |
+| `limit` | `SignalGetter<Bounds \| null>` | Current camera bounds. |
+| `makeCurrent()` | `() => void` | Makes this the active camera. |
+| `shake(options)` | `({ duration, strength }) => void` | Starts camera shake. |
+| `screenToWorld(pos)` | `(pos: VectorLike) => Vector2` | Converts screen coordinates to world coordinates. |
+| `worldToScreen(pos)` | `(pos: VectorLike) => Vector2` | Converts world coordinates to screen coordinates. |
+
+```tsx
+import { useCamera, useTrigger } from 'fraxel'
+
+function MainCamera() {
   const camera = useCamera()
 
-  useEffect(() => {
-    camera.node.follow(playerRef)
+  useTrigger(camera.started, () => {
+    camera.makeCurrent()
   })
 
-  return <camera ref={camera} />
+  return <camera ref={camera} smoothing={8} />
 }
 ```
 
 ---
 
-## useClickable
-
-Returns a reference to a `Clickable` node — handles pointer interactions.
+## `useClickable()`
 
 ```ts
 useClickable(): ClickableReference
 ```
 
+`ClickableReference` extends `Node2DReference<PrimaryNode.Clickable>`.
+
+| Member | Type | Description |
+| ------ | ---- | ----------- |
+| `hovered` | `SignalGetter<boolean>` | `true` when pointer is inside. |
+| `disabled` | `SignalGetter<boolean>` | Current disabled state. |
+| `mousePosition` | `SignalGetter<Vector2>` | Pointer position in local coordinates. |
+| `clicked` | `Trigger<[position: Vector2]>` | Fires on pointer release inside the area. |
+| `mouseEntered` | `Trigger<[]>` | Fires when pointer enters. |
+| `mouseExited` | `Trigger<[]>` | Fires when pointer exits. |
+
 ```tsx
-import { useClickable, useTrigger, useEffect } from 'fraxel'
+import { useClickable, useTrigger } from 'fraxel'
 
 function Button() {
   const clickable = useClickable()
 
-  useTrigger(clickable.clicked, () => {
-    console.log('clicked')
-  })
-
-  useEffect(() => {
-    console.log('Button is interactive')
+  useTrigger(clickable.clicked, (position) => {
+    console.log('clicked at', position)
   })
 
   return <clickable ref={clickable} size={[120, 40]} />
@@ -248,135 +315,189 @@ function Button() {
 
 ---
 
-## useRayCast
-
-Returns a reference to a `RayCast` node — projects a ray for line-of-sight or hit detection.
+## `useRayCast()`
 
 ```ts
 useRayCast(): RayCastReference
 ```
 
+`RayCastReference` extends `Node2DReference<PrimaryNode.RayCast>`.
+
+| Member | Type | Description |
+| ------ | ---- | ----------- |
+| `direction` | `SignalGetter<Vector2>` | Current ray direction. |
+| `collider` | `SignalGetter<Collider \| null>` | Current detected collider. |
+| `detected` | `SignalGetter<boolean>` | `true` when a collider is detected. |
+| `colliderEntered` | `Trigger<[collider: Collider]>` | Fires when detection starts. |
+| `colliderExited` | `Trigger<[collider: Collider]>` | Fires when detection ends. |
+| `getCollider()` | `() => Collider \| null` | Returns the current detected collider. |
+
 ```tsx
-import { useRayCast } from 'fraxel'
+import { useRayCast, useEffect } from 'fraxel'
 
 function VisionRay() {
   const ray = useRayCast()
 
   useEffect(() => {
-    const hit = ray.node.cast()
-    if (hit) console.log('Hit:', hit.node)
+    if (ray.detected()) console.log('Detected:', ray.collider())
   })
 
-  return <raycast ref={ray} direction={[1, 0]} maxDistance={200} />
+  return <raycast ref={ray} direction={[200, 0]} collidesWith={['enemy']} />
 }
 ```
 
 ---
 
-## useAnimation
-
-Returns a reference to an `AnimationPlayer` node — plays sprite animations.
+## `useAnimation()`
 
 ```ts
 useAnimation(): AnimationReference
 ```
 
-```tsx
-import { useAnimation } from 'fraxel'
+`AnimationReference` extends `NodeReference<PrimaryNode.AnimationPlayer>`.
 
-function WalkCycle() {
+| Member | Type | Description |
+| ------ | ---- | ----------- |
+| `animName` | `SignalGetter<string \| null>` | Current animation name. |
+| `frameIndex` | `SignalGetter<number>` | Current frame index. |
+| `ended` | `SignalGetter<boolean>` | `true` after the current animation ends. |
+| `animationChanged` | `Trigger<[newAnim: string, oldAnim: string \| null]>` | Fires when animation changes. |
+| `animationStopped` | `Trigger<[anim: string]>` | Fires when animation stops. |
+| `animationIndexChanged` | `Trigger<[index: number]>` | Fires when frame index changes. |
+| `animationEnded` | `Trigger<[anim: string]>` | Fires when animation ends. |
+| `play(name, index?)` | `(name: string, index?: number) => void` | Plays an animation. |
+| `stop()` | `() => void` | Stops the current animation. |
+| `setNext(name)` | `(name: string \| null) => void` | Queues the next animation. |
+
+```tsx
+import { useAnimation, useTrigger } from 'fraxel'
+
+function Animator() {
   const anim = useAnimation()
 
-  useEffect(() => {
-    anim.node.play('walk')
+  useTrigger(anim.animationEnded, () => {
+    anim.play('idle')
   })
 
-  return <animator ref={anim} animations={walkAnimations} />
+  return <animator ref={anim} animations={() => animations} currentAnim="idle" />
 }
 ```
 
 ---
 
-## useAudio
-
-Returns a reference to an `AudioPlayer` node — plays audio clips.
+## `useAudio()`
 
 ```ts
 useAudio(): AudioReference
 ```
 
+`AudioReference` extends `NodeReference<PrimaryNode.AudioPlayer>`.
+
+| Member | Type | Description |
+| ------ | ---- | ----------- |
+| `playing` | `SignalGetter<boolean>` | `true` while audio is playing. |
+| `ended` | `Trigger<[]>` | Fires when playback finishes naturally. |
+| `error` | `Trigger<[err: Error]>` | Fires when playback fails. |
+| `play(offset?)` | `(offset?: number) => void` | Starts playback. |
+| `pause()` | `() => void` | Pauses playback. |
+| `stop()` | `() => void` | Stops playback and resets offset. |
+
 ```tsx
-import { useAudio, useEffect } from 'fraxel'
+import SHOOT from '../assets/shoot.ogg?sound'
+import { useAudio, useTrigger } from 'fraxel'
 
 function SoundEffect() {
   const audio = useAudio()
 
-  useEffect(() => {
-    audio.play()
-  })
+  useTrigger(audio.ended, () => console.log('done'))
 
-  return <audio ref={audio} src={EXPLOSION_SOUND} />
+  return <audio ref={audio} soundId={SHOOT} />
 }
 ```
 
 ---
 
-## useTimer
-
-Returns a reference to a `Timer` node — countdown or interval timer.
+## `useTimer()`
 
 ```ts
 useTimer(): TimerReference
 ```
 
+`TimerReference` extends `NodeReference<PrimaryNode.Timer>`.
+
+| Member | Type | Description |
+| ------ | ---- | ----------- |
+| `time` | `SignalGetter<number>` | Current elapsed time in seconds. |
+| `duration` | `SignalGetter<number>` | Current duration in seconds. |
+| `progress` | `SignalGetter<number>` | Current `time / duration`, usually `0` to `1`. |
+| `timeout` | `Trigger<[]>` | Fires when timer reaches duration. |
+| `timeChanged` | `Trigger<[time: number]>` | Fires while timer is playing. |
+| `play(from?)` | `(from?: number) => void` | Starts or resumes the timer. |
+| `pause()` | `() => void` | Pauses without reset. |
+| `stop()` | `() => void` | Stops and resets to `0`. |
+
 ```tsx
-import { useTimer, useEffect } from 'fraxel'
+import { useTimer, useTrigger } from 'fraxel'
 
 function Cooldown() {
   const timer = useTimer()
 
-  useEffect(() => {
-    timer.node.start(3)
-    timer.node.finished.on(() => {
-      console.log('Cooldown complete')
-    })
-  })
+  useTrigger(timer.timeout, () => console.log('ready'))
 
-  return <timer ref={timer} />
+  return <timer ref={timer} duration={3} autoPlay />
 }
 ```
 
 ---
 
-## useGroup
-
-Returns a reference to a `Group` node — a logical grouping container (no rendering).
+## `useGroup()`
 
 ```ts
 useGroup(): GroupReference
 ```
 
+`GroupReference` extends `NodeReference<PrimaryNode.Group>` and adds no extra members.
+
 ```tsx
-import { useGroup } from 'fraxel'
+import { useGroup, useTrigger } from 'fraxel'
 
 function EnemySpawner() {
   const group = useGroup()
 
-  useEffect(() => {
-    console.log('Spawner group ready')
+  useTrigger(group.started, () => {
+    group.spawn(<Enemy position={[0, 0]} />)
   })
 
+  return <group ref={group} />
+}
+```
+
+---
+
+## `useView()`
+
+```ts
+useView(): ViewReference
+```
+
+`ViewReference` extends `NodeReference<PrimaryNode.View>` and adds no extra members. Use it for lifecycle access to `<view>` nodes.
+
+```tsx
+import { useView } from 'fraxel'
+
+function HUD() {
+  const view = useView()
+
   return (
-    <group ref={group}>
-      <Enemy position={[0, 0]} />
-      <Enemy position={[100, 0]} />
-    </group>
+    <view ref={view}>
+      <text text="Score: 0" />
+    </view>
   )
 }
 ```
 
 ## Related
 
-- [FraxelScript](/api/concepts/fraxel-script) — Learn more about scripts
-- [Event System](/api/concepts/event-system) — Understanding events
-- [State Hooks](/api/hooks/state) — `useSignal`, `useComputed`
+- [Lifecycle Hooks](/api/hooks/lifecycle) — `useEffect`, `useMount`, and `useUpdate`
+- [Input Hooks](/api/hooks/input) — `useAction` and `useActionAxis`
+- [Node API](/getting-started/nodes) — JSX node overview

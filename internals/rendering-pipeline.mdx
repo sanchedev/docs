@@ -4,6 +4,11 @@ sidebarTitle: "Rendering Pipeline"
 description: "How Fraxel traverses the node tree, applies camera transforms, handles DPR scaling, draws sprites with filters, and keeps reactive props in sync."
 ---
 
+<Note>
+  This page describes Fraxel internals. You do not need this knowledge to build
+  a game with Fraxel.
+</Note>
+
 Fraxel renders to a single `CanvasRenderingContext2D`. Every frame starts with a blank canvas and re-draws the entire scene tree from scratch. There is no retained display list, no dirty-rectangle optimization, and no layer compositing — just a depth-first tree walk that calls each node's `draw()` method in order.
 
 ## Canvas Setup
@@ -115,7 +120,7 @@ A `smoothing` of `0` means instant tracking; increasing the value makes the view
 
 1. **Builds a CSS filter string** by inspecting each filter property. Only non-default values contribute, avoiding an empty `ctx.filter` assignment.
 2. **Saves context state** with `ctx.save()`.
-3. **Draws the texture** via `Texture.draw()`, which calls `ctx.drawImage` with source rectangle (margin + sourceSize) and destination rectangle (position + displaySize). Flipping is implemented by passing a negated `displaySize` component.
+3. **Draws the texture** via `Texture.draw()`, which calls `ctx.drawImage` with source region and destination rectangle (position + displaySize). Flipping is implemented by passing a negated `displaySize` component.
 4. **Handles `modulate`** using `globalCompositeOperation: 'multiply'`. After drawing the texture, a filled rectangle with the tint color is drawn in multiply mode, darkening each channel proportionally. This is reset to `'source-over'` immediately after.
 5. **Restores context state** with `ctx.restore()`.
 

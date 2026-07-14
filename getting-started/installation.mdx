@@ -1,40 +1,48 @@
 ---
-title: 'Installing Fraxel — npm Setup & TypeScript Config'
+title: 'Installing Fraxel Manually'
 sidebarTitle: 'Installation'
-description: "Install Fraxel with npm, yarn, or pnpm. Configure TypeScript's jsxImportSource to use Fraxel's JSX runtime and set up your HTML canvas entry point."
+description: 'Add Fraxel to an existing Vite project with @fraxel/vite-plugin, or use fraxel alone for small embedded games and custom integrations.'
 ---
 
-<Note>
-  **New to Fraxel?** Run `npx create-fraxel my-game` to scaffold a project with
-  Vite and the Fraxel plugin pre-configured. See the
-  [Quickstart](/getting-started/quickstart) guide.
-</Note>
+For new games, use [Quickstart](/getting-started/quickstart) and create a project with `create-fraxel`. That is the recommended path and the context assumed by the guides.
 
-This page covers manual installation without the CLI. If you prefer to set up everything yourself — or need to add Fraxel to an existing project — follow the steps below.
+Use this page when you already have a Vite app or when you intentionally want to embed a small interactive Fraxel scene inside another page.
 
-## Install the package
+## Existing Vite project
+
+Install the runtime and the Vite plugin:
 
 <CodeGroup>
 
 ```bash npm
 npm install fraxel
-```
-
-```bash yarn
-yarn add fraxel
+npm install --save-dev @fraxel/vite-plugin
 ```
 
 ```bash pnpm
 pnpm add fraxel
+pnpm add -D @fraxel/vite-plugin
+```
+
+```bash yarn
+yarn add fraxel
+yarn add --dev @fraxel/vite-plugin
 ```
 
 </CodeGroup>
 
-Fraxel has no runtime dependencies. Everything — the renderer, reactivity system, physics, audio, and input — ships in the single `fraxel` package.
+Configure Vite:
 
-## Configure TypeScript
+```js vite.config.js
+import { defineConfig } from 'vite'
+import { fraxel } from '@fraxel/vite-plugin'
 
-Add the following to your `tsconfig.json`. The critical options are `jsx: "react-jsx"` and `jsxImportSource: "fraxel"`, which tell TypeScript to compile JSX using Fraxel's runtime instead of React's.
+export default defineConfig({
+  plugins: [fraxel()],
+})
+```
+
+Configure TypeScript:
 
 ```json tsconfig.json
 {
@@ -43,87 +51,68 @@ Add the following to your `tsconfig.json`. The critical options are `jsx: "react
     "module": "ESNext",
     "moduleResolution": "Bundler",
     "strict": true,
-    "verbatimModuleSyntax": true,
+    "jsx": "react-jsx",
+    "jsxImportSource": "fraxel",
+    "types": ["@fraxel/vite-plugin/client"]
+  }
+}
+```
+
+The plugin handles Fraxel's JSX runtime and lets you import static assets as Fraxel symbols:
+
+```tsx
+import PLAYER from './assets/player.png?texture'
+import JUMP from './assets/jump.ogg?sound'
+```
+
+Plain imports without `?texture` or `?sound` use Vite's normal URL-string behavior.
+
+## HTML root
+
+Fraxel creates a `<canvas>` inside the element you pass to `createGame()`.
+
+```html index.html
+<div id="app"></div>
+<script type="module" src="/src/main.tsx"></script>
+```
+
+```tsx src/main.tsx
+import { createGame, GameRoot, SceneRoot } from 'fraxel'
+import './style.css'
+
+const game = createGame(
+  <GameRoot width={480} height={360} defaultScene="main">
+    <SceneRoot name="main" component={() => import('./scenes/main')} />
+  </GameRoot>,
+  document.querySelector('#app')!,
+)
+
+game.play()
+```
+
+## Embedded or small no-plugin setup
+
+<Note>
+  Using `fraxel` without `@fraxel/vite-plugin` is intended for small embedded
+  games or custom integrations inside another page. It is not the recommended
+  setup for full projects.
+</Note>
+
+If you skip the plugin, you must configure JSX yourself and load assets with runtime URLs:
+
+```json tsconfig.json
+{
+  "compilerOptions": {
     "jsx": "react-jsx",
     "jsxImportSource": "fraxel"
   }
 }
 ```
 
-<Note>
-  `verbatimModuleSyntax` enforces that type-only imports use the `import type`
-  syntax. You will need to write `import type {NodeReference} from 'fraxel'`
-  instead of `import {NodeReference} from 'fraxel'` for types. This keeps the
-  emitted JavaScript clean and avoids accidental runtime imports of type-only
-  symbols.
-</Note>
+```ts
+import { loadTexture } from 'fraxel'
 
-## Create your HTML entry point
-
-Fraxel renders into a `<canvas>` element that it creates and mounts inside a container element in your HTML. Add a `div` with an `id` of `root` (or any ID you prefer) and a `<script>` tag pointing at your compiled entry file.
-
-```html index.html
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>My Fraxel Game</title>
-    <style>
-      body {
-        margin: 0;
-        background: #000;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        height: 100vh;
-      }
-      canvas {
-        image-rendering: pixelated;
-      }
-    </style>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
-</html>
+const PLAYER = await loadTexture('/assets/player.png')
 ```
 
-<Tip>
-  Setting `image-rendering: pixelated` on the canvas prevents the browser from
-  blurring low-resolution pixel-art games when the canvas is scaled up via CSS.
-</Tip>
-
-## Import paths
-
-Everything is exported from a single entry point — `'fraxel'`:
-
-```tsx main.tsx
-import { createGame, GameRoot, SceneRoot } from 'fraxel'
-import { useSignal, useSprite, useTrigger } from 'fraxel'
-import { loadTexture, shapes } from 'fraxel'
-```
-
-## Verify your setup
-
-Create a minimal `src/main.tsx` and run your bundler. If TypeScript compiles without errors and you see a black canvas in the browser, your setup is correct.
-
-```tsx src/main.tsx
-import { createGame, GameRoot, SceneRoot } from 'fraxel'
-
-const scene = () => <transform />
-
-const game = createGame(
-  <GameRoot width={320} height={180} defaultScene='main'>
-    <SceneRoot name='main' component={scene} />
-  </GameRoot>,
-  document.querySelector('#root')!,
-)
-
-game.play()
-```
-
-<Note>
-  Fraxel uses `top-level await` for asset loading in most projects. Make sure your bundler targets ES2022 or later and your `<script>` tag uses `type="module"`.
-</Note>
+This works well for small interactive embeds where you do not need the full project workflow that `create-fraxel` and the Vite plugin provide.

@@ -4,6 +4,11 @@ sidebarTitle: "Reactivity"
 description: "How Fraxel's fine-grained signal system works: Signal, SignalRegister dependency tracking, computed values, effect batching, and memory management."
 ---
 
+<Note>
+  This page describes Fraxel internals. You do not need this knowledge to build
+  a game with Fraxel.
+</Note>
+
 Fraxel's reactivity system is a compact, fine-grained signal implementation. It is the layer that lets you write `position={speed}` (where `speed` is a signal getter) in JSX and have the node's position prop update automatically whenever the signal changes — with no virtual DOM, no diffing, and no scheduler overhead.
 
 ## The `Signal<T>` Class

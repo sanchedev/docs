@@ -378,6 +378,51 @@ type ColorLike =
 
 ---
 
+## Region
+
+Describes a rectangular region within a texture — an offset into the source and a size. Used by the `source` prop on `<sprite>` and `<animator>` to select a frame from a sprite sheet.
+
+```ts
+class Region {
+  offset: Vector2
+  size: Vector2
+
+  constructor(offset: VectorLike, size: VectorLike)
+}
+```
+
+### Usage
+
+```tsx
+import { region } from 'fraxel'
+
+// Select a 16×16 frame at offset (32, 0) in the sprite sheet
+<sprite source={region([32, 0], [16, 16])} />
+```
+
+### Instance Properties
+
+| Property | Type | Description |
+|---|---|---|
+| `offset` | `Vector2` | Pixel offset into the source texture (top-left corner of the region). |
+| `size` | `Vector2` | Width and height of the region in pixels. |
+
+### Factory function
+
+Preferred way to create a `Region`:
+
+```ts
+region(offset: VectorLike, size: VectorLike): Region
+```
+
+```ts
+import { region } from 'fraxel'
+
+const frame = region([32, 0], [16, 16])
+```
+
+---
+
 ## clamp
 
 Restricts a value to a closed interval `[min, max]`.

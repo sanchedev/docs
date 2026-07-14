@@ -104,7 +104,7 @@ function CountdownLabel() {
       <text
         position={[200, 10]}
         text={() => {
-          const remaining = 10 - /* elapsed */ 0
+          const remaining = 10 - timer.time()
           return `Time: ${remaining.toFixed(1)}s`
         }}
         style={{ fontSize: 20, foregroundColor: '#ffdd44', textAlign: 'center' }}

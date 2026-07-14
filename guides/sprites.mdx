@@ -1,26 +1,23 @@
 ---
 title: 'Loading and Displaying Sprites with Textures in Fraxel'
 sidebarTitle: 'Sprites'
-description: 'Learn how to load textures and display them as sprites in Fraxel using JSX. Covers textureId, sourceSize, displaySize, flipping, and visual filters.'
+description: 'Learn how to load textures and display them as sprites in Fraxel using JSX. Covers textureId, source, displaySize, flipping, and visual filters.'
 ---
 
 Every visible game object in Fraxel starts with a texture on the canvas. The `<sprite>` node is your primary tool for displaying images — from a simple background to a sliced frame on a sprite sheet. Before anything appears on screen, you need to load a texture file and hand its symbol ID to the sprite.
 
-## Loading a Texture
+## Importing a texture
 
-Use `loadTexture()` from `fraxel` to fetch an image and register it with the engine. It returns a `symbol` that acts as a stable, deduplicated handle. Calling `loadTexture` with the same URL twice returns the same symbol.
+In a `create-fraxel` project, put static art under `src/assets/` and import it with `?texture`. The Vite plugin loads the file and gives you a Fraxel texture `symbol`.
 
-```ts assets.ts
-import { loadTexture } from 'fraxel'
-
-export const PLAYER = await loadTexture('/assets/player.png')
-export const BACKGROUND = await loadTexture('/assets/background.png')
+```ts src/assets.ts
+export { default as PLAYER } from './assets/player.png?texture'
+export { default as BACKGROUND } from './assets/background.png?texture'
 ```
 
 <Note>
-  Load textures at the module's top level (outside components) so they're ready
-  before your game renders. For large batches, use
-  [`loadBatch`](/guides/asset-pipeline) with a progress callback.
+  Use `loadTexture()` only for runtime URLs or files served from `public/`.
+  Static assets in guides use `?texture`.
 </Note>
 
 ## Your First Sprite
@@ -35,7 +32,7 @@ function Player() {
 }
 ```
 
-The sprite renders centered at the node's `position`. By default it uses the full texture size.
+The sprite renders at the node's `position`. By default it uses the full texture size.
 
 ## Positioning with `<transform>`
 
@@ -55,7 +52,7 @@ function Player() {
 
 ## Sprite Sheet Slicing
 
-When your texture is a sprite sheet — multiple frames packed into one image — you tell the sprite which region to display using `margin` (the top-left offset in pixels) and `sourceSize` (the width and height of a single frame). `displaySize` lets you scale the frame up for rendering without changing the source crop.
+When your texture is a sprite sheet — multiple frames packed into one image — you tell the sprite which region to display using the `source` prop. It accepts a `Region` with `offset` (the top-left coordinate in pixels) and `size` (the width and height of a single frame). `displaySize` lets you scale the frame up for rendering without changing the source crop.
 
 ```tsx player.tsx
 import { WALK_SHEET } from './assets.js'
@@ -64,36 +61,48 @@ function Player() {
   return (
     <sprite
       textureId={WALK_SHEET}
-      margin={[0, 0]} // top-left of first frame
-      sourceSize={[32, 32]} // each frame is 32×32 px
+      source={region([0, 0], [32, 32])} // first frame, 32×32 px
       displaySize={[64, 64]} // render at 2× scale
     />
   )
 }
 ```
 
-For animated sheets, `margin` is updated each frame by `<animator>`. See [Animation](/guides/animation) for the full workflow.
+For animated sheets, `source` is updated each frame by `<animator>`. See [Animation](/guides/animation) for the full workflow.
 
 ## All Sprite Props
 
 <ParamField path='textureId' type='Reactive<symbol>'>
-  The texture symbol returned by `loadTexture()`. Can be a `SignalGetter` for
-  dynamic texture swapping.
+  A texture symbol, usually imported with `?texture`. Can be a `SignalGetter` for dynamic texture swapping.
+</ParamField>
+
+<ParamField path='source' type='Reactive<Region>'>
+  Describes which rectangular region of the source texture to draw. Accepts a
+  `Region` instance or an object with `offset` and `size` properties. Use this
+  for sprite-sheet slicing.
 </ParamField>
 
 <ParamField path='margin' type='Reactive<VectorLike>' default='[0, 0]'>
   Pixel offset into the texture. Used by the animation system to select sprite
   sheet frames.
+
+  <Warning>
+    `margin` is deprecated. Use `source` instead.
+  </Warning>
 </ParamField>
 
 <ParamField path='sourceSize' type='Reactive<VectorLike>'>
   Width and height of the region to sample from the texture. Defaults to the
   full texture size.
+
+  <Warning>
+    `sourceSize` is deprecated. Use `source` instead.
+  </Warning>
 </ParamField>
 
 <ParamField path='displaySize' type='Reactive<VectorLike>'>
-  Rendered size on the canvas. Defaults to `sourceSize`. Use this to scale a
-  sprite without modifying the crop.
+  Rendered size on the canvas. Defaults to the `source` region size. Use this
+  to scale a sprite without modifying the crop.
 </ParamField>
 
 <ParamField path='flipX' type='Reactive<boolean>' default='false'>
@@ -145,10 +154,9 @@ function Player() {
 Here's a complete player component with a sprite sheet slice, 2× display scale, and a hit-flash effect driven by a tween:
 
 ```tsx player.tsx
+import PLAYER_SHEET from '../assets/player-sheet.png?texture'
 import { useSprite, useCollider, useTrigger } from 'fraxel'
-import { loadTexture, shapes, tween } from 'fraxel'
-
-const PLAYER_SHEET = await loadTexture('/assets/player-sheet.png')
+import { shapes, tween } from 'fraxel'
 
 function Player() {
   const sprite = useSprite()
@@ -170,7 +178,7 @@ function Player() {
       <sprite
         ref={sprite}
         textureId={PLAYER_SHEET}
-        sourceSize={[32, 32]}
+        source={region([0, 0], [32, 32])}
         displaySize={[64, 64]}
       />
       <collider
